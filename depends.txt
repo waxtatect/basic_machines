@@ -1,7 +1,0 @@
-default
-protector?
-doors?
-areas?
-boneworld?
-moreores?
-mesecons?

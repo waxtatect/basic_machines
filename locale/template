@@ -1,0 +1,456 @@
+# textdomain: basic_machines
+
+# autocrafter.lua
+Unknown item=
+Unconfigured autocrafter: unknown recipe=
+Unconfigured autocrafter=
+Autocrafter: '@1' (@2)=
+Autocrafter=
+Unconfigured autocrafter: Place items for recipe top left. To operate place required items in bottom space (src inventory) and activate with signal. Obtain crafted item from top right (dst inventory).=
+
+# ball.lua
+@#BALL: target hp @1=
+Lifetime=
+Target=
+Speed=
+Energy=
+Bounce=
+Gravity=
+Punch.=
+Punchable=
+HP=
+Hurt=
+Solid=
+Texture=
+Scale=
+Visual=
+help=
+OK=
+Spawns energy ball=
+@nLifetime:		[1,   +∞[=
+## ball spawner help
+BALL SPAWNER CAPABILITIES=
+#
+VALUES@
+@nTarget*:		Direction of velocity@
+				x: [-@1, @2], y: [-@3, @4], z: [-@5, @6]@
+Speed:			[-10, 10]@
+Energy:			[-1,  1]@
+Bounce**:		[0,   2]@
+Gravity:		[0.1, 40]@
+Punchable***:	[0,   2]@
+Hp:				[0,   +∞[@
+Hurt:			]-∞,  @7]@8@
+Solid*:			[0,   1]@
+Texture:		Texture name with extension, up to 512 characters@
+Scale*:			[1,   1000]@
+Visual*:		"cube" or "sprite"@
+@n*: Not available as individual Ball Spawner@
+@n**: Set to 2, the ball bounce following y direction and for the next blocks:@
+@9@
+@n***: 0: not punchable, 1: only in protected area, 2: everywhere@
+@nNote: Hold sneak while digging to get the Ball Spawner@n=
+##
+Overheat: temperature @1=
+Ball Spawner=
+
+# clockgen.lua
+Toggle clock generator/keypad repeats=
+clockgen set to @1=
+Clock Generator - use sparingly, continually activates top block=
+Clock Generator: Interference from nearby clock generator detected=
+Clock Generator (owned by @1): place machine to be activated on top=
+
+# constructors.lua
+CRAFT=
+@#CRAFTING: you need '@1' to craft '@2'=
+@#CRAFTING: '@1' (@2)=
+Constructor: to operate it insert materials, select item to make and click craft button=
+## basic_machines:constructor
+Constructor: used to make machines=
+Keypad=
+Light=
+Grinder=
+Mover=
+Battery=
+Generator=
+Detector=
+Distributor=
+Clock Generator=
+Recycler=
+Environment=
+Power Block=
+Power Cell=
+Coal Lump=
+Mesecon Adapter=
+Automate crafting=
+Spawn moving energy balls=
+Power for machines=
+For making circuits that run non stop=
+Coal lump, contains 1 energy unit=
+Detect and measure players, objects, blocks, light level=
+Organize your circuits better=
+Change gravity and more=
+Generate power crystals=
+Makes dusts and grinds materials=
+Turns on/off lights and activates machines or opens doors=
+Light in darkness=
+Can dig, harvest, plant, teleport or move items from/in inventories=
+Energy cell, contains 11 energy units=
+Energy cell, contains 1 energy unit=
+Recycle old tools=
+Interface between machines and mesecons=
+
+# detector.lua
+node=
+player=
+object=
+inventory=
+infotext=
+light=
+Detector - can detect blocks/players/objects and activate machines=
+Detector. Right click/punch to set it up.=
+Inventory selection=
+Source1=
+-=
+AND=
+OR=
+Source2=
+Detection filter=
+Radius=
+Filter out -2/-1/0/1/2/3/4=
+MODE selection=
+#DETECTOR: Mode of operation set to: @1=
+Detector: on=
+Detector: off=
+
+# distributor.lua
+Target: x y z, Mode: -2@=only OFF, -1@=NOT input, 0/1@=input, 2@=only ON=
+Target Name, Mode: -2@=only OFF, -1@=NOT input, 0/1@=input, 2@=only ON=
+SHOW @1=
+SET=
+X=
+scan=
+view=
+delay=
+ADD=
+Distributor - can forward signal up to 16 different targets=
+DISTRIBUTOR: Event handler nearest position found at @1 (@2) - displaying mark 1=
+Distributor. Right click to set it up.=
+
+# enviro.lua
+surface=
+cave=
+space=
+Jump=
+Sneak=
+Sky=
+FUEL=
+Changes environment for players around target location=
+Right click to set it. Activate by signal.=
+## environment machine help
+ENVIRONMENT MODIFICATIONS=
+#
+VALUES@
+@nTarget:		Center position of the area to apply environment effects@
+			x: [-@1, @2], y: [-@3, @4], z: [-@5, @6]@
+Radius:		[0,   @7]@
+Speed:		[0,   1.2]@
+Jump:		[0,   2]@
+Gravity:	[0.1, 40]@
+Sneak:		[0,   1]@
+Sky:		-, surface, cave or space@n=
+##
+@#SETTINGS Speed@=@1 Jump@=@2 Gravity@=@3 Sneak@=@4 Sky@=@5=
+ADMIN #SETTINGS Speed@=@1 Jump@=@2 Gravity@=@3 Sneak@=@4 Sky@=@5=
+Error. Insert diamond in fuel inventory.=
+
+# grinder.lua
+Grinding=
+RECIPES@n=
+IN: @1@nOUT(@2): @3@n=
+IN(@1): @2@nOUT: @3@n=
+IN(@1): @2@nOUT(@3): @4@n=
+IN: @1@nOUT: @2@n=
+Iron dust purity @1% (combine with chemicals to create iron extractor)=
+Iron dust purity @1% (smelt to increase purity)=
+Copper dust purity @1% (combine with chemicals to create copper extractor)=
+Copper dust purity @1% (smelt to increase purity)=
+Tin dust purity @1% (combine with chemicals to create tin extractor)=
+Tin dust purity @1% (smelt to increase purity)=
+Gold dust purity @1% (combine with chemicals to create gold extractor)=
+Gold dust purity @1% (smelt to increase purity)=
+Mese dust purity @1% (combine with chemicals to create mese extractor)=
+Mese dust purity @1% (smelt to increase purity)=
+Diamond dust purity @1% (combine with chemicals to create diamond extractor)=
+Diamond dust purity @1% (smelt to increase purity)=
+Silver dust purity @1% (combine with chemicals to create silver extractor)=
+Silver dust purity @1% (smelt to increase purity)=
+Mithril dust purity @1% (combine with chemicals to create mithril extractor)=
+Mithril dust purity @1% (smelt to increase purity)=
+Smelt to get iron=
+Smelt to get copper=
+Smelt to get tin=
+Smelt to get gold=
+Smelt to get mese=
+Smelt to get diamond=
+Smelt to get silver=
+Smelt to get mithril=
+IN=
+OUT=
+UPGRADE=
+Please insert valid materials=
+Recipe requires at least @1 of '@2' (@3)=
+Please insert fuel=
+Need at least @1 fuel to complete operation=
+Added fuel furnace burn time @1, fuel status @2=
+Fuel status @1=
+Grinder: to operate it insert fuel, then insert item to grind or activate with signal=
+GRINDER HELP=
+To upgrade grinder, put grinders in upgrade slot. Each upgrade adds ability to process additional materials.@n@n=
+
+# init.lua
+Player is expert basic_machines user: his machines work while not present on server, can spawn more than @1 balls at once=
+Wood Charcoal=
+Machines and Components=
+
+# keypad.lua
+Protection fail. Reset.=
+KEYPAD: Resetting. Punch again after @1s to activate.=
+Keypad operation: @1 cycles left=
+Keypad operation: activation @1=
+Keypad - basic way to activate machines by sending signal=
+Keypad. Right click to set it up or punch it. Set any password and text "@@" to work as keyboard.=
+Repeat=
+Mode=
+Password=
+MODE: 1@=OFF, 2@=ON, 3@=TOGGLE=
+Text=
+
+# light.lua
+Light Off=
+Light On=
+deactivate after=
+
+# machines_configuration.lua
+Enter text:=
+Enter password:=
+DETECTOR: Punched position is protected. Aborting.=
+DISTRIBUTOR: Punched position is protected. Aborting.=
+KEYPAD: Punched position is protected. Aborting.=
+MOVER: Punched position is protected. Aborting.=
+KEYPAD: You must be able to build to set up keypad.=
+MOVER: Now punch source1, source2, end position to set up mover.=
+KEYPAD: Now punch the target block.=
+DETECTOR: Now punch the source block.=
+MOVER: Punch closer to mover. Resetting.=
+MOVER: Punch something else. Aborting.=
+MOVER: Source1 position for mover set. Punch again to set source2 position.=
+MOVER: Source2 position for mover set. Punch again to set target position.=
+MOVER: Error while trying to make an elevator. Need at least @1 diamond block(s) in upgrade (1 for every 100 distance).=
+ELEVATOR: Activate to use.=
+MOVER: Elevator setup completed, upgrade level @1.=
+MOVER: Punch closer to mover. Aborting.=
+MOVER: End position for mover set.=
+DISTRIBUTOR: Punch closer to distributor. Aborting.=
+DISTRIBUTOR: Target set.=
+KEYPAD: Punch closer to keypad. Resetting.=
+Punch keypad to use it.=
+KEYPAD: Target set with coordinates @1,@2,@3.=
+DETECTOR: Punch closer to detector. Aborting.=
+DETECTOR: Now punch the target machine.=
+DETECTOR: Punch something else. Aborting.=
+DETECTOR: Setup complete.=
+MOVER: Position is protected. Aborting.=
+MOVER: All coordinates must be between @1 and @2. For increased range set up positions by punching.=
+MOVER: Wrong filter - must be name of existing minetest block=
+Mover block. Set up with source coordinates @1,@2,@3 -> @4,@5,@6 and target coordinates @7,@8,@9. Put charged battery next to it and start it with keypad/mese signal.=
+MOVER: Please put battery nearby=
+MOVER: Battery found - displaying mark 1=
+## mover help
+MOVER HELP=
+#
+version @1@nSETUP: For interactive setup punch the mover and then punch source1, source2, target node (follow instructions). Put the mover directly next to a battery. For advanced setup right click mover. Positions are defined by x y z coordinates (see top of mover for orientation). Mover itself is at coordinates 0, 0, 0.=
+#
+@n@nMODES of operation: normal (just teleport block), dig (digs and gives you resulted node - good for harvesting farms); by setting 'filter' only selected node is moved, drop (drops node on ground), object (teleportation of players and objects) - distance between source1/2 defines teleport radius; by setting 'filter' you can specify move time - [0.2, 20] - for non players.@
+After changing from/to object mode, you need to reconfigure sources position.@
+Inventory mode can exchange items between node inventories. You need to select inventory name for source/target from the dropdown list on the right.@
+@nADVANCED:@
+You can reverse start/end position by setting reverse nonzero. This is useful for placing stuff at many locations-planting. If you put reverse @= 2/3 in transport mode it will disable parallel transport but will still do reverse effect with 3. If you activate mover with OFF signal it will toggle reverse.=
+#
+@n@nFUEL CONSUMPTION depends on blocks to be moved and distance. For example, stone or tree is harder to move than dirt, harvesting wheat is very cheap and and moving lava is very hard.@
+@nUPGRADE mover by moving mese blocks in upgrade inventory. Each mese block increases mover range by @1, fuel consumption is divided by (number of mese blocks)+1 in upgrade. Max @2 blocks are used for upgrade.@
+@nActivate mover by keypad/detector signal or mese signal through mesecon adapter (if mesecons mod).=
+##
+DISTRIBUTOR: Position @1 is protected. Aborting.=
+DISTRIBUTOR: All coordinates must be between @1 and @2.=
+DISTRIBUTOR: Connected @1 targets.=
+## distributor help
+DISTRIBUTOR HELP=
+#
+SETUP: To select target nodes for activation click SET then click target node.@
+You can add more targets with ADD. To see where target node is click SHOW button next to it.@
+@n4 numbers in each row represent (from left to right): first 3 numbers are target coordinates x y z, last number (MODE) controls how signal is passed to target.@
+For example, to only pass OFF signal use -2, to only pass ON use 2, -1 negates the signal, 1 passes original signal, 0 blocks signal.@
+delay option adds delay to activations, in seconds. A negative delay activation is randomized with probability -delay/1000.@
+view button toggles view of target names, in names view there is button scan which automatically scans for valid targets in a box defined by first and second target.@
+@nADVANCED:@
+You can use the distributor as an event handler - it listens to events like interact attempts and chat around the distributor.@
+You need to place the distributor at a position (x, y, z), with coordinates of the form (20*i, 20*j+1, 20*k) for some integers i, j, k.@
+Left click while holding sneak key with a distributor in the hand to show a suitable position.@
+Then you need to configure first row of numbers in the distributor:@
+by putting 0 as MODE it will start to listen. First number x @= 0/1 controls if node listens to failed interact attempts around it, second number y @= -1/0/1 controls listening to chat (-1 additionally mutes chat)=
+##
+DISTRIBUTOR: Punch the position to set target @1.=
+KEYPAD: Position is protected. Aborting.=
+KEYPAD: All coordinates must be between @1 and @2.=
+Punch keyboard to use it.=
+Punch keypad to use it. Password protected.=
+ACCESS DENIED. WRONG PASSWORD.=
+ACCESS GRANTED=
+Operation aborted by user. Punch to activate.=
+## keypad help
+KEYPAD HELP=
+#
+Mode: 1@=OFF, 2@=ON, 3@=TOGGLE control the way how target node is activated.@
+@nRepeat: Number to control how many times activation is repeated after initial punch.@
+@nPassword: Enter password and press OK. Password will be encrypted. Next time you use keypad you will need to enter correct password to gain access.@
+@nText: If set then text on target node will be changed. In case target is detector/mover, filter settings will be changed. Can be used for special operations.@
+@nTarget: Represents coordinates (x, y, z) relative to keypad. (0, 0, 0) is keypad itself, (0, 1, 0) is one node above, (0, -1, 0) one node below. X coordinate axes goes from east to west, Y from down to up, Z from south to north.@
+@n****************@nUsage@n****************@n=
+#
+@nJust punch (left click) keypad, then the target block will be activated.@
+To set text on other nodes (text shows when you look at node) just target the node and set nonempty text. Upon activation text will be set. When target node is another keypad, its "text" field will be set. When targets is mover/detector, its "filter" field will be set. To clear "filter" set text to "@@". When target is distributor, you can change i-th target of distributor to mode mode with "i mode".@
+@nKeyboard: To use keypad as keyboard for text input write "@@" in "text" field and set any password. Next time keypad is used it will work as text input device.@
+@nDisplaying messages to nearby players (up to 5 blocks around keypad's target): Set text to "!text". Upon activation player will see "text" in their chat.@
+@nPlaying sound to nearby players: set text to "$sound_name", optionally followed by a space and pitch value: 0.01 to 10.=
+#
+@n@nADVANCED:@
+Text replacement: Suppose keypad A is set with text "@@some @@. text @@!" and there are blocks on top of keypad A with infotext '1' and '2'. Suppose we target B with A and activate A. Then text of keypad B will be set to "some 1. text 2!".@
+Word extraction: Suppose similar setup but now keypad A is set with text "%1". Then upon activation text of keypad B will be set to 1.st word of infotext.=
+##
+DETECTOR: Position is protected. Aborting.=
+DETECTOR: All coordinates must be between @1 and @2.=
+## detector help
+DETECTOR HELP=
+#
+SETUP: Right click or punch and follow chat instructions. With a detector you can detect nodes, objects, players, items inside inventories, nodes information and light levels. If detector activates it will trigger machine at target position.@
+@nThere are 6 modes of operation - node/player/object/inventory/infotext/light detection. Inside detection filter write node/player/object name or infotext/light level. If you detect node/player/object you can specify a range of detection. If you want detector to activate target precisely when its not triggered set output signal to 1.@
+@nFor example, to detect empty space write air, to detect tree write default:tree, to detect ripe wheat write farming:wheat_8, for flowing water write default:water_flowing... If mode is inventory it will check for items in specified inventory of source node like a chest.@
+@nADVANCED:@
+In inventory (must set a filter)/node detection mode, you can specify a second source and then select AND/OR from the right top dropdown list to do logical operations.@
+You can also filter output signal in any modes:@
+-2@=only OFF, -1@=NOT, 0/1@=normal, 2@=only ON, 3@=only if changed, 4@=if target is keypad set its text to detected object name.=
+##
+
+# mesecon_adapter.lua
+Interface between machines and mesecons - place block to be activated on top of it=
+
+# control_doors.lua
+@#steel door: punch me one more time to remove me=
+@#steel trapdoor: punch me one more time to remove me=
+
+# mover.lua
+normal=
+dig=
+drop=
+transport=
+This will move blocks as they are - without change=
+This will transform blocks as if player dug them=
+This will take block/item out of chest (you need to set filter) and will drop it=
+Make TELEPORTER/ELEVATOR:@n This will move any object inside a sphere (with center source1 and radius defined by distance between source1/source2) to target position@n For ELEVATOR, teleport origin/destination need to be placed exactly in same coordinate line with mover, and you need to upgrade with 1 diamond block for every 100 height difference=
+This will move items from inventory of any block at source position to any inventory of block at target position=
+This will move all blocks at source area to new area starting at target position@nThis mode preserves all inventories and other metadata=
+MODE OF OPERATION=
+WHERE TO MOVE=
+description=
+FILTER=
+Source inventory=
+dst=
+fuel=
+main=
+output=
+recipe=
+src=
+upgrade=
+Target inventory=
+INPUT AREA - mover will dig here=
+TARGET POSITION - mover will move to here=
+REVERSE source and target (0/1/2/3)=
+Toggle mover introduction=
+Mover introduction enabled=
+Mover introduction disabled=
+Mover - universal digging/harvesting/teleporting/transporting machine, it's upgradeable=
+Mover block. Set it up by punching or right click. Activated by signal.=
+## mover introduction
+MOVER INTRODUCTION=
+#
+This machine can move anything. General idea is the following:@
+@nFirst you need to define rectangle box work area (larger area, where it takes from, defined by source1/source2 which appear as two number 1 boxes) and target position (where it puts, marked by one number 2 box) by punching mover then following CHAT instructions exactly.@
+@nCHECK why it doesn't work: 1. did you click OK in mover after changing setting 2. does it have battery, 3. does battery have enough fuel 4. did you set filter for taking out of chest ?@
+@nIMPORTANT: Please read the help button inside machine before first use.=
+##
+MOVER: Must reconfigure sources position.=
+Mover block. Protection fail.=
+MOVER: Elevator error. Need at least @1 diamond block(s) in upgrade (1 for every 100 distance).=
+Can not find nearby battery to connect to!=
+Mover block. Energy @1, needed energy @2. Put nonempty battery next to mover.=
+Mover block refueled. Fuel status @1.=
+@1 already milked!=
+Cow=
+Cows=
+Mover block. Fuel status @1.=
+Mover block. Must set nodes to move (filter) in inventory mode.=
+
+# recycler.lua
+At least @1 of '@2' (@3) required=
+Fuel status @1, recycling '@2' (@3)=
+Select recipe:=
+Recycler - use to get some ingredients back from crafted things=
+Recycler: Put one item in 'IN' (src) and obtain 75% of raw materials in 'OUT' (dst). To operate it insert fuel, then insert item to recycle or activate with signal.=
+
+# space.lua
+Allow player to move in exclusion zone=
+Exclusion zone alert, current position: @1. Teleporting to @2=
+WARNING: you entered DEADLY RADIATION ZONE=
+WARNING: in space you must stay close to protected areas=
+Enable breathing in space=
+
+# technic_power.lua
+Power: @1=
+Capacity: @1=
+Recharge problem: capacity @1, needed @2=
+(R) Energy: @1 / @2=
+Power draw required: @1, maximum power output @2. Please upgrade battery.=
+Used fuel provides too little power for current power draw @1=
+Energy: @1 / @2=
+Battery - stores energy, generates energy from fuel, can power nearby machines, or accelerate/run furnace above it, it's upgradeable=
+Battery - stores energy, generates energy from fuel, can power nearby machines, or accelerate/run furnace above it=
+## battery help
+BATTERY HELP=
+#
+Battery provides power to machines or furnace. It can either use power crystals or convert ordinary furnace fuels into energy. 1 coal lump gives 1 energy.@
+@nUPGRADE with diamond blocks for more available power output or with mese blocks for more power storage capacity.=
+##
+Furnace needs at least 1 energy=
+Error: max upgrade is @1=
+High upgrade: power rod=
+Medium upgrade: power block=
+Low upgrade: power cell=
+POWER CRYSTALS=
+Power: @1 (high)=
+Power: @1 (medium)=
+Power: @1 (low)=
+Generator - very expensive, generates power crystals that provide power, it's upgradeable=
+Generator: Interference from nearby generator detected=
+Generator - generates power crystals that provide power, upgrade with up to @1 generators=
+## generator help
+GENERATOR HELP=
+#
+Generator slowly produces power crystals. Those can be used to recharge batteries and come in 3 flavours:@
+@nLow (0-4), medium (5-19) and high level (20+). Upgrading the generator (upgrade with generators) will increase the rate at which the crystals are produced.@
+@nYou can automate the process of battery recharging by using mover in inventory mode, taking from inventory "fuel".=
+##
+Power Cell - provides @1 energy=
+Power Block - provides @1 energy=
+Power Rod - provides @1 energy=
