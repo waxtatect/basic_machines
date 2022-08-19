@@ -1001,8 +1001,9 @@ minetest.register_node("basic_machines:mover", {
 									for _, v in pairs(drops.items) do
 										if items_dropped >= max_items then break end
 										if math.random(1, v.rarity or 1) == 1 then
-											node1 = {name = v.items[math.random(1, #v.items)]} -- pick item randomly from list
-											inv:add_item("main", node1.name)
+											for _, item in ipairs(v.items) do -- pick all items from list
+												inv:add_item("main", item)
+											end
 											items_dropped = items_dropped + 1
 										end
 									end
