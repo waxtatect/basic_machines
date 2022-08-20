@@ -312,7 +312,9 @@ local function check_fname(formname)
 	end
 end
 
-local function strip_translator_sequence(msg) return msg:match("%)([%w_-]+)") end
+local function strip_translator_sequence(msg, default)
+	return msg and msg:match("%)([%w_-]+)") or default
+end
 
 -- list of machines that distributor can connect to, used for distributor scan feature
 local connectables = {
@@ -381,8 +383,8 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				meta:set_int("x1", x1); meta:set_int("y1", y1); meta:set_int("z1", z1)
 				meta:set_int("x2", x2); meta:set_int("y2", y2); meta:set_int("z2", z2)
 
-				meta:set_string("inv1", fields.inv1 and (strip_translator_sequence(fields.inv1) or fields.inv1) or "")
-				meta:set_string("inv2", fields.inv2 and (strip_translator_sequence(fields.inv2) or fields.inv2) or "")
+				meta:set_string("inv1", strip_translator_sequence(fields.inv1, ""))
+				meta:set_string("inv2", strip_translator_sequence(fields.inv2, ""))
 				meta:set_int("reverse", tonumber(fields.reverse) or 0)
 
 				-- notification
@@ -390,12 +392,13 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 					" Set up with source coordinates @1,@2,@3 -> @4,@5,@6 and target coordinates @7,@8,@9." ..
 					" Put charged battery next to it and start it with keypad/mese signal.", x0, y0, z0, x1, y1, z1, x2, y2, z2))
 			else -- MODE
-				local mode = strip_translator_sequence(fields.mode) or fields.mode
+				local mmode = meta:get_string("mode")
+				local mode = strip_translator_sequence(fields.mode, mmode)
 				local prefer = fields.prefer or ""
 				local mreverse = meta:get_int("reverse")
 
 				-- mode
-				if mode ~= meta:get_string("mode") then
+				if mode ~= mmode then
 					-- input validation
 					if basic_machines.check_mover_filter(mode, prefer, mreverse) or
 						basic_machines.check_target_chest(mode, pos, meta)
@@ -465,7 +468,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				max_range, mover_upgrade_max)) .. "]")
 
 		elseif fields.mode and not minetest.is_protected(pos, name) then
-			local mode = strip_translator_sequence(fields.mode) or fields.mode
+			local mode = strip_translator_sequence(fields.mode, meta:get_string("mode"))
 			-- input validation
 			if not basic_machines.check_mover_filter(mode, meta:get_string("prefer"), meta:get_int("reverse")) and
 				not basic_machines.check_target_chest(mode, pos, meta)
@@ -659,8 +662,10 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				meta:set_string("pass", pass)
 			end
 
-			meta:set_string("text", fields.text)
-			if fields.text:sub(1,1) == "!" then
+			local text = fields.text or ""
+
+			meta:set_string("text", text)
+			if text:sub(1,1) == "!" then
 				minetest.log("action", ("%s set up keypad for message display at %s,%s,%s"):format(name, pos.x, pos.y, pos.z))
 			end
 			meta:set_int("x0", x0); meta:set_int("y0", y0); meta:set_int("z0", z0)
@@ -668,7 +673,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			if pass == "" then
 				meta:set_string("infotext", S("Punch keypad to use it."))
 			else
-				if fields.text == "@" then
+				if text == "@" then
 					meta:set_string("infotext", S("Punch keyboard to use it."))
 				else
 					meta:set_string("infotext", S("Punch keypad to use it. Password protected."))
@@ -760,12 +765,12 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			meta:set_int("x1", x1); meta:set_int("y1", y1); meta:set_int("z1", z1)
 			meta:set_int("x2", x2); meta:set_int("y2", y2); meta:set_int("z2", z2)
 
-			meta:set_string("op", strip_translator_sequence(fields.op) or fields.op)
+			meta:set_string("op", strip_translator_sequence(fields.op, ""))
 			meta:set_int("r", math.min((tonumber(fields.r) or 1), max_range))
 			meta:set_string("node", fields.node or "")
 			meta:set_int("NOT", tonumber(fields.NOT) or 0)
-			meta:set_string("mode", strip_translator_sequence(fields.mode) or fields.mode)
-			meta:set_string("inv1", strip_translator_sequence(fields.inv1) or fields.inv1)
+			meta:set_string("mode", strip_translator_sequence(fields.mode, ""))
+			meta:set_string("inv1", strip_translator_sequence(fields.inv1, ""))
 
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_detector", "size[5.5,5.5]textarea[0,0;6,7;help;" ..
