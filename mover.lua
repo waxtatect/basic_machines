@@ -271,7 +271,7 @@ basic_machines.get_mover_form = function(pos, name)
 	local seltab = meta:get_int("seltab")
 	local mode_string = meta:get_string("mode")
 
-	if seltab == 1 then -- MODE
+	if seltab < 2 then -- MODE
 		local mode = mover_modes[mode_string]
 		local list_name = "nodemeta:" .. pos.x .. ',' .. pos.y .. ',' .. pos.z
 		-- local upgrade = meta:get_int("upgrade"); if upgrade > 0 then upgrade = upgrade - 1 end
@@ -395,7 +395,7 @@ minetest.register_node("basic_machines:mover", {
 		meta:set_string("prefer", "")
 		meta:set_string("mode", "normal")
 		meta:set_int("upgrade", 1)
-		meta:set_int("seltab", 1)
+		meta:set_int("seltab", 1) -- 0: undefined, 1: mode tab, 2: positions tab
 		meta:set_int("activation_count", 0); meta:set_int("t", 0)
 
 		basic_machines.find_and_connect_battery(pos) -- try to find battery early
