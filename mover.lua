@@ -271,10 +271,10 @@ basic_machines.get_mover_form = function(pos, name)
 	local seltab = meta:get_int("seltab")
 	local mode_string = meta:get_string("mode")
 
-	if seltab < 2 then -- MODE
+	if seltab ~= 2 then -- MODE
 		local mode = mover_modes[mode_string]
 		local list_name = "nodemeta:" .. pos.x .. ',' .. pos.y .. ',' .. pos.z
-		-- local upgrade = meta:get_int("upgrade"); if upgrade > 0 then upgrade = upgrade - 1 end
+
 		return ("size[8,8.75]tabheader[0,0;tabs;" ..
 			F(S("MODE OF OPERATION")) .. "," .. F(S("WHERE TO MOVE")) .. ";" .. seltab .. ";true;true]" ..
 			"label[0,0;" .. minetest.colorize("lawngreen", F(S("MODE selection"))) ..
