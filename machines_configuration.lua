@@ -194,7 +194,7 @@ minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 			local z2 = pos.z - self_pos.z
 
 			if mode == "object" then
-				meta:set_int("dim", 1)
+				meta:set_int("dim", -1)
 			else
 				if x0 > x1 then x0, x1 = x1, x0 end -- this ensures that x0 <= x1
 				if y0 > y1 then y0, y1 = y1, y0 end
@@ -371,7 +371,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				end
 
 				if meta:get_string("mode") == "object" then
-					meta:set_int("dim", 1)
+					meta:set_int("dim", -1)
 				else
 					local x = x0; x0 = math.min(x, x1); x1 = math.max(x, x1)
 					local y = y0; y0 = math.min(y, y1); y1 = math.max(y, y1)
