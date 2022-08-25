@@ -560,12 +560,15 @@ minetest.register_node("basic_machines:mover", {
 			local object = mode == "object" -- object mode
 
 			if object then
-				if meta:get_int("dim") > 1 then
+				if meta:get_int("dim") ~= -1 then
 					meta:set_string("infotext", S("MOVER: Must reconfigure sources position.")); return
 				end
 				pos1 = vector.add(pos, {x = x0, y = y0, z = z0})
 				x1, y1, z1 = meta:get_int("x1"), meta:get_int("y1"), meta:get_int("z1")
 			else
+				if meta:get_int("dim") < 1 then
+					meta:set_string("infotext", S("MOVER: Must reconfigure sources position.")); return
+				end
 				x1, y1, z1 = meta:get_int("x1") - x0 + 1, meta:get_int("y1") - y0 + 1, meta:get_int("z1") - z0 + 1 -- get dimensions
 				local pc = meta:get_int("pc"); pc = (pc + 1) % meta:get_int("dim"); meta:set_int("pc", pc) -- cycle position
 				-- pc = z * a * b + x * b + y, from x, y, z to pc
