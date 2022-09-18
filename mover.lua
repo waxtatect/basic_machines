@@ -903,7 +903,8 @@ minetest.register_node("basic_machines:mover", {
 				then
 					node1.name, node1_name = prefer, prefer
 				else
-					minetest.chat_send_player(owner, S("MOVER: Wrong filter - must be name of existing minetest block")); return
+					minetest.chat_send_player(owner, S("MOVER: Wrong filter (@1) at @2,@3,@4.",
+						prefer, pos.x, pos.y, pos.z)); return
 				end
 
 				if source_chest then -- take stuff from chest
@@ -930,6 +931,8 @@ minetest.register_node("basic_machines:mover", {
 								else
 									return
 								end
+							elseif (normal or dig) and minetest.registered_nodes[prefer].paramtype2 ~= "facedir" then
+								node1.param2 = nil
 							elseif drop and mover.bonemeal_table[prefer] then -- bonemeal check
 								local on_use = (minetest.registered_items[prefer] or {}).on_use
 								if on_use then
