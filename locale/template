@@ -2,11 +2,11 @@
 
 # autocrafter.lua
 Unknown item=
-Unconfigured autocrafter: unknown recipe=
 Unconfigured autocrafter=
 Autocrafter: '@1' (@2)=
 Autocrafter=
 Unconfigured autocrafter: Place items for recipe top left. To operate place required items in bottom space (src inventory) and activate with signal. Obtain crafted item from top right (dst inventory).=
+Unconfigured autocrafter: unknown recipe=
 
 # ball.lua
 @#BALL: target hp @1=
@@ -401,6 +401,7 @@ Cow=
 Cows=
 Mover block. Fuel status @1.=
 Mover block. Must set nodes to move (filter) in inventory mode.=
+MOVER: Wrong filter (@1) at @2,@3,@4.=
 
 # recycler.lua
 At least @1 of '@2' (@3) required=
