@@ -21,13 +21,13 @@ basic_machines = {
 	S = minetest.get_translator("basic_machines"),
 	version = "10/02/2021a custom",
 	properties = {
-		clockgen			= 1,	-- if 0 all background continuously running activity (clockgen/keypad) repeating is disabled
-		machines_TTL		= 16,	-- time to live for signals, how many hops before signal dissipates
-		machines_minstep	= 1,	-- minimal allowed activation timestep, if faster machines overheat
-		machines_operations	= 10,	-- 1 coal will provide 10 mover basic operations (moving dirt 1 block distance)
-		machines_timer		= 5,	-- main timestep
-		max_range			= 10,	-- machines normal range of operation
-		mover_upgrade_max	= 10	-- upgrade mover to increase range and to reduce fuel consumption
+		no_clock			= false,	-- if true all continuously running activities (clockgen/keypad) are disabled
+		machines_TTL		= 16,		-- time to live for signals, how many hops before signal dissipates
+		machines_minstep	= 1,		-- minimal allowed activation timestep, if faster machines overheat
+		machines_operations	= 10,		-- 1 coal will provide 10 mover basic operations (moving dirt 1 block distance)
+		machines_timer		= 5,		-- main timestep
+		max_range			= 10,		-- machines normal range of operation
+		mover_upgrade_max	= 10		-- upgrade mover to increase range and to reduce fuel consumption
 	},
 	settings = {							-- can be added to server configuration file, example: basic_machines_energy_multiplier = 1
 		-- ball spawner
@@ -44,10 +44,9 @@ basic_machines = {
 		generator_upgrade		= 0,		-- upgrade available in addition to the current limit (50)
 		-- space
 		space_start_eff			= 1500,		-- space efficiency height
-		space_start				= 1100,		-- space.lua needed
-		exclusion_height		= 6666,		-- space.lua needed:
-											-- above, without "include" priv, player is teleported to a random location
-		space_effects			= false,	-- space.lua needed: enable damage mechanism
+		space_start				= 1100,		-- space height
+		exclusion_height		= 6666,		-- above, without "include" priv, player is teleported to a random location
+		space_effects			= false,	-- enable damage mechanism
 		--
 		register_crafts			= false		-- machines crafts recipes
 	},
@@ -116,7 +115,7 @@ if minetest.global_exists("mesecon") then
 	dofile(MP .. "mesecon_adapter.lua")
 end
 
--- OPTIONAL stuff (comment to disable)
+-- OPTIONAL content
 dofile(MP .. "crafts.lua")					-- adds additional craft recipes
 if minetest.global_exists("gravelsieve") then
 	dofile(MP .. "control_gravelsieve.lua")	-- adds compatibility to gravelsieve mod
@@ -128,6 +127,17 @@ dofile(MP .. "control_lights.lua")			-- adds ability to toggle light for other l
 dofile(MP .. "space.lua")					-- change global physics
 
 local S = basic_machines.S
+
+-- test: toggle machine running with clockgen/keypad repeats, useful for debugging
+-- i.e. seeing how machines running affect server performance
+minetest.register_chatcommand("clockgen", {
+	description = S("Toggle clock generator/keypad repeats"),
+	privs = {privs = true},
+	func = function(name, _)
+		basic_machines.properties.no_clock = not basic_machines.properties.no_clock
+		minetest.chat_send_player(name, S("No clock set to @1", tostring(basic_machines.properties.no_clock)))
+	end
+})
 
 -- "machines" privilege
 minetest.register_privilege("machines", {

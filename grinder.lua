@@ -243,32 +243,28 @@ if basic_machines.settings.grinder_register_dusts then
 	end
 end
 
-local function grinder_update_form(pos)
-	local meta = minetest.get_meta(pos)
-	local list_name = "nodemeta:" .. pos.x .. ',' .. pos.y .. ',' .. pos.z
-
+local function grinder_update_form(meta)
 	meta:set_string("formspec", ([[
 		size[8,8]
-		label[0,-0.25;%s]list[%s;src;0,0.25;1,1;]
-		label[1,-0.25;%s]list[%s;dst;1,0.25;3,3;]
-		label[5,0;%s]list[%s;upgrade;5,0.5;1,1;]
+		label[0,-0.25;%s]list[context;src;0,0.25;1,1;]
+		label[1,-0.25;%s]list[context;dst;1,0.25;3,3;]
+		label[5,0;%s]list[context;upgrade;5,0.5;1,1;]
 		button[6.5,0;1,1;OK;%s]
 		button[6.5,1;1,1;help;%s]
-		label[0,1.75;%s]list[%s;fuel;0,2.25;1,1;]
+		label[0,1.75;%s]list[context;fuel;0,2.25;1,1;]
 		list[current_player;main;0,3.75;8,1;]
 		list[current_player;main;0,5;8,3;8]
-		listring[%s;dst]
+		listring[context;dst]
 		listring[current_player;main]
-		listring[%s;src]
+		listring[context;src]
 		listring[current_player;main]
-		listring[%s;upgrade]
+		listring[context;upgrade]
 		listring[current_player;main]
-		listring[%s;fuel]
+		listring[context;fuel]
 		listring[current_player;main]
 		%s
-	]]):format(F(S("IN")), list_name, F(S("OUT")), list_name, F(S("UPGRADE")),
-		list_name, F(S("OK")), F(S("help")), F(S("FUEL")), list_name, list_name,
-		list_name, list_name, list_name, default.get_hotbar_bg(0, 3.75)
+	]]):format(F(S("IN")), F(S("OUT")), F(S("UPGRADE")),
+		F(S("OK")), F(S("help")), F(S("FUEL")), default.get_hotbar_bg(0, 3.75)
 	))
 end
 
@@ -307,7 +303,7 @@ local function grinder_process(pos)
 
 	-- FUEL CHECK
 	local fuel, fuel_req = meta:get_float("fuel"), def[1] * steps
-	local msg = nil
+	local msg
 
 	if fuel < fuel_req then -- we need new fuel
 		local fuellist = inv:get_list("fuel"); if not fuellist then return end
@@ -386,7 +382,7 @@ minetest.register_node("basic_machines:grinder", {
 		inv:set_size("upgrade", 1)
 		inv:set_size("fuel", 1)
 
-		grinder_update_form(pos)
+		grinder_update_form(meta)
 	end,
 
 	can_dig = function(pos, player)
@@ -403,7 +399,6 @@ minetest.register_node("basic_machines:grinder", {
 
 		if fields.OK and not minetest.is_protected(pos, sender:get_player_name()) then
 			grinder_process(pos)
-			grinder_update_form(pos)
 
 		elseif fields.help then
 			if grinder_recipes_help == nil then
@@ -434,12 +429,18 @@ minetest.register_node("basic_machines:grinder", {
 		if listname == "src" then
 			grinder_process(pos)
 		elseif listname == "upgrade" then
-			grinder_upgrade(minetest.get_meta(pos))
+			local meta = minetest.get_meta(pos)
+			grinder_upgrade(meta)
+			grinder_update_form(meta)
 		end
 	end,
 
 	on_metadata_inventory_take = function(pos, listname, index, stack, player)
-		if listname == "upgrade" then grinder_upgrade(minetest.get_meta(pos)) end
+		if listname == "upgrade" then
+			local meta = minetest.get_meta(pos)
+			grinder_upgrade(meta)
+			grinder_update_form(meta)
+		end
 	end,
 
 	effector = {

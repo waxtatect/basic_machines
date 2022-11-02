@@ -55,7 +55,6 @@ end
 
 minetest.register_entity(":machines:pos1", {
 	initial_properties = {
-		physical = false,
 		collisionbox = {-0.55, -0.55, -0.55, 0.55, 0.55, 0.55},
 		visual = "cube",
 		visual_size = {x = 1.1, y = 1.1},
@@ -86,7 +85,6 @@ minetest.register_entity(":machines:pos1", {
 
 minetest.register_entity(":machines:pos11", {
 	initial_properties = {
-		physical = false,
 		collisionbox = {-0.55, -0.55, -0.55, 0.55, 0.55, 0.55},
 		visual = "cube",
 		visual_size = {x = 1.1, y = 1.1},
@@ -117,7 +115,6 @@ minetest.register_entity(":machines:pos11", {
 
 minetest.register_entity(":machines:pos2", {
 	initial_properties = {
-		physical = false,
 		collisionbox = {-0.55, -0.55, -0.55, 0.55, 0.55, 0.55},
 		visual = "cube",
 		visual_size = {x = 1.1, y = 1.1},

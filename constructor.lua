@@ -7,11 +7,9 @@ local craft_recipes = {}
 local recipes_order = {}
 local recipes_order_translated = {}
 
-local function constructor_update_form(pos, meta)
-	local constructor = minetest.get_node(pos).name
-
+local function constructor_update_form(constructor, meta)
 	local description = craft_recipes[constructor][meta:get_string("craft")]
-	local item = ""
+	local item
 
 	if description then
 		item = description.item
@@ -27,6 +25,8 @@ local function constructor_update_form(pos, meta)
 		end
 
 		description = description.description
+	else
+		description, item = "", ""
 	end
 
 	meta:set_string("formspec", ([[
@@ -43,34 +43,43 @@ local function constructor_update_form(pos, meta)
 		listring[current_player;main]
 		%s
 	]]):format(recipes_order_translated[constructor], meta:get_int("selected"),
-		item, F(S("CRAFT")), F(S(description or "")), default.get_hotbar_bg(0, 6)))
+		item, F(S("CRAFT")), F(S(description)), default.get_hotbar_bg(0, 6)))
 end
 
-local function constructor_process(pos, name)
+local function constructor_process(pos, constructor, name)
 	local meta = minetest.get_meta(pos)
+	local craft = craft_recipes[constructor][meta:get_string("craft")]
 
-	local craft = craft_recipes[minetest.get_node(pos).name][meta:get_string("craft")]
-	if not craft then return end
+	if craft then
+		local item = craft.item
+		local stack = ItemStack(item)
+		local def = stack:get_definition()
 
-	local inv, item = meta:get_inventory(), craft.item
-	local stack = ItemStack(item)
-	if inv:room_for_item("main", stack) then
-		if not basic_machines.creative(name or "") then
-			local recipe = craft.craft
+		if def then
+			local inv = meta:get_inventory()
 
-			for _, v in ipairs(recipe) do
-				if not inv:contains_item("main", ItemStack(v)) then
-					meta:set_string("infotext", S("#CRAFTING: you need '@1' to craft '@2'", v, item)); return
+			if inv:room_for_item("main", stack) then
+				if basic_machines.creative(name or "") then
+					inv:add_item("main", stack)
+				else
+					local recipe = craft.craft
+
+					for _, v in ipairs(recipe) do
+						if not inv:contains_item("main", ItemStack(v)) then
+							meta:set_string("infotext", S("#CRAFTING: you need '@1' to craft '@2'", v, item)); return
+						end
+					end
+
+					for _, v in ipairs(recipe) do
+						inv:remove_item("main", ItemStack(v))
+					end
+
+					inv:add_item("main", stack)
 				end
 			end
-
-			for _, v in ipairs(recipe) do
-				inv:remove_item("main", ItemStack(v))
-			end
 		end
-		inv:add_item("main", stack)
+
 		if name or meta:get_string("infotext") == "" then
-			local def = minetest.registered_items[item:split(" ")[1]]
 			meta:set_string("infotext", S("#CRAFTING: '@1' (@2)",
 				def and def.description or S("Unknown item"), item))
 		end
@@ -108,7 +117,7 @@ local function add_constructor(name, def)
 			inv:set_size("main", 24)
 			inv:set_size("recipe", 6)
 
-			constructor_update_form(pos, meta)
+			constructor_update_form(name, meta)
 		end,
 
 		can_dig = function(pos, player) -- main inv must be empty to be dug
@@ -121,19 +130,19 @@ local function add_constructor(name, def)
 			if fields.quit or minetest.is_protected(pos, player_name) then return end
 
 			if fields.CRAFT then
-				constructor_process(pos, player_name)
+				constructor_process(pos, name, player_name)
 			elseif fields.craft then
 				if fields.craft:sub(1, 3) == "CHG" then
 					local sel = tonumber(fields.craft:sub(5)) or 1
 					local meta = minetest.get_meta(pos)
 
 					meta:set_string("infotext", "")
-					for i, v in ipairs(recipes_order[minetest.get_node(pos).name]) do
+					for i, v in ipairs(recipes_order[name]) do
 						if i == sel then meta:set_string("craft", v); break end
 					end
 					meta:set_int("selected", sel)
 
-					constructor_update_form(pos, meta)
+					constructor_update_form(name, meta)
 				end
 			end
 		end,
@@ -158,7 +167,7 @@ local function add_constructor(name, def)
 
 		effector = {
 			action_on = function(pos, _)
-				constructor_process(pos, nil)
+				constructor_process(pos, name, nil)
 			end
 		}
 	})

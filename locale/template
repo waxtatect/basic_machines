@@ -55,8 +55,6 @@ Overheat: temperature @1=
 Ball Spawner=
 
 # clockgen.lua
-Toggle clock generator/keypad repeats=
-clockgen set to @1=
 Clock Generator - use sparingly, continually activates top block=
 Clock Generator: Interference from nearby clock generator detected=
 Clock Generator (owned by @1): place machine to be activated on top=
@@ -120,7 +118,6 @@ Detection filter=
 Radius=
 Filter out -2/-1/0/1/2/3/4=
 MODE selection=
-#DETECTOR: Mode of operation set to: @1=
 Detector: on=
 Detector: off=
 
@@ -210,6 +207,8 @@ GRINDER HELP=
 To upgrade grinder, put grinders in upgrade slot. Each upgrade adds ability to process additional materials.@n@n=
 
 # init.lua
+Toggle clock generator/keypad repeats=
+No clock set to @1=
 Player is expert basic_machines user: his machines work while not present on server, can spawn more than @1 balls at once=
 Wood Charcoal=
 Machines and Components=
@@ -217,8 +216,8 @@ Machines and Components=
 # keypad.lua
 Protection fail. Reset.=
 KEYPAD: Resetting. Punch again after @1s to activate.=
+Keypad operation: @1 cycle left=
 Keypad operation: @1 cycles left=
-Keypad operation: activation @1=
 Keypad - basic way to activate machines by sending signal=
 Keypad. Right click to set it up or punch it. Set any password and text "@@" to work as keyboard.=
 Repeat=
@@ -230,7 +229,7 @@ Text=
 # light.lua
 Light Off=
 Light On=
-deactivate after=
+Deactivate after:=
 
 # machines_configuration.lua
 Enter text:=
@@ -265,8 +264,8 @@ MOVER: Position is protected. Aborting.=
 MOVER: All coordinates must be between @1 and @2. For increased range set up positions by punching.=
 MOVER: Wrong filter - must be name of existing minetest block=
 Mover block. Set up with source coordinates @1,@2,@3 -> @4,@5,@6 and target coordinates @7,@8,@9. Put charged battery next to it and start it with keypad/mese signal.=
-MOVER: Please put battery nearby=
 MOVER: Battery found - displaying mark 1=
+MOVER: Please put battery nearby=
 ## mover help
 MOVER HELP=
 #
@@ -400,7 +399,6 @@ Mover block refueled. Fuel status @1.=
 Cow=
 Cows=
 Mover block. Fuel status @1.=
-Mover block. Must set nodes to move (filter) in inventory mode.=
 MOVER: Wrong filter (@1) at @2,@3,@4.=
 
 # recycler.lua
@@ -434,16 +432,18 @@ Battery provides power to machines or furnace. It can either use power crystals 
 @nUPGRADE with diamond blocks for more available power output or with mese blocks for more power storage capacity.=
 ##
 Furnace needs at least 1 energy=
-Error: max upgrade is @1=
-High upgrade: power rod=
-Medium upgrade: power block=
-Low upgrade: power cell=
+initialize=
 POWER CRYSTALS=
 Power: @1 (high)=
 Power: @1 (medium)=
 Power: @1 (low)=
-Generator - very expensive, generates power crystals that provide power, it's upgradeable=
+Error: max upgrade is @1=
+Generator - not enough energy to operate=
+High upgrade: power rod=
+Medium upgrade: power block=
+Low upgrade: power cell=
 Generator: Interference from nearby generator detected=
+Generator - very expensive, generates power crystals that provide power, it's upgradeable=
 Generator - generates power crystals that provide power, upgrade with up to @1 generators=
 ## generator help
 GENERATOR HELP=

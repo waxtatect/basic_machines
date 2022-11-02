@@ -21,13 +21,9 @@ local punchable_nodes = {
 
 local function check_keypad(pos, name) -- called only when manually activated via punch
 	local meta = minetest.get_meta(pos)
+
 	if meta:get_string("pass") == "" then
-		local count = meta:get_int("count")
-		local iter = meta:get_int("iter")
-		-- so that keypad can work again, at least one operation must have occured though
-		if count < iter - 1 or iter < 2 then meta:set_int("active_repeats", 0) end
-		meta:set_int("count", iter); basic_machines.use_keypad(pos, machines_TTL, 0) -- time to live set when punched
-		return
+		basic_machines.use_keypad(pos, machines_TTL, true); return -- time to live set when punched
 	end
 
 	if name == "" then return end
@@ -76,7 +72,7 @@ minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 			node = node.name,
 			state = 1
 		}
-		local msg = ""
+		local msg
 		if punchset_desc == "MOVER" then
 			msg = "MOVER: Now punch source1, source2, end position to set up mover."
 		elseif punchset_desc == "KEYPAD" then
@@ -84,7 +80,7 @@ minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 		elseif punchset_desc == "DETECTOR" then
 			msg = "DETECTOR: Now punch the source block."
 		end
-		if msg ~= "" then
+		if msg then
 			minetest.chat_send_player(name, S(msg))
 		end
 		return
@@ -424,16 +420,12 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 				if meta:get_float("fuel") < 0 then meta:set_float("fuel", 0) end -- reset block
 
-				-- display battery
 				local fpos = basic_machines.find_and_connect_battery(pos)
-
-				if not fpos then
-					if meta:get_int("upgrade") > -1 then
-						minetest.chat_send_player(name, S("MOVER: Please put battery nearby"))
-					end
-				else
+				if fpos then
 					minetest.chat_send_player(name, S("MOVER: Battery found - displaying mark 1"))
-					machines.mark_pos1(name, fpos)
+					machines.mark_pos1(name, fpos) -- display battery
+				elseif meta:get_int("upgrade") > -1 then
+					minetest.chat_send_player(name, S("MOVER: Please put battery nearby"))
 				end
 			end
 
@@ -654,6 +646,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 			meta:set_int("mode", tonumber(fields.mode) or 2)
 			meta:set_int("iter", math.min(tonumber(fields.iter) or 1, 500))
+			meta:set_int("count", 0)
 
 			local pass = fields.pass or ""
 
@@ -666,7 +659,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 			meta:set_string("text", text)
 			if text:sub(1,1) == "!" then
-				minetest.log("action", ("%s set up keypad for message display at %s,%s,%s"):format(name, pos.x, pos.y, pos.z))
+				minetest.log("action", ("[basic_machines] %s set up keypad for message display at %s,%s,%s"):format(name, pos.x, pos.y, pos.z))
 			end
 			meta:set_int("x0", x0); meta:set_int("y0", y0); meta:set_int("z0", z0)
 
@@ -714,8 +707,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 			if meta:get_string("text") == "@" then -- keyboard mode
 				meta:set_string("input", pass)
-				meta:set_int("count", 1)
-				basic_machines.use_keypad(pos, machines_TTL, 0)
+				basic_machines.use_keypad(pos, machines_TTL)
 				return
 			end
 
@@ -726,14 +718,12 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			end
 
 			minetest.chat_send_player(name, S("ACCESS GRANTED"))
+			local count = meta:get_int("count")
 
-			if meta:get_int("count") <= 0 then -- only accept new operation requests if idle
-				meta:set_int("count", meta:get_int("iter"))
-				meta:set_int("active_repeats", 0)
-				basic_machines.use_keypad(pos, machines_TTL, 0)
+			if count == 0 or count == meta:get_int("iter") then -- only accept new operation requests if idle
+				basic_machines.use_keypad(pos, machines_TTL)
 			else
-				meta:set_int("count", 0)
-				meta:set_string("infotext", S("Operation aborted by user. Punch to activate.")) -- reset
+				basic_machines.use_keypad(pos, 1, true, S("Operation aborted by user. Punch to activate.")) -- reset
 			end
 		end
 

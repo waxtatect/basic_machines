@@ -9,8 +9,8 @@ local F, S = basic_machines.F, basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
-local max_range = basic_machines.properties.max_range
 local max_balls = math.max(0, basic_machines.settings.max_balls)
+local max_range = basic_machines.properties.max_range
 local max_damage = minetest.PLAYER_MAX_HP_DEFAULT / 2 -- player health 20
 -- to be used with bounce setting 2 in ball spawner:
 -- 1: bounce in x direction, 2: bounce in z direction, otherwise it bounces in y direction
@@ -69,7 +69,6 @@ minetest.register_entity("basic_machines:ball", {
 	_owner = "",
 	_elasticity = 0.9,						-- speed gets multiplied by this after bounce
 	_is_arrow = false,						-- advanced mob protection
-	-- _lastpos = {x = 0, y = 0, z = 0},		-- last not-colliding position
 	_timer = 0,
 
 	_speed = ball_default.speed,			-- velocity when punched
@@ -107,7 +106,6 @@ minetest.register_entity("basic_machines:ball", {
 		end
 
 		if not walkable then
-			-- self._lastpos = pos
 			if self._hurt ~= 0 then -- check for colliding nearby objects
 				local objects = minetest.get_objects_inside_radius(pos, 2)
 				if #objects > 1 then
@@ -237,6 +235,7 @@ minetest.register_entity("basic_machines:ball", {
 					end
 				end
 
+				local bpos = vector.add(pos, vector.multiply(n, 0.2)) -- point placed a bit further away from box
 				local elasticity = self._elasticity
 
 				-- bounce
@@ -248,9 +247,7 @@ minetest.register_entity("basic_machines:ball", {
 					v.z = -elasticity * v.z
 				end
 
-				local bpos = vector.add(pos, vector.multiply(n, 0.2)) -- point placed a bit further away from box
 				self.object:set_pos(bpos) -- place object at last known outside point
-
 				self.object:set_velocity(v)
 
 				minetest.sound_play("default_dig_cracky", {pos = pos, gain = 1, max_hear_distance = 8}, true)
@@ -364,7 +361,6 @@ minetest.register_node("basic_machines:ball_spawner", {
 		local stack; local inv = digger:get_inventory()
 
 		if (digger:get_player_control() or {}).sneak then
-			if basic_machines.creative(digger:get_player_name()) then return end
 			stack = ItemStack("basic_machines:ball_spawner")
 		else
 			local meta = oldmetadata["fields"]

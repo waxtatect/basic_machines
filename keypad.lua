@@ -2,6 +2,7 @@ local F, S = basic_machines.F, basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
+local no_clock = basic_machines.properties.no_clock
 local byte = string.byte
 local use_signs_lib = minetest.global_exists("signs_lib")
 local signs = { -- when activated with keypad these will be "punched" to update their text too
@@ -22,8 +23,8 @@ local signs = { -- when activated with keypad these will be "punched" to update 
 }
 
 -- position, time to live (how many times can signal travel before vanishing to prevent infinite recursion),
--- do we want to activate again
-basic_machines.use_keypad = function(pos, ttl, again)
+-- do we want to stop repeating
+basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 	if ttl < 1 then return end
 
 	local meta = minetest.get_meta(pos)
@@ -49,47 +50,51 @@ basic_machines.use_keypad = function(pos, ttl, again)
 	end
 
 	if minetest.is_protected(pos, meta:get_string("owner")) then
+		meta:set_int("count", 0)
 		meta:set_string("infotext", S("Protection fail. Reset."))
-		meta:set_int("count", 0)
 		return
 	end
 
-	local count = meta:get_int("count") -- counts how many repeats left
-	local repeating = meta:get_int("repeating")
+	local iter = meta:get_int("iter")
+	local count = 0 -- counts repeats
 
-	if repeating == 1 and again ~= 1 then
-		-- stop it
-		meta:set_int("repeating", 0)
-		meta:set_int("count", 0)
-		meta:set_int("T", 4)
-		meta:set_string("infotext", S("KEYPAD: Resetting. Punch again after @1s to activate.", machines_timer))
-		return
-	end
+	if iter > 1 then
+		if no_clock then return end
+		count = meta:get_int("count")
 
-	if count > 0 then -- this is keypad repeating activation
-		count = count - 1; meta:set_int("count", count)
-	else
-		meta:set_int("repeating", 0)
-		-- return
-	end
+		if reset and count > 0 or count == iter then
+			meta:set_int("count", 0)
+			meta:set_int("T", 4)
+			meta:set_string("infotext", reset_msg or
+				S("KEYPAD: Resetting. Punch again after @1s to activate.", machines_timer))
+			return
+		end
 
-	if count >= 0 then
-		meta:set_string("infotext", S("Keypad operation: @1 cycles left", count))
-	else
-		meta:set_string("infotext", S("Keypad operation: activation @1", -count))
-	end
+		if count < iter - 1 then
+			minetest.after(machines_timer, function()
+				basic_machines.use_keypad(pos, machines_TTL)
+			end)
+		end
 
-	if count > 0 then -- only trigger repeat if count on
-		if repeating == 0 then meta:set_int("repeating", 1) end -- repeating now
-		if basic_machines.properties.clockgen == 0 then return end
-		minetest.after(machines_timer, function()
-			basic_machines.use_keypad(pos, machines_TTL, 1)
-		end)
+		if count < iter then -- this is keypad repeating activation
+			count = count + 1; meta:set_int("count", count)
+			count = iter - count
+		end
 	end
 
 	local tpos = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
 	local node = minetest.get_node_or_nil(tpos); if not node then return end -- error
 	local text, name = meta:get_string("text"), node.name
+
+	if text == "" or name ~= "basic_machines:keypad" and not vector.equals(pos, tpos) then
+		local msg
+		if count < 2 then
+			msg = S("Keypad operation: @1 cycle left", count)
+		else
+			msg = S("Keypad operation: @1 cycles left", count)
+		end
+		meta:set_string("infotext", msg)
+	end
 
 	if text ~= "" then -- TEXT MODE; set text on target
 		if text == "@" and meta:get_string("pass") ~= "" then -- keyboard mode, set text from input
@@ -145,15 +150,11 @@ basic_machines.use_keypad = function(pos, ttl, again)
 				text = text:sub(2); if text == "" then tmeta:set_string("text", ""); return end -- clear target keypad text
 				-- read words [j] from blocks above keypad:
 				local j = 0
-				text = text:gsub("@",
-					function()
-						j = j + 1
-						return minetest.get_meta({x = pos.x, y = pos.y + 1, z = pos.z}):get_string("infotext")
-					end
-				) -- replace every @ in ttext with string on blocks above
+				text = text:gsub("@", function()
+					j = j + 1; return minetest.get_meta({x = pos.x, y = pos.y + 1, z = pos.z}):get_string("infotext")
+				end) -- replace every @ in ttext with string on blocks above
 
 				-- set target keypad's text
-				-- tmeta = minetest.get_meta(tpos)
 				tmeta:set_string("text", text)
 			elseif bit == 37 then -- target keypad's text starts with % (ascii code 37) -> word extraction
 				local ttext = minetest.get_meta({x = pos.x, y = pos.y + 1, z = pos.z}):get_string("infotext")
@@ -165,11 +166,9 @@ basic_machines.use_keypad = function(pos, ttl, again)
 				end
 
 				-- set target keypad's target's text
-				-- tmeta = minetest.get_meta(tpos)
 				tmeta:set_string("text", text)
 			else
 				-- just set text..
-				-- tmeta = minetest.get_meta(tpos)
 				tmeta:set_string("infotext", text)
 			end
 			return
@@ -220,7 +219,7 @@ basic_machines.use_keypad = function(pos, ttl, again)
 
 		if mode == 3 then -- keypad in toggle mode
 			local state = meta:get_int("state"); state = 1 - state; meta:set_int("state", state)
-			if state == 0 then mode = 1 else mode = 2 end
+			if state == 0 then mode = 2 else mode = 1 end
 		end
 
 		local effector = def.effector or def.mesecons.effector
@@ -250,8 +249,9 @@ minetest.register_node("basic_machines:keypad", {
 		meta:set_string("owner", placer:get_player_name())
 
 		meta:set_int("mode", 2); meta:set_string("pass", "") -- mode, pasword of operation
-		meta:set_int("iter", 1); meta:set_int("count", 0) -- how many repeats to do, current repeat count
+		meta:set_int("iter", 1); meta:set_int("count", 0) -- current repeat count
 		meta:set_int("x0", 0); meta:set_int("y0", 0); meta:set_int("z0", 0) -- target
+		meta:set_int("input", 0); meta:set_int("state", 0)
 	end,
 
 	on_rightclick = function(pos, node, player, itemstack, pointed_thing)
@@ -274,7 +274,13 @@ minetest.register_node("basic_machines:keypad", {
 	effector = {
 		action_on = function(pos, _)
 			if minetest.get_meta(pos):get_string("pass") == "" then
-				basic_machines.use_keypad(pos, 1, 0) -- activate just 1 time
+				basic_machines.use_keypad(pos, 1)
+			end
+		end,
+
+		action_off = function(pos, _)
+			if minetest.get_meta(pos):get_string("pass") == "" then
+				basic_machines.use_keypad(pos, 1, true) -- can stop repeats
 			end
 		end
 	}

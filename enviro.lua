@@ -18,12 +18,12 @@ if use_player_monoids then
 		combine = function(p, q) return p or q end,
 		fold = function(elems)
 			for _, v in pairs(elems) do
-				if v then return true end
+				if not v then return false end
 			end
 
-			return false
+			return true
 		end,
-		identity = false,
+		identity = true,
 		apply = function(can_sneak, player)
 			local ov = player:get_physics_override()
 			ov.sneak = can_sneak
@@ -51,9 +51,8 @@ for k, v in pairs(skyboxes) do
 end
 enviro_skylist_translated = table.concat(enviro_skylist_translated, ",")
 
-local function enviro_update_form(pos, meta)
+local function enviro_update_form(meta)
 	local skybox = meta:get_string("skybox")
-	local list_name = "nodemeta:" .. pos.x .. ',' .. pos.y .. ',' .. pos.z
 
 	meta:set_string("formspec", ([[
 		size[8,8]
@@ -66,12 +65,12 @@ local function enviro_update_form(pos, meta)
 		field[2.25,1.5;1,1;gravity;%s;%.2f]
 		field[3.25,1.5;1,1;sneak;%s;%i]
 		label[-0.02,1.9;%s]dropdown[-0.02,2.3;1.5,1;skybox;%s;%i]
-		label[5,0;%s]list[%s;fuel;5,0.5;1,1;]
+		label[5,0;%s]list[context;fuel;5,0.5;1,1;]
 		button_exit[6.5,0;1,1;OK;%s]
 		button[6.5,1;1,1;help;%s]
 		list[current_player;main;0,3.75;8,1;]
 		list[current_player;main;0,5;8,3;8]
-		listring[%s;fuel]
+		listring[context;fuel]
 		listring[current_player;main]
 		%s
 	]]):format(F(S("Target")), meta:get_int("x0"), meta:get_int("y0"), meta:get_int("z0"),
@@ -79,7 +78,7 @@ local function enviro_update_form(pos, meta)
 		F(S("Jump")), meta:get_float("jump"), F(S("Gravity")), meta:get_float("gravity"),
 		F(S("Sneak")), meta:get_int("sneak"), F(S("Sky")),
 		enviro_skylist_translated, skyboxes[skybox] and skyboxes[skybox].id or 1, F(S("FUEL")),
-		list_name, F(S("OK")), F(S("help")), list_name, default.get_hotbar_bg(0, 3.75)
+		F(S("OK")), F(S("help")), default.get_hotbar_bg(0, 3.75)
 	))
 end
 
@@ -120,7 +119,7 @@ minetest.register_node("basic_machines:enviro", {
 
 		meta:get_inventory():set_size("fuel", 1)
 
-		enviro_update_form(pos, meta)
+		enviro_update_form(meta)
 	end,
 
 	can_dig = function(pos, player) -- don't dig if fuel is inside, cause it will be destroyed
@@ -171,7 +170,7 @@ minetest.register_node("basic_machines:enviro", {
 			fields.skybox = fields.skybox or "-"
 			meta:set_string("skybox", fields.skybox:match("%)([%w_-]+)") or "-")
 
-			enviro_update_form(pos, meta)
+			enviro_update_form(meta)
 
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_enviro",
@@ -213,7 +212,7 @@ Sky:		-, surface, cave or space
 				gravity = tonumber(fields.g); fields.g, fields.gravity = nil, gravity
 				skybox = "-"; fields.skybox = "-"; fields.public = nil
 				if minetest.get_meta(pos):from_table(meta_new) then meta = minetest.get_meta(pos) else return end
-				enviro_update_form(pos, meta)
+				enviro_update_form(meta)
 			end
 
 			if radius <= 0 then return end

@@ -4,6 +4,7 @@ local detector_oplist = {["-"] = 1, ["AND"] = 2, ["OR"] = 3}
 local detector_modelist = {["node"] = 1, ["player"] = 2, ["object"] = 3, ["inventory"] = 4,
 	["infotext"] = 5, ["light"] = 6}
 local detector_modelist_translated = {}
+local vector_add = vector.add
 
 for k, v in pairs(detector_modelist) do
 	detector_modelist_translated[v] = F(S(k))
@@ -44,10 +45,10 @@ minetest.register_node("basic_machines:detector", {
 		local pos11 = {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")}
 		local pos2 = {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")}
 
-		local pos1_abs = vector.add(pos, pos1)
+		local pos1_abs = vector_add(pos, pos1)
 
 		machines.mark_pos1(name, pos1_abs) -- mark pos1
-		machines.mark_pos2(name, vector.add(pos, pos2)) -- mark pos2
+		machines.mark_pos2(name, vector_add(pos, pos2)) -- mark pos2
 
 		local op = detector_oplist[meta:get_string("op")] or 1
 		local mode_string = meta:get_string("mode")
@@ -55,7 +56,7 @@ minetest.register_node("basic_machines:detector", {
 
 		-- pos11 and logical operations are only available with node/inventory mode
 		if mode_string == "node" or mode_string == "inventory" and node_filter ~= "" then
-			machines.mark_pos11(name, vector.add(pos, pos11)) -- mark pos11
+			machines.mark_pos11(name, vector_add(pos, pos11)) -- mark pos11
 		end
 
 		local inventory_list
@@ -97,21 +98,6 @@ minetest.register_node("basic_machines:detector", {
 	end,
 
 	allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
-	--[[
-		local mode = "node"
-		local meta = minetest.get_meta(pos)
-		if to_index == 2 then
-			mode = "player"
-			meta:set_int("r", math.max(meta:get_int("r"), 1))
-		end
-		if to_index == 3 then
-			mode = "object"
-			meta:set_int("r", math.max(meta:get_int("r"), 1))
-		end
-		meta:set_string("mode", mode)
-		minetest.chat_send_player(player:get_player_name(), S("DETECTOR: Mode of operation set to: @1", S(mode)))
-		return count
-	--]]
 		return 0
 	end,
 
@@ -147,7 +133,7 @@ minetest.register_node("basic_machines:detector", {
 				return
 			end
 
-			local pos1 = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
+			local pos1 = vector_add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
 
 			local mode = meta:get_string("mode")
 			local node = meta:get_string("node") -- detection filter
@@ -171,7 +157,7 @@ minetest.register_node("basic_machines:detector", {
 
 				-- operation: AND, OR... look at other source position too
 				if op ~= "-" then
-					local pos11 = vector.add(pos, {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")})
+					local pos11 = vector_add(pos, {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")})
 					tnode = minetest.get_node(pos11).name -- read node at source position
 					local trigger1 = false
 
@@ -211,7 +197,7 @@ minetest.register_node("basic_machines:detector", {
 
 					-- operation: AND, OR... look at other source position too
 					if op ~= "-" then
-						local pos11 = vector.add(pos, {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")})
+						local pos11 = vector_add(pos, {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")})
 						local trigger1 = minetest.get_meta(pos11):get_inventory():contains_item(inv1m, ItemStack(node))
 
 						if op == "AND" then
@@ -274,7 +260,7 @@ minetest.register_node("basic_machines:detector", {
 			local nstate = trigger and 1 or 0 -- next detector output state
 			if nstate ~= state then meta:set_int("state", nstate) end -- update state if changed
 
-			local pos2 = vector.add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")})
+			local pos2 = vector_add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")})
 
 			node = minetest.get_node_or_nil(pos2); if not node then return end -- error
 			local def = minetest.registered_nodes[node.name]

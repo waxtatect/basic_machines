@@ -6,8 +6,7 @@
 
 local F, S = basic_machines.F, basic_machines.S
 local machines_minstep = basic_machines.properties.machines_minstep
--- prevent unrealistic recycling
-local no_recycle_list = {
+local no_recycle_list = { -- prevent unrealistic recycling
 	["default:bronze_ingot"] = 1, ["default:gold_ingot"] = 1,
 	["default:copper_ingot"] = 1, ["default:steel_ingot"] = 1,
 	["dye:black"] = 1, ["dye:blue"] = 1, ["dye:brown"] = 1, ["dye:cyan"] = 1,
@@ -17,22 +16,20 @@ local no_recycle_list = {
 	["dye:white"] = 1, ["dye:yellow"] = 1
 }
 
-local function recycler_update_form(pos, meta)
-	local list_name = "nodemeta:" .. pos.x .. ',' .. pos.y .. ',' .. pos.z
-
+local function recycler_update_form(meta)
 	meta:set_string("formspec", "size[8,8]" .. -- width, height
-		"label[0,-0.25;" .. F(S("IN")) .. "]list[" .. list_name .. ";src;0,0.25;1,1;]" ..
-		"label[1,-0.25;" .. F(S("OUT")) .. "]list[" .. list_name .. ";dst;1,0.25;3,3;]" ..
+		"label[0,-0.25;" .. F(S("IN")) .. "]list[context;src;0,0.25;1,1;]" ..
+		"label[1,-0.25;" .. F(S("OUT")) .. "]list[context;dst;1,0.25;3,3;]" ..
 		"field[4.5,0.65;2,1;recipe;" .. F(S("Select recipe:")) .. ";" .. meta:get_int("recipe") ..
 		"]button[6.5,0;1,1;OK;" .. F(S("OK")) ..
-		"]label[0,1.75;" .. F(S("FUEL")) .. "]list[" .. list_name .. ";fuel;0,2.25;1,1;]" ..
+		"]label[0,1.75;" .. F(S("FUEL")) .. "]list[context;fuel;0,2.25;1,1;]" ..
 		"list[current_player;main;0,3.75;8,1;]" ..
 		"list[current_player;main;0,5;8,3;8]" ..
-		"listring[" .. list_name .. ";dst]" ..
+		"listring[context;dst]" ..
 		"listring[current_player;main]" ..
-		"listring[" .. list_name .. ";src]" ..
+		"listring[context;src]" ..
 		"listring[current_player;main]" ..
-		"listring[" .. list_name .. ";fuel]" ..
+		"listring[context;fuel]" ..
 		"listring[current_player;main]" ..
 		default.get_hotbar_bg(0, 3.75))
 end
@@ -50,7 +47,7 @@ local function recycler_process(pos)
 	end
 
 	local inv = meta:get_inventory()
-	local msg = nil
+	local msg
 
 	if fuel < fuel_req then -- we need new fuel
 		local fuellist = inv:get_list("fuel"); if not fuellist then return end
@@ -195,7 +192,7 @@ minetest.register_node("basic_machines:recycler", {
 		inv:set_size("dst", 9)
 		inv:set_size("fuel", 1)
 
-		recycler_update_form(pos, meta)
+		recycler_update_form(meta)
 	end,
 
 	can_dig = function(pos, player)
@@ -216,7 +213,7 @@ minetest.register_node("basic_machines:recycler", {
 			meta:set_int("recipe", tonumber(fields.recipe) or 1)
 
 			recycler_process(pos)
-			recycler_update_form(pos, meta)
+			recycler_update_form(meta)
 		end
 	end,
 

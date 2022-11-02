@@ -4,9 +4,9 @@
 -- Registers dig attempts in radius 10 around
 -- Distributor must have first target filter set to 0 (disabled) to handle dig events
 
+local machines_TTL = basic_machines.properties.machines_TTL
 local old_is_protected = minetest.is_protected
 local round = math.floor
-local machines_TTL = basic_machines.properties.machines_TTL
 
 function minetest.is_protected(pos, digger)
 	local is_protected = old_is_protected(pos, digger)

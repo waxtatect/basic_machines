@@ -1,6 +1,7 @@
 local F, S = basic_machines.F, basic_machines.S
 local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
+local vector_add = vector.add
 
 local function pos_to_string(pos) return ("%s,%s,%s"):format(pos.x, pos.y, pos.z) end
 
@@ -30,7 +31,7 @@ basic_machines.get_distributor_form = function(pos)
 		for i = 1, n do
 			local posi = {x = meta:get_int("x" .. i), y = meta:get_int("y" .. i), z = meta:get_int("z" .. i)}
 			local y1, y2 = 0.5 + (i - 1) * 0.75, 0.25 + (i - 1) * 0.75
-			local tname = minetest.get_node(vector.add(pos, posi)).name
+			local tname = minetest.get_node(vector_add(pos, posi)).name
 			tname = posi.x .. " " .. posi.y .. " " .. posi.z .. " " .. tname:sub((tname:find(":") or 0) + 1)
 			form[i + 2] = "field[0.25," .. y1 .. ";3,1;text;;" .. tname ..
 				"]field[3.25," .. y1 .. ";1,1;active" .. i .. ";;" .. meta:get_int("active" .. i) ..
@@ -128,7 +129,7 @@ minetest.register_node("basic_machines:distributor", {
 				for i = 1, meta:get_int("n") do
 					local activei = meta:get_int("active" .. i)
 					if activei ~= 0 then
-						local posi = vector.add(pos, {x = meta:get_int("x" .. i), y = meta:get_int("y" .. i), z = meta:get_int("z" .. i)})
+						local posi = vector_add(pos, {x = meta:get_int("x" .. i), y = meta:get_int("y" .. i), z = meta:get_int("z" .. i)})
 						local node = minetest.get_node(posi)
 						local def = minetest.registered_nodes[node.name]
 
@@ -195,7 +196,7 @@ minetest.register_node("basic_machines:distributor", {
 				for i = 1, meta:get_int("n") do
 					local activei = meta:get_int("active" .. i)
 					if activei ~= 0 then
-						local posi = vector.add(pos, {x = meta:get_int("x" .. i), y = meta:get_int("y" .. i), z = meta:get_int("z" .. i)})
+						local posi = vector_add(pos, {x = meta:get_int("x" .. i), y = meta:get_int("y" .. i), z = meta:get_int("z" .. i)})
 						local node = minetest.get_node(posi)
 						local def = minetest.registered_nodes[node.name]
 

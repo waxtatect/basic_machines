@@ -8,6 +8,7 @@ local F, S = basic_machines.F, basic_machines.S
 local machines_minstep = basic_machines.properties.machines_minstep
 local machines_operations = basic_machines.properties.machines_operations
 local max_range = basic_machines.properties.max_range
+local vector_add = vector.add
 local abs = math.abs
 local vplayer = {}
 local have_bucket_liquids = minetest.global_exists("bucket") and bucket.liquids
@@ -210,7 +211,7 @@ end
 
 basic_machines.check_target_chest = function(mode, pos, meta)
 	if mode == "normal" and meta:get_int("reverse") == 0 then
-		local pos2 = vector.add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")})
+		local pos2 = vector_add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")})
 		if mover.chests[minetest.get_node(pos2).name] then
 			return true
 		end
@@ -218,8 +219,8 @@ basic_machines.check_target_chest = function(mode, pos, meta)
 	return false
 end
 
-local function stack_with_palette(item, palette_index)
-	local stack = ItemStack(item)
+local function itemstring_to_stack(itemstring, palette_index)
+	local stack = ItemStack(itemstring)
 	if palette_index then
 		stack:get_meta():set_int("palette_index", palette_index)
 	end
@@ -299,8 +300,8 @@ basic_machines.get_mover_form = function(pos, name)
 		local inventory_list1, inventory_list2 = "", ""
 
 		if mode_string == "inventory" then
-			local meta1 = minetest.get_meta(vector.add(pos, pos1)) -- source1 meta
-			local meta2 = minetest.get_meta(vector.add(pos, pos2)) -- target meta
+			local meta1 = minetest.get_meta(vector_add(pos, pos1)) -- source1 meta
+			local meta2 = minetest.get_meta(vector_add(pos, pos2)) -- target meta
 
 			local inv1m, inv2m = meta:get_string("inv1"), meta:get_string("inv2")
 			local inv1, inv2 = 1, 1
@@ -344,7 +345,7 @@ end
 basic_machines.find_and_connect_battery = function(pos)
 	for i = 0, 2 do
 		local positions = minetest.find_nodes_in_area( -- find battery
-			vector.subtract(pos, 1), vector.add(pos, 1), "basic_machines:battery_" .. i)
+			vector.subtract(pos, 1), vector_add(pos, 1), "basic_machines:battery_" .. i)
 		if #positions > 0 then
 			local meta = minetest.get_meta(pos)
 			local fpos = positions[1] -- pick first battery found
@@ -430,11 +431,11 @@ minetest.register_node("basic_machines:mover", {
 	on_rightclick = function(pos, node, player, itemstack, pointed_thing)
 		local name, meta = player:get_player_name(), minetest.get_meta(pos)
 
-		machines.mark_pos1(name, vector.add(pos,
+		machines.mark_pos1(name, vector_add(pos,
 			{x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})) -- mark pos1
-		machines.mark_pos11(name, vector.add(pos,
+		machines.mark_pos11(name, vector_add(pos,
 			{x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")})) -- mark pos11
-		machines.mark_pos2(name, vector.add(pos,
+		machines.mark_pos2(name, vector_add(pos,
 			{x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")})) -- mark pos2
 
 		minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
@@ -449,6 +450,7 @@ minetest.register_node("basic_machines:mover", {
 		local name = player:get_player_name()
 		if minetest.is_protected(pos, name) then return 0 end
 		local meta = minetest.get_meta(pos)
+
 		if listname == "filter" then
 			local inv = meta:get_inventory()
 			local inv_stack = inv:get_stack("filter", 1)
@@ -468,7 +470,7 @@ minetest.register_node("basic_machines:mover", {
 				basic_machines.check_target_chest(mode, pos, meta)
 			then
 				meta:set_string("prefer", prefer)
-				local filter_stack = stack_with_palette(prefer, palette_index)
+				local filter_stack = itemstring_to_stack(prefer, palette_index)
 				inv:set_stack("filter", 1, filter_stack) -- inv:add_item("filter", filter_stack)
 			else
 				minetest.chat_send_player(name, S("MOVER: Wrong filter - must be name of existing minetest block")); return 0
@@ -503,6 +505,7 @@ minetest.register_node("basic_machines:mover", {
 		local name = player:get_player_name()
 		if minetest.is_protected(pos, name) then return 0 end
 		local meta = minetest.get_meta(pos)
+
 		if listname == "filter" then
 			local inv = meta:get_inventory()
 			local inv_stack = inv:get_stack("filter", 1)
@@ -516,7 +519,7 @@ minetest.register_node("basic_machines:mover", {
 			else
 				local prefer = item.name .. (item.count > 1 and (" " .. item.count) or "")
 				meta:set_string("prefer", prefer)
-				local filter_stack = stack_with_palette(prefer, tonumber(inv_stack:get_meta():get("palette_index")))
+				local filter_stack = itemstring_to_stack(prefer, tonumber(inv_stack:get_meta():get("palette_index")))
 				inv:set_stack("filter", 1, filter_stack) -- inv:add_item("filter", filter_stack)
 			end
 			minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
@@ -555,7 +558,7 @@ minetest.register_node("basic_machines:mover", {
 			local mreverse = meta:get_int("reverse")
 
 			local pos1 = {}											-- where to take from
-			local pos2 = vector.add(pos, {x = x2, y = y2, z = z2})	-- where to put
+			local pos2 = vector_add(pos, {x = x2, y = y2, z = z2})	-- where to put
 
 			local object = mode == "object" -- object mode
 
@@ -563,7 +566,7 @@ minetest.register_node("basic_machines:mover", {
 				if meta:get_int("dim") ~= -1 then
 					meta:set_string("infotext", S("MOVER: Must reconfigure sources position.")); return
 				end
-				pos1 = vector.add(pos, {x = x0, y = y0, z = z0})
+				pos1 = vector_add(pos, {x = x0, y = y0, z = z0})
 				x1, y1, z1 = meta:get_int("x1"), meta:get_int("y1"), meta:get_int("z1")
 			else
 				if meta:get_int("dim") < 1 then
@@ -576,14 +579,14 @@ minetest.register_node("basic_machines:mover", {
 				pos1.y = y0 + (pc % y1); pc = (pc - (pc % y1)) / y1
 				pos1.x = x0 + (pc % x1); pc = (pc - (pc % x1)) / x1
 				pos1.z = z0 + pc
-				pos1 = vector.add(pos, pos1)
+				pos1 = vector_add(pos, pos1)
 			end
 
 			local transport = mode == "transport" -- transports nodes
 
 			-- special mode that use its own source/target positions:
 			if transport and mreverse < 2 then
-				pos2 = vector.add(pos1, {x = x2 - x0, y = y2 - y0, z = z2 - z0}) -- translation from pos1
+				pos2 = vector_add(pos1, {x = x2 - x0, y = y2 - y0, z = z2 - z0}) -- translation from pos1
 			end
 
 			if mreverse ~= 0 and mreverse ~= 2 then -- reverse pos1, pos2
@@ -653,13 +656,10 @@ minetest.register_node("basic_machines:mover", {
 
 			-- FUEL OPERATIONS
 			if fuel < fuel_cost then -- needs fuel to operate, find nearby battery
-				local found_fuel = nil
-
-				-- cached battery position
-				local fpos = {x = meta:get_int("batx"), y = meta:get_int("baty"), z = meta:get_int("batz")}
-				local power_draw = fuel_cost
-				if power_draw < 1 then power_draw = 1 end -- at least 10 one block operations with 1 refuel
-				local supply = basic_machines.check_power(fpos, power_draw)
+				local power_draw = fuel_cost; if power_draw < 1 then power_draw = 1 end -- at least 10 one block operations with 1 refuel
+				local supply = basic_machines.check_power(
+					{x = meta:get_int("batx"), y = meta:get_int("baty"), z = meta:get_int("batz")}, power_draw)
+				local found_fuel
 
 				if supply > 0 then
 					found_fuel = supply
@@ -688,13 +688,13 @@ minetest.register_node("basic_machines:mover", {
 
 			if object then -- teleport objects and return
 				-- local radius = math.max(abs(x1), abs(y1), abs(z1)); r = math.min(r, max_range)
-				local radius = math.min(vector.distance(pos1, vector.add(pos, {x = x1, y = y1, z = z1})), max_range)
+				local radius = math.min(vector.distance(pos1, vector_add(pos, {x = x1, y = y1, z = z1})), max_range)
 				if meta:get_int("elevator") == 1 and radius == 0 then radius = 1 end -- for compatibility
 				local teleport_any = false
 
 				if target_chest then -- put objects in target chest
 					local inv = minetest.get_meta(pos2):get_inventory()
-					local mucca = nil
+					local mucca
 
 					for _, obj in ipairs(minetest.get_objects_inside_radius(pos1, radius)) do
 						if not obj:is_player() then
@@ -805,10 +805,6 @@ minetest.register_node("basic_machines:mover", {
 			end
 
 			if inventory then -- inventory mode
-				-- if prefer == "" then
-					-- meta:set_string("infotext", S("Mover block. Must set nodes to move (filter) in inventory mode.")); return
-				-- end
-
 				local invName1, invName2 = meta:get_string("inv1"), meta:get_string("inv2")
 
 				if mreverse == 1 then -- reverse inventory names too
@@ -823,7 +819,7 @@ minetest.register_node("basic_machines:mover", {
 					end
 				end
 
-				local stack, inv1 = nil
+				local stack, inv1
 
 				if prefer ~= "" then
 					stack = ItemStack(prefer)
@@ -953,7 +949,7 @@ minetest.register_node("basic_machines:mover", {
 						return
 					end
 				end
-			elseif prefer == "" and source_chest then -- doesn't know what to take out of chest/inventory
+			elseif source_chest then -- doesn't know what to take out of chest/inventory
 				return
 			end
 
@@ -977,15 +973,12 @@ minetest.register_node("basic_machines:mover", {
 								{x = pos1.x + r, y = pos1.y + h, z = pos1.z + r},
 								node1_name)
 
-							local count = 0
-
 							for _, pos3 in ipairs(positions) do
-								-- if count > h then break end
-								minetest.set_node(pos3, {name = "air"}); count = count + 1
+								minetest.set_node(pos3, {name = "air"})
 							end
 							check_for_falling(pos1)
 
-							local stacks, stack_max = {}, ItemStack(node1_name):get_stack_max()
+							local count, stack_max, stacks = #positions, ItemStack(node1_name):get_stack_max(), {}
 
 							if count > stack_max then
 								local stacks_n = count / stack_max
@@ -997,14 +990,16 @@ minetest.register_node("basic_machines:mover", {
 
 							not_special = false
 
-							for _, v in ipairs(stacks)do
-								local item = node1_name .. " " .. v
+							local i = 1
+							repeat
+								local item = node1_name .. " " .. stacks[i]
 								if inv:room_for_item("main", item) then
 									inv:add_item("main", item) -- if tree or cactus was dug up
 								else
 									minetest.add_item(pos1, item)
 								end
-							end
+								i = i + 1
+							until(i > #stacks)
 						else
 							local liquiddef = have_bucket_liquids and bucket.liquids[node1_name]
 							local harvest_node1 = mover.harvest_table[node1_name]
@@ -1060,7 +1055,7 @@ minetest.register_node("basic_machines:mover", {
 											end
 											for _, add_item in ipairs(item.items) do -- pick all items from list
 												if inherit_color and palette_index then
-													add_item = stack_with_palette(add_item, palette_index)
+													add_item = itemstring_to_stack(add_item, palette_index)
 												end
 												inv:add_item("main", add_item)
 											end

@@ -1,7 +1,7 @@
 local S = basic_machines.S
-local space_start = basic_machines.settings.space_start
 local exclusion_height = basic_machines.settings.exclusion_height
 local space_effects = basic_machines.settings.space_effects
+local space_start = basic_machines.settings.space_start
 local space_start_eff = basic_machines.settings.space_start_eff
 local use_player_monoids = minetest.global_exists("player_monoids")
 local use_basic_protect = minetest.global_exists("basic_protect")
@@ -124,7 +124,7 @@ minetest.register_globalstep(function(dtime)
 		if space_effects and inspace == 1 then -- special space code
 			local hp = player:get_hp()
 			if hp > 0 and not minetest.check_player_privs(name, "kick") then
-				if pos.y > space_start_eff - 380 and pos.y < space_start_eff then
+				if pos.y < space_start_eff and pos.y > space_start_eff - 380 then
 					minetest.chat_send_player(name, S("WARNING: you entered DEADLY RADIATION ZONE")); player:set_hp(hp - 15)
 				elseif use_basic_protect then
 					local ppos = protector_position(pos)

@@ -100,11 +100,7 @@ local function normalize(item_list)
 end
 
 local function on_output_change(pos, inventory, stack)
-	if not stack then
-		inventory:set_stack("output", 1, ItemStack(""))
-		-- inventory:set_list("output", {}) -- using saved map, it crashes the server... but why
-		inventory:set_list("recipe", {})
-	else
+	if stack then
 		local input = minetest.get_craft_recipe(stack:get_name())
 		if not input.items or input.type ~= "normal" then return end
 		local items, width = normalize(input.items), input.width
@@ -118,7 +114,11 @@ local function on_output_change(pos, inventory, stack)
 			end
 			width_idx = (width_idx < 3) and (width_idx + 1) or 1
 		end
+	else
 		-- we'll set the output slot in after_recipe_change to the actual result of the new recipe
+		inventory:set_stack("output", 1, ItemStack(""))
+		-- inventory:set_list("output", {}) -- using saved map, it crashes the server... but why
+		inventory:set_list("recipe", {})
 	end
 	after_recipe_change(pos, inventory)
 end

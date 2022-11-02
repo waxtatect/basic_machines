@@ -1,33 +1,30 @@
 local F, S = basic_machines.F, basic_machines.S
 local energy_multiplier = basic_machines.settings.energy_multiplier
-local space_start_eff = basic_machines.settings.space_start_eff
 local generator_upgrade_max = 50 + math.max(0, basic_machines.settings.generator_upgrade)
-local power_stackmax = basic_machines.settings.power_stackmax
 local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
+local power_stackmax = basic_machines.settings.power_stackmax
+local space_start_eff = basic_machines.settings.space_start_eff
 
 -- BATTERY
-local function battery_update_form(pos)
-	local meta = minetest.get_meta(pos)
-	local list_name = "nodemeta:" .. pos.x .. ',' .. pos.y .. ',' .. pos.z
-
+local function battery_update_form(meta)
 	meta:set_string("formspec", ([[
 		size[8,7]
-		label[0,0;%s]list[%s;fuel;0,0.5;1,1;]
+		label[0,0;%s]list[context;fuel;0,0.5;1,1;]
 		box[1.45,0.48;1.85,1;#222222]
 		label[1.5,0.5;%s]label[1.5,1;%s]
 		image_button[4.3,0.65;1.5,0.5;basic_machines_wool_black.png;help;%s]
-		label[6,0;%s]list[%s;upgrade;6,0.5;2,2;]
+		label[6,0;%s]list[context;upgrade;6,0.5;2,2;]
 		list[current_player;main;0,2.75;8,1;]
 		list[current_player;main;0,4;8,3;8]
-		listring[%s;upgrade]
+		listring[context;upgrade]
 		listring[current_player;main]
-		listring[%s;fuel]
+		listring[context;fuel]
 		listring[current_player;main]
 		%s
-	]]):format(F(S("FUEL")), list_name, F(S("Power: @1", meta:get_float("maxpower"))),
-		F(S("Capacity: @1", meta:get_float("capacity"))), F(S("help")), F(S("UPGRADE")),
-		list_name, list_name, list_name, default.get_hotbar_bg(0, 2.75)
+	]]):format(F(S("FUEL")), F(S("Power: @1", meta:get_float("maxpower"))),
+		F(S("Capacity: @1", meta:get_float("capacity"))), F(S("help")),
+		F(S("UPGRADE")), default.get_hotbar_bg(0, 2.75)
 	))
 end
 
@@ -134,8 +131,7 @@ basic_machines.check_power = function(pos, power_draw)
 	return power_draw
 end
 
-local function battery_upgrade(pos)
-	local meta = minetest.get_meta(pos)
+local function battery_upgrade(meta, pos)
 	local inv = meta:get_inventory()
 	local count1, count2 = 0, 0
 
@@ -195,7 +191,7 @@ minetest.register_node("basic_machines:battery_0", {
 		inv:set_size("fuel", 1) -- place to put crystals
 		inv:set_size("upgrade", 2 * 2)
 
-		battery_update_form(pos)
+		battery_update_form(meta)
 	end,
 
 	can_dig = function(pos, player)
@@ -235,15 +231,17 @@ minetest.register_node("basic_machines:battery_0", {
 		if listname == "fuel" then
 			battery_recharge(pos)
 		elseif listname == "upgrade" then
-			battery_upgrade(pos)
-			battery_update_form(pos)
+			local meta = minetest.get_meta(pos)
+			battery_upgrade(meta, pos)
+			battery_update_form(meta)
 		end
 	end,
 
 	on_metadata_inventory_take = function(pos, listname, index, stack, player)
 		if listname == "upgrade" then
-			battery_upgrade(pos)
-			battery_update_form(pos)
+			local meta = minetest.get_meta(pos)
+			battery_upgrade(meta, pos)
+			battery_update_form(meta)
 		end
 	end,
 
@@ -254,11 +252,11 @@ minetest.register_node("basic_machines:battery_0", {
 
 			-- try to power furnace on top of it
 			if energy > 0 then -- need at least 1 energy
-				local node = minetest.get_node({x = pos.x, y = pos.y + 1, z = pos.z}).name
+				local fpos = {x = pos.x, y = pos.y + 1, z = pos.z} -- furnace pos
+				local node = minetest.get_node(fpos).name
 				if node == "default:furnace_active" or node == "default:furnace" then
 					local t0 = meta:get_int("ftime") -- furnace time
 					local t1 = minetest.get_gametime()
-					local fpos = vector.add(pos, {x = 0, y = 1, z = 0})
 					local fmeta = minetest.get_meta(fpos)
 
 					if t1 - t0 < machines_minstep then -- to prevent too quick furnace acceleration, punishment is cooking reset
@@ -332,6 +330,53 @@ end
 
 
 -- GENERATOR
+local minenergy = 17500 -- amount of energy required to initialize a generator
+
+local function generator_update_form(meta, not_init)
+	if not_init then
+		local upgrade = meta:get_float("upgrade")
+		local _, f = math.modf(upgrade)
+		if f > 0 then upgrade = ("%.2f"):format(upgrade) end
+
+		meta:set_string("formspec", ([[
+			size[8,6.5]
+			label[0,0;%s]list[context;fuel;0,0.5;1,1;]
+			box[1.45,0.48;2.5,1;#222222]
+			label[1.5,0.5;%s]label[1.5,1;%s]
+			image_button[4.5,0.65;1.5,0.5;basic_machines_wool_black.png;init;%s]
+			list[current_player;main;0,2.25;8,1;]
+			list[current_player;main;0,3.5;8,3;8]
+			listring[context;fuel]
+			listring[current_player;main]
+			%s
+		]]):format(F(S("FUEL")), F(S("Power: @1", -1)),
+			F(S("Energy: @1 / @2", upgrade, minenergy)),
+			F(S("initialize")), default.get_hotbar_bg(0, 2.25)
+		))
+	else
+		local upgrade = meta:get_int("upgrade")
+		local level = upgrade >= 20 and "high" or (upgrade >= 5 and "medium" or "low")
+
+		meta:set_string("formspec", ([[
+			size[8,6.5]
+			label[0,0;%s]list[context;fuel;0,0.5;1,1;]
+			box[1.45,0.48;2,0.85;#222222]
+			label[1.5,0.5;%s]
+			image_button[4.5,0.65;1.5,0.5;basic_machines_wool_black.png;help;%s]
+			label[6,0;%s]list[context;upgrade;6,0.5;2,1;]
+			list[current_player;main;0,2.25;8,1;]
+			list[current_player;main;0,3.5;8,3;8]
+			listring[context;fuel]
+			listring[current_player;main]
+			listring[context;upgrade]
+			listring[current_player;main]
+			%s
+		]]):format(F(S("POWER CRYSTALS")), F(S("Power: @1 (" .. level .. ")", upgrade)),
+			F(S("help")), F(S("UPGRADE")), default.get_hotbar_bg(0, 2.25)
+		))
+	end
+end
+
 minetest.register_abm({
 	label = "[basic_machines] Generator",
 	nodenames = {"basic_machines:generator"},
@@ -344,6 +389,17 @@ minetest.register_abm({
 
 		if upgrade > generator_upgrade_max then
 			meta:set_string("infotext", S("Error: max upgrade is @1", generator_upgrade_max)); return
+		end
+
+		if meta:get_string("owner") == "" then
+			local inv = meta:get_inventory()
+			if inv:get_size("fuel") == 0 then
+				meta:set_string("infotext", S("Generator - not enough energy to operate"))
+				meta:set_float("upgrade", 0)
+				inv:set_size("fuel", 1)
+				generator_update_form(meta, true)
+			end
+			return
 		end
 
 		local inv = meta:get_inventory()
@@ -367,35 +423,7 @@ minetest.register_abm({
 	end
 })
 
-local function generator_update_form(pos)
-	local meta = minetest.get_meta(pos)
-	local upgrade = meta:get_int("upgrade")
-	local list_name = "nodemeta:" .. pos.x .. ',' .. pos.y .. ',' .. pos.z
-	local level = upgrade >= 20 and "high" or (upgrade >= 5 and "medium" or "low")
-
-	meta:set_string("formspec", ([[
-		size[8,6.5]
-		label[0,0;%s]list[%s;fuel;0,0.5;1,1;]
-		box[1.45,0.48;2,0.85;#222222]
-		label[1.5,0.5;%s]
-		image_button[4.5,0.65;1.5,0.5;basic_machines_wool_black.png;help;%s]
-		label[6,0;%s]list[%s;upgrade;6,0.5;2,1;]
-		list[current_player;main;0,2.25;8,1;]
-		list[current_player;main;0,3.5;8,3;8]
-		listring[%s;fuel]
-		listring[current_player;main]
-		listring[%s;upgrade]
-		listring[current_player;main]
-		%s
-	]]):format(F(S("POWER CRYSTALS")), list_name,
-		F(S("Power: @1 (" .. level .. ")", upgrade)),
-		F(S("help")), F(S("UPGRADE")), list_name, list_name, list_name,
-		default.get_hotbar_bg(0, 2.25)
-	))
-end
-
-local function generator_upgrade(pos)
-	local meta = minetest.get_meta(pos)
+local function generator_upgrade(meta)
 	local inv = meta:get_inventory()
 	local count = 0
 	for i = 1, 2 do
@@ -407,6 +435,15 @@ local function generator_upgrade(pos)
 	meta:set_int("upgrade", count)
 end
 
+local function generator_near_found(pos, name) -- check to prevent too many generators being placed at one place
+	if minetest.find_node_near(pos, 15, {"basic_machines:generator"}) then
+		minetest.set_node(pos, {name = "air"})
+		minetest.add_item(pos, "basic_machines:generator")
+		minetest.chat_send_player(name, S("Generator: Interference from nearby generator detected"))
+		return true
+	end
+end
+
 minetest.register_node("basic_machines:generator", {
 	description = S("Generator - very expensive, generates power crystals that provide power, it's upgradeable"),
 	groups = {cracky = 3},
@@ -415,15 +452,9 @@ minetest.register_node("basic_machines:generator", {
 
 	after_place_node = function(pos, placer)
 		if not placer then return end
-
 		local name = placer:get_player_name()
-		-- check to prevent too many generators being placed at one place
-		if minetest.find_node_near(pos, 15, {"basic_machines:generator"}) then
-			minetest.set_node(pos, {name = "air"})
-			minetest.add_item(pos, "basic_machines:generator")
-			minetest.chat_send_player(name, S("Generator: Interference from nearby generator detected"))
-			return
-		end
+
+		if generator_near_found(pos, name) then return end
 
 		local meta = minetest.get_meta(pos)
 		meta:set_string("infotext", S("Generator - generates power crystals that provide power," ..
@@ -436,7 +467,7 @@ minetest.register_node("basic_machines:generator", {
 		inv:set_size("fuel", 1) -- here generated power crystals are placed
 		inv:set_size("upgrade", 2)
 
-		generator_update_form(pos)
+		generator_update_form(meta)
 	end,
 
 	can_dig = function(pos, player) -- fuel inv is not so important as generator generates it
@@ -452,6 +483,22 @@ minetest.register_node("basic_machines:generator", {
 				"Low (0-4), medium (5-19) and high level (20+)." ..
 				" Upgrading the generator (upgrade with generators) will increase the rate at which the crystals are produced.\n\n" ..
 				"You can automate the process of battery recharging by using mover in inventory mode, taking from inventory \"fuel\".")) .. "]")
+		elseif fields.init then
+			local name = sender:get_player_name()
+			if minetest.is_protected(pos, name) or generator_near_found(pos, name) then return end
+
+			local meta = minetest.get_meta(pos)
+			if meta:get_float("upgrade") >= minenergy then
+				meta:set_string("owner", name)
+
+				meta:set_string("infotext", S("Generator - generates power crystals that provide power," ..
+					" upgrade with up to @1 generators", generator_upgrade_max))
+
+				meta:set_int("upgrade", 0) -- upgrade level determines quality of produced crystals
+				meta:get_inventory():set_size("upgrade", 2)
+
+				generator_update_form(meta)
+			end
 		end
 	end,
 
@@ -471,15 +518,53 @@ minetest.register_node("basic_machines:generator", {
 
 	on_metadata_inventory_put = function(pos, listname, index, stack, player)
 		if listname == "upgrade" then
-			generator_upgrade(pos)
-			generator_update_form(pos)
+			local meta = minetest.get_meta(pos)
+			generator_upgrade(meta)
+			generator_update_form(meta)
+		elseif listname == "fuel" then
+			local meta = minetest.get_meta(pos)
+			if meta:get_string("owner") == "" then
+				local inv = meta:get_inventory()
+				local inv_stack = inv:get_stack("fuel", 1)
+				local add_energy = energy_crystals[inv_stack:get_name()] or 0
+				local energy = meta:get_float("upgrade")
+
+				if add_energy > 0 then
+					add_energy = add_energy * inv_stack:get_count()
+					if add_energy <= minenergy then
+						inv:set_stack("fuel", 1, ItemStack(""))
+					else
+						return
+					end
+				else -- try do determine caloric value of fuel inside battery
+					local fueladd, _ = minetest.get_craft_result({method = "fuel", width = 1, items = {inv_stack}})
+					if fueladd.time > 0 then
+						add_energy = (fueladd.time / 40) * inv_stack:get_count()
+						if energy + add_energy <= minenergy + 3 then
+							inv:set_stack("fuel", 1, ItemStack(""))
+						else
+							return
+						end
+					end
+				end
+
+				if add_energy > 0 then
+					energy = energy + add_energy
+					if energy < 0 then energy = 0 end
+					if energy > minenergy then energy = minenergy end -- excess energy is wasted
+					meta:set_float("upgrade", energy)
+					minetest.sound_play("basic_machines_electric_zap", {pos = pos, gain = 0.05, max_hear_distance = 8}, true)
+					generator_update_form(meta, true)
+				end
+			end
 		end
 	end,
 
 	on_metadata_inventory_take = function(pos, listname, index, stack, player)
 		if listname == "upgrade" then
-			generator_upgrade(pos)
-			generator_update_form(pos)
+			local meta = minetest.get_meta(pos)
+			generator_upgrade(meta)
+			generator_update_form(meta)
 		end
 	end
 })

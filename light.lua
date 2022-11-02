@@ -8,16 +8,10 @@ minetest.register_node("basic_machines:light_off", {
 	effector = {
 		action_on = function(pos, _)
 			minetest.swap_node(pos, {name = "basic_machines:light_on"})
-			local meta = minetest.get_meta(pos)
-			local deactivate = meta:get_int("deactivate")
-
+			local deactivate = minetest.get_meta(pos):get_int("deactivate")
 			if deactivate > 0 then
-				-- meta:set_int("active", 0)
 				minetest.after(deactivate, function()
-					-- if meta:get_int("active") ~= 1 then -- was not activated again, so turn it off
-						minetest.swap_node(pos, {name = "basic_machines:light_off"}) -- turn off again
-						-- meta:set_int("active", 0)
-					-- end
+					minetest.swap_node(pos, {name = "basic_machines:light_off"}) -- turn off again
 				end)
 			end
 		end
@@ -33,8 +27,9 @@ minetest.register_node("basic_machines:light_on", {
 	after_place_node = function(pos, placer)
 		local meta = minetest.get_meta(pos)
 		meta:set_string("formspec",
-			"size[2,1.75]field[0.25,0.5;2,1;deactivate;" .. F(S("deactivate after")) .. ";" .. meta:get_int("deactivate") ..
+			"size[2,1.75]field[0.25,0.5;2,1;deactivate;" .. F(S("Deactivate after:")) .. ";0" ..
 			"]button_exit[0,1;1,1;OK;" .. F(S("OK")) .. "]")
+		meta:set_int("deactivate", 0)
 	end,
 
 	on_receive_fields = function(pos, formname, fields, sender)
@@ -44,7 +39,7 @@ minetest.register_node("basic_machines:light_on", {
 			if deactivate < 0 or deactivate > 600 then deactivate = 0 end
 			meta:set_int("deactivate", deactivate)
 			meta:set_string("formspec",
-				"size[2,1.75]field[0.25,0.5;2,1;deactivate;" .. F(S("deactivate after")) .. ";" .. deactivate ..
+				"size[2,1.75]field[0.25,0.5;2,1;deactivate;" .. F(S("Deactivate after:")) .. ";" .. deactivate ..
 				"]button_exit[0,1;1,1;OK;" .. F(S("OK")) .. "]")
 		end
 	end,

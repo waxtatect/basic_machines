@@ -1,21 +1,7 @@
 local S = basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local machines_timer = basic_machines.properties.machines_timer
-
--- test: toggle machine running with clockgen/keypad repeats, useful for debugging
--- i.e. seeing how machines running affect server performance
-minetest.register_chatcommand("clockgen", {
-	description = S("Toggle clock generator/keypad repeats"),
-	privs = {privs = true},
-	func = function(name, _)
-		if basic_machines.properties.clockgen == 0 then
-			basic_machines.properties.clockgen = 1
-		else
-			basic_machines.properties.clockgen = 0
-		end
-		minetest.chat_send_player(name, S("clockgen set to @1", basic_machines.properties.clockgen))
-	end
-})
+local no_clock = basic_machines.properties.no_clock
 
 minetest.register_abm({
 	label = "[basic_machines] Clock Generator",
@@ -25,7 +11,7 @@ minetest.register_abm({
 	chance = 1,
 
 	action = function(pos, node, active_object_count, active_object_count_wider)
-		if basic_machines.properties.clockgen == 0 then return end
+		if no_clock then return end
 		local meta = minetest.get_meta(pos)
 		-- owner online or machines privilege
 		if minetest.get_player_by_name(meta:get_string("owner")) or meta:get_int("machines") == 1 then
@@ -68,7 +54,8 @@ minetest.register_node("basic_machines:clockgen", {
 	end,
 
 	can_dig = function(pos, player)
-		return minetest.get_meta(pos):get_string("owner") == player:get_player_name()
+		local owner = minetest.get_meta(pos):get_string("owner")
+		return owner == player:get_player_name() or owner == ""
 	end
 })
 
