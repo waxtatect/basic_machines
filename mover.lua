@@ -912,7 +912,7 @@ minetest.register_node("basic_machines:mover", {
 						local palette_index = tonumber(inv_stack:get_meta():get("palette_index"))
 						if palette_index then
 							stack:get_meta():set_int("palette_index", palette_index)
-							match_meta = true; node1.param1, node1.param2 = nil, palette_index + 2
+							match_meta = true; node1.param1, node1.param2 = nil, palette_index
 						end
 					end
 
