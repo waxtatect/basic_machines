@@ -2,7 +2,6 @@ local F, S = basic_machines.F, basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
-local no_clock = basic_machines.properties.no_clock
 local byte = string.byte
 local use_signs_lib = minetest.global_exists("signs_lib")
 local signs = { -- when activated with keypad these will be "punched" to update their text too
@@ -34,18 +33,14 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 
 	if t0 > t1 - machines_minstep then -- activated before natural time
 		T = T + 1
-	else
-		if T > 0 then
-			T = T - 1
-			if t1 - t0 > machines_timer then T = 0 end
-		end
+	elseif T > 0 then
+		if t1 - t0 > machines_timer then T = 0 else T = T - 1 end
 	end
-	meta:set_int("T", T)
-	meta:set_int("t", t1) -- update last activation time
+	meta:set_int("t", t1); meta:set_int("T", T)
 
 	if T > 2 then -- overheat
 		minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
-		meta:set_string("infotext", S("Overheat: temperature @1", T))
+		meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 		return
 	end
 
@@ -59,7 +54,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 	local count = 0 -- counts repeats
 
 	if iter > 1 then
-		if no_clock then return end
+		if basic_machines.properties.no_clock then return end
 		count = meta:get_int("count")
 
 		if reset and count > 0 or count == iter then
@@ -87,13 +82,11 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 	local text, name = meta:get_string("text"), node.name
 
 	if text == "" or name ~= "basic_machines:keypad" and not vector.equals(pos, tpos) then
-		local msg
 		if count < 2 then
-			msg = S("Keypad operation: @1 cycle left", count)
+			meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
 		else
-			msg = S("Keypad operation: @1 cycles left", count)
+			meta:set_string("infotext", S("Keypad operation: @1 cycles left", count))
 		end
-		meta:set_string("infotext", msg)
 	end
 
 	if text ~= "" then -- TEXT MODE; set text on target
@@ -252,6 +245,7 @@ minetest.register_node("basic_machines:keypad", {
 		meta:set_int("iter", 1); meta:set_int("count", 0) -- current repeat count
 		meta:set_int("x0", 0); meta:set_int("y0", 0); meta:set_int("z0", 0) -- target
 		meta:set_int("input", 0); meta:set_int("state", 0)
+		meta:set_int("t", 0); meta:set_int("T", 0)
 	end,
 
 	on_rightclick = function(pos, node, player, itemstack, pointed_thing)

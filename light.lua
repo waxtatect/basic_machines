@@ -33,7 +33,8 @@ minetest.register_node("basic_machines:light_on", {
 	end,
 
 	on_receive_fields = function(pos, formname, fields, sender)
-		if fields.OK and not minetest.is_protected(pos, sender:get_player_name()) then
+		if fields.OK then
+			if minetest.is_protected(pos, sender:get_player_name()) then return end
 			local meta = minetest.get_meta(pos)
 			local deactivate = tonumber(fields.deactivate) or 0
 			if deactivate < 0 or deactivate > 600 then deactivate = 0 end

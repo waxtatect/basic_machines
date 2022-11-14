@@ -1,7 +1,6 @@
 local S = basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local machines_timer = basic_machines.properties.machines_timer
-local no_clock = basic_machines.properties.no_clock
 
 minetest.register_abm({
 	label = "[basic_machines] Clock Generator",
@@ -11,7 +10,7 @@ minetest.register_abm({
 	chance = 1,
 
 	action = function(pos, node, active_object_count, active_object_count_wider)
-		if no_clock then return end
+		if basic_machines.properties.no_clock then return end
 		local meta = minetest.get_meta(pos)
 		-- owner online or machines privilege
 		if minetest.get_player_by_name(meta:get_string("owner")) or meta:get_int("machines") == 1 then

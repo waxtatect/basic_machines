@@ -74,14 +74,14 @@ minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 		}
 		local msg
 		if punchset_desc == "MOVER" then
-			msg = "MOVER: Now punch source1, source2, end position to set up mover."
+			msg = S("MOVER: Now punch source1, source2, end position to set up mover.")
 		elseif punchset_desc == "KEYPAD" then
-			msg = "KEYPAD: Now punch the target block."
+			msg = S("KEYPAD: Now punch the target block.")
 		elseif punchset_desc == "DETECTOR" then
-			msg = "DETECTOR: Now punch the source block."
+			msg = S("DETECTOR: Now punch the source block.")
 		end
 		if msg then
-			minetest.chat_send_player(name, S(msg))
+			minetest.chat_send_player(name, msg)
 		end
 		return
 	end
@@ -99,7 +99,9 @@ minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 		local privs = minetest.check_player_privs(name, "privs")
 		local range
 
-		if meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:mese" then
+		if meta:get_int("upgradetype") == 1 or
+			meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:mese" -- for compatibility
+		then
 			range = meta:get_int("upgrade") * max_range
 		else
 			range = max_range
@@ -154,17 +156,16 @@ minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 					if ecost > 3 then -- trying to make an elevator ?
 						-- count number of diamond blocks to determine if elevator can be set up with this height distance
 						local upgrade = meta:get_int("upgrade")
-
 						local requirement = math.floor(ecost / 100) + 1
-						if upgrade - 1 < requirement and
-							meta:get_inventory():get_stack("upgrade", 1):get_name() ~= "default:diamondblock" and upgrade ~= -1
+						if (upgrade - 1) >= requirement and (meta:get_int("upgradetype") == 2 or
+							meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:diamondblock") or upgrade == -1 -- for compatibility
 						then
-							minetest.chat_send_player(name, S("MOVER: Error while trying to make an elevator. Need at least @1 diamond block(s) in upgrade (1 for every 100 distance).", requirement))
-							punchset[name] = {state = 0, node = ""}; return
-						else
 							meta:set_int("elevator", 1)
 							meta:set_string("infotext", S("ELEVATOR: Activate to use."))
 							minetest.chat_send_player(name, S("MOVER: Elevator setup completed, upgrade level @1.", upgrade - 1))
+						else
+							minetest.chat_send_player(name, S("MOVER: Error while trying to make an elevator. Need at least @1 diamond block(s) in upgrade (1 for every 100 distance).", requirement))
+							punchset[name] = {state = 0, node = ""}; return
 						end
 					end
 				end
@@ -337,7 +338,9 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 	-- MOVER
 	if formname_sub == "mover" then
-		if fields.OK and not minetest.is_protected(pos, name) then
+		if fields.OK then
+			if minetest.is_protected(pos, name) then return end
+
 			if meta:get_int("seltab") == 2 then -- POSITIONS
 				local x0, y0, z0 = tonumber(fields.x0) or 0, tonumber(fields.y0) or -1, tonumber(fields.z0) or 0
 				local x1, y1, z1 = tonumber(fields.x1) or 0, tonumber(fields.y1) or -1, tonumber(fields.z1) or 0
@@ -435,6 +438,19 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
 				basic_machines.get_mover_form(pos, name))
 
+		elseif fields.now then -- mark current position
+			local markerN = machines.mark_posN(meta:get_string("owner"), pos)
+			if markerN then markerN:get_luaentity()._origin = pos end
+
+		elseif fields.show then -- display mover area defined by sources
+			local pos1 = {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")}	-- source1
+			local pos11 = {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")}	-- source2
+			local markerA = machines.mark_posA(name, vector.add(pos, vector.divide(vector.add(pos1, pos11), 2)))
+			if markerA then
+				markerA:set_properties({visual_size = {x = abs(pos11.x - pos1.x) + 1.11,
+					y = abs(pos11.y - pos1.y) + 1.11, z = abs(pos11.z - pos1.z) + 1.11}})
+			end
+
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_mover", "size[6,7]textarea[0,0;6.5,8.5;help;" ..
 				F(S("MOVER HELP")) .. ";" .. F(S("version @1\nSETUP: For interactive setup punch the mover and then punch source1, source2, target node (follow instructions)." ..
@@ -451,27 +467,30 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				" This is useful for placing stuff at many locations-planting." ..
 				" If you put reverse = 2/3 in transport mode it will disable parallel transport but will still do reverse effect with 3." ..
 				" If you activate mover with OFF signal it will toggle reverse.")) ..
-				F(S("\n\nFUEL CONSUMPTION depends on blocks to be moved and distance." ..
+				F(S("\n\nFUEL CONSUMPTION depends on blocks to be moved, distance and temperature." ..
 				" For example, stone or tree is harder to move than dirt, harvesting wheat is very cheap and and moving lava is very hard." ..
+				" High temperature increases fuel consumption while low temperature reduces it." ..
 				"\n\nUPGRADE mover by moving mese blocks in upgrade inventory." ..
-				" Each mese block increases mover range by @1, fuel consumption is divided by (number of mese blocks)+1 in upgrade." ..
+				" Each mese block increases mover range by @1, fuel consumption is divided by number of mese blocks in upgrade." ..
 				" Max @2 blocks are used for upgrade." ..
 				"\n\nActivate mover by keypad/detector signal or mese signal through mesecon adapter (if mesecons mod).",
 				max_range, mover_upgrade_max)) .. "]")
 
-		elseif fields.mode and not minetest.is_protected(pos, name) then
+		elseif fields.mode then
+			if minetest.is_protected(pos, name) then return end
+
 			local mode = strip_translator_sequence(fields.mode, meta:get_string("mode"))
 			-- input validation
-			if not basic_machines.check_mover_filter(mode, meta:get_string("prefer"), meta:get_int("reverse")) and
-				not basic_machines.check_target_chest(mode, pos, meta)
+			if basic_machines.check_mover_filter(mode, meta:get_string("prefer"), meta:get_int("reverse")) or
+				basic_machines.check_target_chest(mode, pos, meta)
 			then
-				minetest.chat_send_player(name, S("MOVER: Wrong filter - must be name of existing minetest block")); return
+				meta:set_string("mode", mode)
+
+				minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
+					basic_machines.get_mover_form(pos, name))
+			else
+				minetest.chat_send_player(name, S("MOVER: Wrong filter - must be name of existing minetest block"))
 			end
-
-			meta:set_string("mode", mode)
-
-			minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
-				basic_machines.get_mover_form(pos, name))
 		end
 
 
@@ -515,7 +534,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				end
 			end
 
-			meta:set_float("delay", tonumber(fields.delay) or 0)
+			meta:set_float("delay", basic_machines.twodigits_float(tonumber(fields.delay) or 0))
 
 		elseif fields.ADD then
 			if minetest.is_protected(pos, name) then return end
@@ -630,7 +649,9 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 	-- KEYPAD
 	elseif formname_sub == "keypad" then
-		if fields.OK and not minetest.is_protected(pos, name) then
+		if fields.OK then
+			if minetest.is_protected(pos, name) then return end
+
 			local x0, y0, z0 = tonumber(fields.x0) or 0, tonumber(fields.y0) or 1, tonumber(fields.z0) or 0
 
 			if minetest.is_protected(vector.add(pos, {x = x0, y = y0, z = z0}), name) then
@@ -730,7 +751,9 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 	-- DETECTOR
 	elseif formname_sub == "detector" then
-		if fields.OK and not minetest.is_protected(pos, name) then
+		if fields.OK then
+			if minetest.is_protected(pos, name) then return end
+
 			local x0, y0, z0 = tonumber(fields.x0) or 0, tonumber(fields.y0) or 0, tonumber(fields.z0) or 0
 			local x1, y1, z1 = tonumber(fields.x1) or 0, tonumber(fields.y1) or 0, tonumber(fields.z1) or 0
 			local x2, y2, z2 = tonumber(fields.x2) or 0, tonumber(fields.y2) or 0, tonumber(fields.z2) or 0

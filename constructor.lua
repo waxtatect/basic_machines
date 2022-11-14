@@ -126,8 +126,9 @@ local function add_constructor(name, def)
 		end,
 
 		on_receive_fields = function(pos, formname, fields, sender)
+			if fields.quit then return end
 			local player_name = sender:get_player_name()
-			if fields.quit or minetest.is_protected(pos, player_name) then return end
+			if minetest.is_protected(pos, player_name) then return end
 
 			if fields.CRAFT then
 				constructor_process(pos, name, player_name)

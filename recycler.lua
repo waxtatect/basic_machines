@@ -6,6 +6,7 @@
 
 local F, S = basic_machines.F, basic_machines.S
 local machines_minstep = basic_machines.properties.machines_minstep
+local twodigits_float = basic_machines.twodigits_float
 local no_recycle_list = { -- prevent unrealistic recycling
 	["default:bronze_ingot"] = 1, ["default:gold_ingot"] = 1,
 	["default:copper_ingot"] = 1, ["default:steel_ingot"] = 1,
@@ -37,49 +38,46 @@ end
 local function recycler_process(pos)
 	local meta = minetest.get_meta(pos)
 
+	local inv = meta:get_inventory(); local msg
+
 	-- FUEL CHECK
-	local fuel = meta:get_float("fuel"); local fuel_req
+	local fuel_req; local fuel = meta:get_float("fuel")
 
 	if meta:get_int("admin") == 1 then
 		fuel_req = 0
 	else
 		fuel_req = 1
-	end
 
-	local inv = meta:get_inventory()
-	local msg
+		if fuel < fuel_req then -- we need new fuel
+			local fuellist = inv:get_list("fuel"); if not fuellist then return end
+			local fueladd, afterfuel = minetest.get_craft_result({method = "fuel", width = 1, items = fuellist})
 
-	if fuel < fuel_req then -- we need new fuel
-		local fuellist = inv:get_list("fuel"); if not fuellist then return end
-		local fueladd, afterfuel = minetest.get_craft_result({method = "fuel", width = 1, items = fuellist})
-
-		if fueladd.time == 0 then -- no fuel inserted, try look for outlet
-			local supply = basic_machines.check_power({x = pos.x, y = pos.y - 1, z = pos.z}, fuel_req)
-			if supply > 0 then
-				fueladd.time = 40 * supply -- same as 10 coal
+			if fueladd.time == 0 then -- no fuel inserted, try look for outlet
+				local supply = basic_machines.check_power({x = pos.x, y = pos.y - 1, z = pos.z}, fuel_req)
+				if supply > 0 then
+					fueladd.time = 40 * supply -- same as 10 coal
+				else
+					meta:set_string("infotext", S("Please insert fuel")); return
+				end
 			else
-				meta:set_string("infotext", S("Please insert fuel")); return
+				inv:set_stack("fuel", 1, afterfuel.items[1])
+				fueladd.time = fueladd.time * 0.1 -- thats 4 for coal
 			end
-		else
-			inv:set_stack("fuel", 1, afterfuel.items[1])
-			fueladd.time = fueladd.time * 0.1 -- thats 4 for coal
-		end
 
-		if fueladd.time > 0 then
-			fuel = fuel + fueladd.time; meta:set_float("fuel", fuel)
-			-- meta:set_string("infotext", S("Added fuel furnace burn time @1, fuel status @2", fueladd.time, fuel))
-			msg = S("Added fuel furnace burn time @1, fuel status @2", fueladd.time, fuel)
-		end
+			if fueladd.time > 0 then
+				fuel = fuel + fueladd.time; meta:set_float("fuel", fuel)
+				msg = S("Added fuel furnace burn time @1, fuel status @2", fueladd.time, twodigits_float(fuel))
+			end
 
-		if fuel < fuel_req then return end
+			if fuel < fuel_req then return end
+		end
 	end
 
 	-- RECYCLING: check out inserted items
 	local stack = inv:get_stack("src", 1)
 	if stack:is_empty() then if msg then meta:set_string("infotext", msg) end; return end -- nothing to do
-	local src_item = stack:get_name() -- stack:to_string()
+	local src_item = stack:get_name()
 	-- take first word to determine what item was
-	-- local p = src_item:find(" "); if p then src_item = src_item:sub(1, p - 1) end
 	local itemlist; local reqcount = 1; local description -- needed count of materials for recycle to work
 
 	if src_item == meta:get_string("node") then -- did we already handle this ? if yes read from cache
@@ -146,23 +144,23 @@ local function recycler_process(pos)
 	stack = stack:take_item(reqcount); inv:remove_item("src", stack)
 
 	local count = meta:get_int("activation_count")
-	if count < 15 then
+	if count < 16 then
 		minetest.sound_play("basic_machines_recycler", {pos = pos, gain = 0.5, max_hear_distance = 16}, true)
 	end
 
 	local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-	if t0 >= t1 - machines_minstep then
+	if t0 > t1 - machines_minstep then
 		meta:set_int("activation_count", count + 1)
-	elseif count > 1 and t0 < t1 - machines_minstep then
+	elseif count > 0 then
 		meta:set_int("activation_count", 0)
 	end
 	meta:set_int("t", t1)
 
 	fuel = fuel - fuel_req; meta:set_float("fuel", fuel) -- burn fuel on successful operation
 	if inv:is_empty("src") then
-		meta:set_string("infotext", S("Fuel status @1", fuel))
+		meta:set_string("infotext", S("Fuel status @1", twodigits_float(fuel)))
 	else
-		meta:set_string("infotext", S("Fuel status @1, recycling '@2' (@3)", fuel, description, src_item))
+		meta:set_string("infotext", S("Fuel status @1, recycling '@2' (@3)", twodigits_float(fuel), description, src_item))
 	end
 end
 
@@ -185,7 +183,7 @@ minetest.register_node("basic_machines:recycler", {
 
 		meta:set_int("recipe", 1)
 		meta:set_float("fuel", 0)
-		meta:set_int("activation_count", 0); meta:set_int("t", 0)
+		meta:set_int("t", 0); meta:set_int("activation_count", 0)
 
 		local inv = meta:get_inventory()
 		inv:set_size("src", 1)
@@ -204,7 +202,9 @@ minetest.register_node("basic_machines:recycler", {
 	end,
 
 	on_receive_fields = function(pos, formname, fields, sender)
-		if fields.OK and not minetest.is_protected(pos, sender:get_player_name()) then
+		if fields.OK then
+			if minetest.is_protected(pos, sender:get_player_name()) then return end
+
 			local meta = minetest.get_meta(pos)
 
 			if fields.recipe ~= meta:get_string("recipe") then
@@ -239,7 +239,7 @@ minetest.register_node("basic_machines:recycler", {
 		if listname == "src" then
 			local meta = minetest.get_meta(pos)
 			if meta:get_inventory():is_empty("src") then
-				meta:set_string("infotext", S("Fuel status @1", meta:get_float("fuel")))
+				meta:set_string("infotext", S("Fuel status @1", twodigits_float(meta:get_float("fuel"))))
 			end
 		end
 	end,

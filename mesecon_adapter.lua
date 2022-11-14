@@ -18,8 +18,7 @@ local adapter_effector = {
 		else -- def.mesecons and def.mesecons.effector then -- activate mesecons
 			pos.y = pos.y - 1
 			mesecon.receptor_on(pos, mesecon.rules.buttonlike_get(node))
-			-- effector = def.mesecons.effector
-			-- effector.action_on(pos)
+			-- effector = def.mesecons.effector; effector.action_on(pos, node)
 		end
 	end,
 
@@ -38,8 +37,7 @@ local adapter_effector = {
 		else -- def.mesecons and def.mesecons.effector then -- activate mesecons
 			pos.y = pos.y - 1
 			mesecon.receptor_off(pos, mesecon.rules.buttonlike_get(node))
-			-- effector = def.mesecons.effector
-			-- effector.action_off(pos, node)
+			-- effector = def.mesecons.effector; effector.action_off(pos, node)
 		end
 	end
 }
