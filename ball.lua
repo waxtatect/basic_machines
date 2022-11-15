@@ -353,6 +353,7 @@ minetest.register_node("basic_machines:ball_spawner", {
 		meta:set_string("texture", ball_default.texture)
 		meta:set_int("scale", ball_default.scale)
 		meta:set_string("visual", ball_default.visual)		-- cube or sprite
+		meta:set_int("t", 0); meta:set_int("T", 0)
 
 		ball_spawner_update_form(meta)
 	end,
@@ -382,7 +383,8 @@ minetest.register_node("basic_machines:ball_spawner", {
 
 	on_receive_fields = function(pos, formname, fields, sender)
 		local name = sender:get_player_name()
-		if fields.OK and not minetest.is_protected(pos, name) then
+		if fields.OK then
+			if minetest.is_protected(pos, name) then return end
 			local privs = minetest.check_player_privs(name, "privs")
 			local meta = minetest.get_meta(pos)
 
@@ -502,20 +504,18 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 
 			if t0 > t1 - 2 * machines_minstep then -- activated before natural time
 				T = T + 1
-			else
-				if T > 0 then
+			elseif T > 0 then
+				if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
+					T = 0; meta:set_string("infotext", "")
+				else
 					T = T - 1
-					if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
-						T = 0; meta:set_string("infotext", "")
-					end
 				end
 			end
-			meta:set_int("T", T)
-			meta:set_int("t", t1) -- update last activation time
+			meta:set_int("t", t1); meta:set_int("T", T)
 
 			if T > 2 then -- overheat
 				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
-				meta:set_string("infotext", S("Overheat: temperature @1", T))
+				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
 			end
 
@@ -608,20 +608,18 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 
 			if t0 > t1 - 2 * machines_minstep then -- activated before natural time
 				T = T + 1
-			else
-				if T > 0 then
+			elseif T > 0 then
+				if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
+					T = 0; meta:set_string("infotext", "")
+				else
 					T = T - 1
-					if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
-						T = 0; meta:set_string("infotext", "")
-					end
 				end
 			end
-			meta:set_int("T", T)
-			meta:set_int("t", t1) -- update last activation time
+			meta:set_int("t", t1); meta:set_int("T", T)
 
 			if T > 2 then -- overheat
 				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
-				meta:set_string("infotext", S("Overheat: temperature @1", T))
+				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
 			end
 

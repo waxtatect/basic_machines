@@ -1,8 +1,9 @@
 -- There is a certain fuel cost to operate
 
 local F, S = basic_machines.F, basic_machines.S
-local machines_minstep = basic_machines.properties.machines_minstep
 local grinder_dusts_legacy = basic_machines.settings.grinder_dusts_legacy
+local machines_minstep = basic_machines.properties.machines_minstep
+local twodigits_float = basic_machines.twodigits_float
 local use_unified_inventory = minetest.global_exists("unified_inventory")
 local use_i3 = minetest.global_exists("i3")
 -- grinder recipes:
@@ -327,10 +328,10 @@ local function grinder_process(pos)
 		end
 
 		if fuel < fuel_req then
-			meta:set_string("infotext", S("Need at least @1 fuel to complete operation", fuel_req - fuel)); return
+			meta:set_string("infotext",
+				S("Need at least @1 fuel to complete operation", twodigits_float(fuel_req - fuel))); return
 		else
-			-- meta:set_string("infotext", S("Added fuel furnace burn time @1, fuel status @2", fueladd.time, fuel))
-			msg = S("Added fuel furnace burn time @1, fuel status @2", fueladd.time, fuel)
+			msg = S("Added fuel furnace burn time @1, fuel status @2", fueladd.time, twodigits_float(fuel))
 		end
 	end
 
@@ -351,7 +352,7 @@ local function grinder_process(pos)
 	minetest.sound_play("basic_machines_grinder", {pos = pos, gain = 0.5, max_hear_distance = 16}, true)
 
 	fuel = fuel - fuel_req; meta:set_float("fuel", fuel) -- burn fuel
-	meta:set_string("infotext", S("Fuel status @1", fuel))
+	meta:set_string("infotext", S("Fuel status @1", twodigits_float(fuel)))
 end
 
 local function grinder_upgrade(meta)
@@ -375,6 +376,7 @@ minetest.register_node("basic_machines:grinder", {
 		meta:set_string("owner", placer:get_player_name())
 
 		meta:set_float("fuel", 0)
+		meta:set_int("t", 0)
 
 		local inv = meta:get_inventory()
 		inv:set_size("src", 1)
@@ -397,7 +399,8 @@ minetest.register_node("basic_machines:grinder", {
 	on_receive_fields = function(pos, formname, fields, sender)
 		if fields.quit then return end
 
-		if fields.OK and not minetest.is_protected(pos, sender:get_player_name()) then
+		if fields.OK then
+			if minetest.is_protected(pos, sender:get_player_name()) then return end
 			grinder_process(pos)
 
 		elseif fields.help then

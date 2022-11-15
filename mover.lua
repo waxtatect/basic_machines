@@ -7,8 +7,13 @@
 local F, S = basic_machines.F, basic_machines.S
 local machines_minstep = basic_machines.properties.machines_minstep
 local machines_operations = basic_machines.properties.machines_operations
+local machines_timer = basic_machines.properties.machines_timer
 local max_range = basic_machines.properties.max_range
+local mover_max_temp = math.max(1, basic_machines.settings.mover_max_temp)
+local twodigits_float = basic_machines.twodigits_float
 local vector_add = vector.add
+local temp_80P = mover_max_temp > 12 and math.ceil(mover_max_temp * 0.8)
+local temp_15P = math.ceil(mover_max_temp * 0.15)
 local abs = math.abs
 local vplayer = {}
 local have_bucket_liquids = minetest.global_exists("bucket") and bucket.liquids
@@ -69,7 +74,7 @@ local mover = {
 		["x_farming:cocoa_2"] = 999999,
 		["x_farming:cocoa_3"] = 999999,
 
-		-- move machines for free
+		-- move machines for free (mostly)
 		["basic_machines:ball_spawner"] = 0,
 		["basic_machines:battery_0"] = 0,
 		["basic_machines:battery_1"] = 0,
@@ -130,6 +135,8 @@ local mover = {
 		[""] = true,
 		["3d_armor_stand:armor_entity"] = true,
 		["__builtin:item"] = true,
+		["machines:posA"] = true,
+		["machines:posN"] = true,
 		["painting:paintent"] = true,
 		["painting:picent"] = true,
 		["shield_frame:shield_entity"] = true,
@@ -297,7 +304,7 @@ basic_machines.get_mover_form = function(pos, name)
 		local pos1 = {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")}
 		local pos11 = {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")}
 		local pos2 = {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")}
-		local inventory_list1, inventory_list2 = "", ""
+		local inventory_list1, inventory_list2, btns_ns
 
 		if mode_string == "inventory" then
 			local meta1 = minetest.get_meta(vector_add(pos, pos1)) -- source1 meta
@@ -325,9 +332,17 @@ basic_machines.get_mover_form = function(pos, name)
 				inv_list1:gsub(",$", "") .. ";" .. inv1 .. "]"
 			inventory_list2 = "label[4.5,3.1;" .. F(S("Target inventory")) .. "]dropdown[4.5,3.5;1.5,1;inv2;" ..
 				inv_list2:gsub(",$", "") .. ";" .. inv2 .. "]"
+		else
+			inventory_list1, inventory_list2 = "", ""
 		end
 
-		return ("size[6.25,6]tabheader[0,0;tabs;" ..
+		if mode_string == "object" then
+			btns_ns = ""
+		else
+			btns_ns = "button_exit[0,5.7;1,1;now;" .. F(S("Now")) .. "]button_exit[1,5.7;1,1;show;" .. F(S("Show")) .. "]"
+		end
+
+		return ("size[6.25,6.5]tabheader[0,0;tabs;" ..
 			F(S("MODE OF OPERATION")) .. "," .. F(S("WHERE TO MOVE")) .. ";" .. seltab .. ";true;true]" ..
 			"label[0,0;" .. minetest.colorize("lawngreen", F(S("INPUT AREA - mover will dig here"))) ..
 			"]field[0.25,1;1,1;x0;" .. F(S("Source1")) .. ";" .. pos1.x .. "]field[1.25,1;1,1;y0;;" .. pos1.y .. "]field[2.25,1;1,1;z0;;" .. pos1.z ..
@@ -337,8 +352,8 @@ basic_machines.get_mover_form = function(pos, name)
 			"label[0,2.75;" .. minetest.colorize("red", F(S("TARGET POSITION - mover will move to here"))) ..
 			"]field[0.25,3.75;1,1;x2;" .. F(S("Target")) .. ";" .. pos2.x .. "]field[1.25,3.75;1,1;y2;;" .. pos2.y .. "]field[2.25,3.75;1,1;z2;;" .. pos2.z ..
 			"]image[3,3.5;1,1;machines_pos2.png]" .. inventory_list2 .. "label[0,4.4;" .. F(S("REVERSE source and target (0/1/2/3)")) ..
-			"]field[0.25,5;1,1;reverse;;" .. meta:get_int("reverse") ..
-			"]listring[current_player;main]button[4.1,4.7;1,1;help;" .. F(S("help")) .. "]button_exit[5.1,4.7;1,1;OK;" .. F(S("OK")) .. "]")
+			"]field[0.25,5;1,1;reverse;;" .. meta:get_int("reverse") .. "]" .. btns_ns ..
+			"button[4.1,5.7;1,1;help;" .. F(S("help")) .. "]button_exit[5.1,5.7;1,1;OK;" .. F(S("OK")) .. "]")
 	end
 end
 
@@ -372,7 +387,10 @@ minetest.register_chatcommand("mover_intro", {
 	end
 })
 
-local mover_upgrades = {["default:mese"] = basic_machines.properties.mover_upgrade_max, ["default:diamondblock"] = 99}
+local mover_upgrades = {
+	["default:mese"] = {id = 1, max = basic_machines.properties.mover_upgrade_max},
+	["default:diamondblock"] = {id = 2, max = 99}
+}
 
 minetest.register_node("basic_machines:mover", {
 	description = S("Mover - universal digging/harvesting/teleporting/transporting machine, it's upgradeable"),
@@ -395,9 +413,9 @@ minetest.register_node("basic_machines:mover", {
 		meta:set_float("fuel", 0)
 		meta:set_string("prefer", "")
 		meta:set_string("mode", "normal")
-		meta:set_int("upgrade", 1)
+		meta:set_int("upgradetype", 0); meta:set_int("upgrade", 1)
 		meta:set_int("seltab", 1) -- 0: undefined, 1: mode tab, 2: positions tab
-		meta:set_int("activation_count", 0); meta:set_int("t", 0)
+		meta:set_int("t", 0); meta:set_int("T", 0); meta:set_int("activation_count", 0)
 
 		basic_machines.find_and_connect_battery(pos) -- try to find battery early
 		if minetest.check_player_privs(name, "privs") then
@@ -479,11 +497,13 @@ minetest.register_node("basic_machines:mover", {
 				basic_machines.get_mover_form(pos, name))
 		elseif listname == "upgrade" then
 			local stack_name = stack:get_name()
-			local mover_upgrade_max = mover_upgrades[stack_name]
-			if mover_upgrade_max then
+			local mover_upgrade = mover_upgrades[stack_name]
+			if mover_upgrade then
 				local inv_stack = meta:get_inventory():get_stack("upgrade", 1)
-				if inv_stack:is_empty() or stack_name == inv_stack:get_name() then
+				local inv_stack_is_empty = inv_stack:is_empty()
+				if inv_stack_is_empty or stack_name == inv_stack:get_name() then
 					local upgrade = inv_stack:get_count()
+					local mover_upgrade_max = mover_upgrade.max
 					if upgrade < mover_upgrade_max then
 						local stack_count = stack:get_count()
 						local new_upgrade = upgrade + stack_count
@@ -491,6 +511,7 @@ minetest.register_node("basic_machines:mover", {
 							new_upgrade = mover_upgrade_max -- not more than max
 							stack_count = math.min(stack_count, mover_upgrade_max - upgrade)
 						end
+						if inv_stack_is_empty then meta:set_int("upgradetype", mover_upgrade.id) end
 						meta:set_int("upgrade", new_upgrade + 1)
 						return stack_count
 					end
@@ -527,16 +548,17 @@ minetest.register_node("basic_machines:mover", {
 			return 0
 		elseif listname == "upgrade" then
 			if minetest.check_player_privs(name, "privs") then
-				meta:set_int("upgrade", -1) -- means operation will be for free
+				meta:set_int("upgrade", -1) -- means operations will be for free
 			else
 				local stack_name = stack:get_name()
-				local mover_upgrade_max = mover_upgrades[stack_name]
-				if mover_upgrade_max then
+				local mover_upgrade = mover_upgrades[stack_name]
+				if mover_upgrade then
 					local inv_stack = meta:get_inventory():get_stack("upgrade", 1)
 					if stack_name == inv_stack:get_name() then
 						local upgrade = inv_stack:get_count()
 						upgrade = upgrade - stack:get_count()
-						if upgrade < 0 or upgrade > mover_upgrade_max then upgrade = 0 end -- not less than 0 and not more than max
+						if upgrade < 0 or upgrade > mover_upgrade.max then upgrade = 0 end -- not less than 0 and not more than max
+						if upgrade == 0 then meta:set_int("upgradetype", 0) end
 						meta:set_int("upgrade", upgrade + 1)
 					end
 				end
@@ -550,91 +572,144 @@ minetest.register_node("basic_machines:mover", {
 		action_on = function(pos, _)
 			local meta = minetest.get_meta(pos)
 
-			local x0, y0, z0 = meta:get_int("x0"), meta:get_int("y0"), meta:get_int("z0")	-- source1
-			local x1, y1, z1																-- source2
-			local x2, y2, z2 = meta:get_int("x2"), meta:get_int("y2"), meta:get_int("z2")	-- target
-			local fuel = meta:get_float("fuel")
+
+			-- TEMPERATURE
+			local t0, t1 = meta:get_int("t"), minetest.get_gametime()
+			local tn, T = t1 - machines_minstep, meta:get_int("T") -- temperature
+
+			if t0 <= tn and T < mover_max_temp then
+				T = 0
+			end
+
+			if t0 > tn then -- activated before natural time
+				T = T + 1
+			elseif T > mover_max_temp then
+				if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
+					T = 0; meta:set_string("infotext", "")
+				else
+					T = T - 1
+				end
+			end
+			meta:set_int("t", t1); meta:set_int("T", T)
+
+			if T > mover_max_temp then
+				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
+				return
+			end
+
 			local mode = meta:get_string("mode")
+			local object = mode == "object"
 			local mreverse = meta:get_int("reverse")
+			local transport
+			local owner = meta:get_string("owner")
 
-			local pos1 = {}											-- where to take from
-			local pos2 = vector_add(pos, {x = x2, y = y2, z = z2})	-- where to put
 
-			local object = mode == "object" -- object mode
+			-- POSITIONS
+			local pos1 -- where to take from
+			local pos2 -- where to put
 
 			if object then
 				if meta:get_int("dim") ~= -1 then
 					meta:set_string("infotext", S("MOVER: Must reconfigure sources position.")); return
 				end
-				pos1 = vector_add(pos, {x = x0, y = y0, z = z0})
-				x1, y1, z1 = meta:get_int("x1"), meta:get_int("y1"), meta:get_int("z1")
+				if mreverse == 1 then -- reverse pos1, pos2
+					pos1 = vector_add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")})
+					pos2 = vector_add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
+				else
+					pos1 = vector_add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")}) -- source1
+					pos2 = vector_add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")}) -- target
+				end
 			else
 				if meta:get_int("dim") < 1 then
 					meta:set_string("infotext", S("MOVER: Must reconfigure sources position.")); return
 				end
-				x1, y1, z1 = meta:get_int("x1") - x0 + 1, meta:get_int("y1") - y0 + 1, meta:get_int("z1") - z0 + 1 -- get dimensions
+				local x0, y0, z0 = meta:get_int("x0"), meta:get_int("y0"), meta:get_int("z0") -- source1
+
+				local x1, y1 = meta:get_int("x1") - x0 + 1, meta:get_int("y1") - y0 + 1 -- get dimensions
 				local pc = meta:get_int("pc"); pc = (pc + 1) % meta:get_int("dim"); meta:set_int("pc", pc) -- cycle position
 				-- pc = z * a * b + x * b + y, from x, y, z to pc
 				-- set current input position
-				pos1.y = y0 + (pc % y1); pc = (pc - (pc % y1)) / y1
-				pos1.x = x0 + (pc % x1); pc = (pc - (pc % x1)) / x1
-				pos1.z = z0 + pc
-				pos1 = vector_add(pos, pos1)
+				local yc = y0 + (pc % y1); pc = (pc - (pc % y1)) / y1
+				local xc = x0 + (pc % x1); pc = (pc - (pc % x1)) / x1
+				local zc = z0 + pc
+				pos1 = vector_add(pos, {x = xc, y = yc, z = zc})
+
+				local markerN = machines.markerN[owner]
+				if markerN and T < temp_15P then
+					local lua_entity = markerN:get_luaentity()
+					if lua_entity and vector.equals(pos, lua_entity._origin or {}) then
+						markerN:set_pos(pos1) -- mark current position
+					end
+				end
+
+				local x2, y2, z2 = meta:get_int("x2"), meta:get_int("y2"), meta:get_int("z2") -- target
+				transport = mode == "transport"
+				-- special mode that use its own source/target positions:
+				if transport and mreverse < 2 then
+					pos2 = vector_add(pos1, {x = x2 - x0, y = y2 - y0, z = z2 - z0}) -- translation from pos1
+				else
+					pos2 = vector_add(pos, {x = x2, y = y2, z = z2})
+				end
+
+				if mreverse ~= 0 and mreverse ~= 2 then -- reverse pos1, pos2
+					local xt, yt, zt = pos1.x, pos1.y, pos1.z
+					pos1 = {x = pos2.x, y = pos2.y, z = pos2.z}
+					pos2 = {x = xt, y = yt, z = zt}
+				end
 			end
 
-			local transport = mode == "transport" -- transports nodes
-
-			-- special mode that use its own source/target positions:
-			if transport and mreverse < 2 then
-				pos2 = vector_add(pos1, {x = x2 - x0, y = y2 - y0, z = z2 - z0}) -- translation from pos1
-			end
-
-			if mreverse ~= 0 and mreverse ~= 2 then -- reverse pos1, pos2
-				local post = {x = pos1.x, y = pos1.y, z = pos1.z}
-				pos1 = {x = pos2.x, y = pos2.y, z = pos2.z}
-				pos2 = {x = post.x, y = post.y, z = post.z}
-			end
-
-			local owner = meta:get_string("owner")
 
 			-- PROTECTION CHECK
-			local text = S("Mover block. Protection fail.")
 			if minetest.is_protected(pos1, owner) or minetest.is_protected(pos2, owner) then
-				meta:set_string("infotext", text); return
-			elseif meta:get_string("infotext") == text then
-				meta:set_string("infotext", "")
+				meta:set_string("infotext", S("Mover block. Protection fail.")); return
 			end
 
-			local node1 = minetest.get_node(pos1)
-			local node1_name = node1.name
+			local inventory = mode == "inventory"
 			local prefer = meta:get_string("prefer")
+			local node1, node1_name, source_chest, msg
 
-			local inventory = mode == "inventory" -- inventory mode
-			local source_chest = mover.chests[node1_name] or false
 
-			-- FUEL COST: calculate
+			-- FUEL
 			local upgrade = meta:get_int("upgrade")
 			local fuel_cost
+			local fuel = meta:get_float("fuel")
 
 			if upgrade == -1 then
-				fuel_cost = 0 -- free operation for admin
+				if not object then
+					node1 = minetest.get_node(pos1); node1_name = node1.name
+					if not inventory then
+						source_chest = mover.chests[node1_name] or false
+					end
+				end
+				fuel_cost = 0 -- free operations for admin
 			else
-				if inventory or source_chest and node1_name ~= "default:chest" then -- taking items from chests/inventory move
-					fuel_cost = mover.hardness[prefer] or 1
-				elseif object and meta:get_int("elevator") == 1 then -- check if elevator mode
+				-- FUEL COST: calculate
+				if object and meta:get_int("elevator") == 1 then -- check if elevator mode
 					local requirement = math.floor((abs(pos2.x - pos.x) + abs(pos2.y - pos.y) + abs(pos2.z - pos.z)) / 100) + 1
-					if upgrade - 1 < requirement and
-						meta:get_inventory():get_stack("upgrade", 1):get_name() ~= "default:diamondblock"
+					if (upgrade - 1) >= requirement and (meta:get_int("upgradetype") == 2 or
+						meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:diamondblock") -- for compatibility
 					then
+						fuel_cost = 0
+					else
 						meta:set_string("infotext",
 							S("MOVER: Elevator error. Need at least @1 diamond block(s) in upgrade (1 for every 100 distance).",
 							requirement)); return
 					end
-					fuel_cost = 0
 				else
-					local hardness = mover.hardness[node1_name]
-					if hardness == 0 and object then hardness = 1 end -- no free teleport from machine blocks
-					fuel_cost = hardness or 1
+					node1 = minetest.get_node(pos1); node1_name = node1.name
+					if inventory then -- taking items from chests/inventory move
+						fuel_cost = mover.hardness[prefer] or 1
+					else
+						source_chest = mover.chests[node1_name] or false
+						if source_chest and node1_name ~= "default:chest" then
+							fuel_cost = mover.hardness[prefer] or 1
+						else
+							local hardness = mover.hardness[node1_name]
+							if hardness == 0 and object then hardness = 1 end -- no free teleport from machine blocks
+							fuel_cost = hardness or 1
+						end
+					end
 				end
 
 				if fuel_cost > 0 then
@@ -646,53 +721,75 @@ minetest.register_node("basic_machines:mover", {
 						fuel_cost = fuel_cost * 0.1
 					end
 
-					if meta:get_inventory():get_stack("upgrade", 1):get_name() ~= "default:mese" then
-						upgrade = 1
+					if temp_80P then
+						if T > temp_80P then
+							fuel_cost = fuel_cost + (0.2 / mover_max_temp) * T * fuel_cost
+						elseif T < temp_15P then
+							fuel_cost = fuel_cost * 0.97
+						end
 					end
 
-					fuel_cost = fuel_cost / upgrade -- upgrade decreases fuel cost
-				end
-			end
-
-			-- FUEL OPERATIONS
-			if fuel < fuel_cost then -- needs fuel to operate, find nearby battery
-				local power_draw = fuel_cost; if power_draw < 1 then power_draw = 1 end -- at least 10 one block operations with 1 refuel
-				local supply = basic_machines.check_power(
-					{x = meta:get_int("batx"), y = meta:get_int("baty"), z = meta:get_int("batz")}, power_draw)
-				local found_fuel
-
-				if supply > 0 then
-					found_fuel = supply
-				elseif supply < 0 then -- no battery at target location, try to find it!
-					if not basic_machines.find_and_connect_battery(pos) then
-						meta:set_string("infotext", S("Can not find nearby battery to connect to!"))
-						minetest.sound_play("default_cool_lava", {pos = pos, gain = 1, max_hear_distance = 8}, true)
-						return
+					if meta:get_int("upgradetype") == 1 or
+						meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:mese" -- for compatibility
+					then
+						fuel_cost = fuel_cost / upgrade -- upgrade decreases fuel cost
 					end
 				end
 
-				if found_fuel then
-					fuel = fuel + found_fuel; meta:set_float("fuel", fuel)
-				end
+				-- FUEL OPERATIONS
+				if fuel < fuel_cost then -- needs fuel to operate, find nearby battery
+					local power_draw = fuel_cost; local supply
+					if power_draw < 1 then power_draw = 1 end -- at least 10 one block operations with 1 refuel
+					if power_draw == 1 then
+						local bpos = {x = meta:get_int("batx"), y = meta:get_int("baty"), z = meta:get_int("batz")} -- battery pos
+						supply = basic_machines.check_power(bpos, power_draw * 3) -- try to store energy to reduce refuel
+						if supply <= 0 then
+							supply = basic_machines.check_power(bpos, power_draw)
+						end
+					else
+						supply = basic_machines.check_power(
+							{x = meta:get_int("batx"), y = meta:get_int("baty"), z = meta:get_int("batz")}, power_draw)
+					end
 
-				if fuel < fuel_cost then
-					meta:set_string("infotext", S("Mover block. Energy @1, needed energy @2. Put nonempty battery next to mover.",
-						fuel, fuel_cost)); return
-				else
-					meta:set_string("infotext", S("Mover block refueled. Fuel status @1.", fuel))
+					local found_fuel
+
+					if supply > 0 then
+						found_fuel = supply
+					elseif supply < 0 then -- no battery at target location, try to find it!
+						if not basic_machines.find_and_connect_battery(pos) then
+							meta:set_string("infotext", S("Can not find nearby battery to connect to!"))
+							minetest.sound_play("default_cool_lava", {pos = pos, gain = 1, max_hear_distance = 8}, true)
+							return
+						end
+					end
+
+					if found_fuel then
+						fuel = fuel + found_fuel; meta:set_float("fuel", fuel)
+					end
+
+					if fuel < fuel_cost then
+						meta:set_string("infotext", S("Mover block. Energy @1, needed energy @2. Put nonempty battery next to mover.",
+							fuel, fuel_cost)); return
+					else
+						msg = S("Mover block refueled. Fuel status @1.", twodigits_float(fuel))
+					end
 				end
 			end
 
-			local node2 = minetest.get_node(pos2).name
-			local target_chest = mover.chests[node2] or false
 
+			-- OBJECT MODE
 			if object then -- teleport objects and return
-				-- local radius = math.max(abs(x1), abs(y1), abs(z1)); r = math.min(r, max_range)
-				local radius = math.min(vector.distance(pos1, vector_add(pos, {x = x1, y = y1, z = z1})), max_range)
-				if meta:get_int("elevator") == 1 and radius == 0 then radius = 1 end -- for compatibility
+				local x1, y1, z1
+				if mreverse == 1 then
+					x1, y1, z1 = meta:get_int("x0"), meta:get_int("y0"), meta:get_int("z0") -- source1
+				else
+					x1, y1, z1 = meta:get_int("x1"), meta:get_int("y1"), meta:get_int("z1") -- source2
+				end
+				local radius = math.min(vector.distance(pos1, vector_add(pos, {x = x1, y = y1, z = z1})), max_range) -- distance source1-source2
+				local elevator = meta:get_int("elevator"); if elevator == 1 and radius == 0 then radius = 1 end -- for compatibility
 				local teleport_any = false
 
-				if target_chest then -- put objects in target chest
+				if mover.chests[minetest.get_node(pos2).name] and elevator == 0 then -- put objects in target chest
 					local inv = minetest.get_meta(pos2):get_inventory()
 					local mucca
 
@@ -707,7 +804,6 @@ minetest.register_node("basic_machines:mover", {
 										local stack = ItemStack(lua_entity.itemstring)
 										if not stack:is_empty() and inv:room_for_item("main", stack) then
 											inv:add_item("main", stack); teleport_any = true
-											-- obj:set_pos({x = 0, y = 0, z = 0})
 										end
 										obj:remove()
 									end
@@ -746,8 +842,6 @@ minetest.register_node("basic_machines:mover", {
 						end
 					end
 
-					-- minetest.chat_send_all("times " .. times .. " v " .. minetest.pos_to_string(velocityv))
-
 					-- move objects to another location
 					for _, obj in ipairs(minetest.get_objects_inside_radius(pos1, radius)) do
 						if obj:is_player() then
@@ -771,7 +865,7 @@ minetest.register_node("basic_machines:mover", {
 									elseif name == "carts:cart" then -- just accelerate cart
 										obj:set_velocity(velocityv) -- move objects with set velocity in target direction
 										fuel = fuel - fuel_cost; meta:set_float("fuel", fuel)
-										meta:set_string("infotext", S("Mover block. Fuel status @1.", fuel))
+										meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
 										return
 									else -- don't move objects like balls to destination after delay
 										minetest.after(times, function()
@@ -788,34 +882,32 @@ minetest.register_node("basic_machines:mover", {
 
 				if teleport_any then
 					fuel = fuel - fuel_cost; meta:set_float("fuel", fuel)
-					meta:set_string("infotext", S("Mover block. Fuel status @1.", fuel))
+					meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
 					minetest.sound_play("basic_machines_tng_transporter1", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
+				elseif msg then
+					meta:set_string("infotext", msg)
 				end
-
 				return
 			end
 
-			if node1_name == "air" then return end -- nothing to move
+			if node1_name == "air" then if msg then meta:set_string("infotext", msg) end; return end -- nothing to move
 
-			-- decide what to do if target is chest: do nothing if target nonempty and not chest
-			if not target_chest and not inventory and node2 ~= "air" and not mover.bonemeal_table[prefer] or
-				target_chest and transport
-			then
-				return
-			end
 
-			if inventory then -- inventory mode
-				local invName1, invName2 = meta:get_string("inv1"), meta:get_string("inv2")
+			-- INVENTORY MODE
+			if inventory then
+				local invName1, invName2
 
 				if mreverse == 1 then -- reverse inventory names too
-					local invNamet = invName1; invName1 = invName2; invName2 = invNamet
+					invName1, invName2 = meta:get_string("inv2"), meta:get_string("inv1")
+				else
+					invName1, invName2 = meta:get_string("inv1"), meta:get_string("inv2")
 				end
 
 				-- forbidden nodes to take from in inventory mode - to prevent abuses:
 				local limit_inventory = mover.limit_inventory_table[node1_name]
 				if limit_inventory then
 					if limit_inventory == true or limit_inventory[invName1] then -- forbidden to take from this inventory
-						return
+						if msg then meta:set_string("infotext", msg) end; return
 					end
 				end
 
@@ -825,13 +917,15 @@ minetest.register_node("basic_machines:mover", {
 					stack = ItemStack(prefer)
 				else -- just pick one item from chest to transfer
 					inv1 = minetest.get_meta(pos1):get_inventory()
-					if inv1:is_empty(invName1) then return end -- nothing to move
+					if inv1:is_empty(invName1) then -- nothing to move
+						if msg then meta:set_string("infotext", msg) end; return
+					end
 					local i, found = 1, false
 					while i <= inv1:get_size(invName1) do -- find item to move in inventory
 						stack = inv1:get_stack(invName1, i)
 						if stack:is_empty() then i = i + 1 else found = true; break end
 					end
-					if not found then return end
+					if not found then if msg then meta:set_string("infotext", msg) end; return end
 				end
 
 				-- can we move the items to target inventory ?
@@ -842,73 +936,93 @@ minetest.register_node("basic_machines:mover", {
 					if inv1:contains_item(invName1, stack) then
 						inv2:add_item(invName2, stack)
 						inv1:remove_item(invName1, stack)
+					elseif upgrade == -1 and minetest.registered_items[stack:get_name()] then -- admin is owner.. just add stuff
+						inv2:add_item(invName2, stack)
 					else
-						if upgrade == -1 and minetest.registered_items[stack:get_name()] then -- admin is owner.. just add stuff
-							inv2:add_item(invName2, stack)
-						else
-							return -- item not found in chest
-						end
+						if msg then meta:set_string("infotext", msg) end; return -- item not found in chest
 					end
 				else
-					return
+					if msg then meta:set_string("infotext", msg) end; return
 				end
 
 				local count = meta:get_int("activation_count")
-				if count < 15 then
+				if count < 16 then
 					minetest.sound_play("basic_machines_chest_inventory_move", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
 				end
 
-				local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-				if t0 >= t1 - machines_minstep then
+				if t0 > tn then
 					meta:set_int("activation_count", count + 1)
-				elseif count > 1 and t0 < t1 - machines_minstep then
+				elseif count > 0 then
 					meta:set_int("activation_count", 0)
 				end
-				meta:set_int("t", t1)
 
 				fuel = fuel - fuel_cost; meta:set_float("fuel", fuel)
-				meta:set_string("infotext", S("Mover block. Fuel status @1.", fuel))
+				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
 				return
 			end
 
-			local bonemeal = false
-			local drop = mode == "drop"	-- drops node instead of placing it
-			local dig = mode == "dig"	-- digs at target location
 
-			-- filtering
-			if prefer ~= "" then -- prefered node set
-				if prefer ~= node1_name and not source_chest then return end -- only take prefered node
-
-				local inv_stack = meta:get_inventory():get_stack("filter", 1)
-				local inv_stack_count = inv_stack:get_count() > 0
-
-				if inv_stack_count and not source_chest then
-					local inv_palette_index = tonumber(inv_stack:get_meta():get("palette_index"))
-					if inv_palette_index then
-						local def = inv_stack:get_definition()
-						local palette_index = minetest.strip_param2_color(node1.param2, def and def.paramtype2)
-						if inv_palette_index ~= palette_index then return end
+			-- NORMAL, DIG, DROP, TRANSPORT MODES
+			if prefer ~= "" then -- filter check
+				if not source_chest then
+					if prefer ~= node1_name then -- only take preferred node
+						if msg then meta:set_string("infotext", msg) end; return
+					else
+						local inv_stack = meta:get_inventory():get_stack("filter", 1)
+						if inv_stack:get_count() > 0 then
+							local inv_palette_index = tonumber(inv_stack:get_meta():get("palette_index"))
+							if inv_palette_index then
+								local def = inv_stack:get_definition()
+								local palette_index = minetest.strip_param2_color(node1.param2, def and def.paramtype2)
+								if inv_palette_index ~= palette_index then
+									if msg then meta:set_string("infotext", msg) end; return
+								end
+							end
+						end
 					end
 				end
+			elseif source_chest then -- prefer == "", doesn't know what to take out of chest/inventory
+				if msg then meta:set_string("infotext", msg) end; return
+			end
 
-				local normal = mode == "normal"
+			local node2_name = minetest.get_node(pos2).name
+			local target_chest = mover.chests[node2_name] or false
+			local bonemeal = mover.bonemeal_table[prefer]
 
-				if drop or mreverse == 1 and mover.plants_table[prefer] or
-					(normal or dig or transport) and minetest.registered_nodes[prefer] or
-					normal and target_chest
-				then
+			-- do nothing if target non-empty and not chest and not bonemeal or transport mode and target chest
+			if not target_chest and node2_name ~= "air" and not bonemeal or transport and target_chest then
+				if msg then meta:set_string("infotext", msg) end; return
+			end
+
+			local drop, dig = mode == "drop", mode == "dig"
+
+			-- filtering
+			if prefer ~= "" then -- preferred node set
+				local normal = mode == "normal"; local def
+
+				if drop or normal and target_chest then
 					node1.name, node1_name = prefer, prefer
+				elseif mreverse == 1 and mover.plants_table[prefer] or
+					normal or dig or transport
+				then
+					def = minetest.registered_nodes[prefer]
+					if def then
+						node1.name, node1_name = prefer, prefer
+					else
+						minetest.chat_send_player(owner, S("MOVER: Filter defined with unknown node (@1) at @2,@3,@4.",
+							prefer, pos.x, pos.y, pos.z)); return
+					end
 				else
 					minetest.chat_send_player(owner, S("MOVER: Wrong filter (@1) at @2,@3,@4.",
 						prefer, pos.x, pos.y, pos.z)); return
 				end
 
-				if source_chest then -- take stuff from chest
+				if source_chest and not transport then -- take stuff from chest
+					local inv_stack = meta:get_inventory():get_stack("filter", 1)
+					local stack, match_meta = ItemStack(prefer), false
 					local inv = minetest.get_meta(pos1):get_inventory()
-					local stack = ItemStack(prefer)
-					local match_meta = false
 
-					if inv_stack_count then
+					if inv_stack:get_count() > 0 then
 						local palette_index = tonumber(inv_stack:get_meta():get("palette_index"))
 						if palette_index then
 							stack:get_meta():set_int("palette_index", palette_index)
@@ -918,18 +1032,20 @@ minetest.register_node("basic_machines:mover", {
 
 					if inv:contains_item("main", stack, match_meta) then
 						if mreverse == 1 and not match_meta then
-							if mover.plants_table[prefer] then -- planting mode: check if transform seed -> plant is needed
-								prefer = mover.plants_table[prefer]
-								if prefer then
-									node1 = {name = prefer, param1 = nil,
-										param2 = minetest.registered_nodes[prefer].place_param2}
-									node1_name = prefer
-								else
-									return
+							if normal or dig then
+								if mover.plants_table[prefer] then -- planting mode: check if transform seed -> plant is needed
+									prefer = mover.plants_table[prefer]
+									if prefer then
+										node1 = {name = prefer, param1 = nil,
+											param2 = def.place_param2}
+										node1_name = prefer
+									else
+										if msg then meta:set_string("infotext", msg) end; return
+									end
+								elseif def and def.paramtype2 ~= "facedir" then
+									node1.param2 = nil
 								end
-							elseif (normal or dig) and minetest.registered_nodes[prefer].paramtype2 ~= "facedir" then
-								node1.param2 = nil
-							elseif drop and mover.bonemeal_table[prefer] then -- bonemeal check
+							elseif drop and bonemeal then -- bonemeal check
 								local on_use = (minetest.registered_items[prefer] or {}).on_use
 								if on_use then
 									vplayer[owner] = vplayer[owner] or create_virtual_player(owner)
@@ -938,7 +1054,7 @@ minetest.register_node("basic_machines:mover", {
 									bonemeal = itemstack and itemstack:get_count() == 1 or
 										basic_machines.creative(owner)
 								else
-									return
+									if msg then meta:set_string("infotext", msg) end; return
 								end
 							end
 						elseif not match_meta then
@@ -946,17 +1062,14 @@ minetest.register_node("basic_machines:mover", {
 						end
 						inv:remove_item("main", stack)
 					else
-						return
+						if msg then meta:set_string("infotext", msg) end; return
 					end
 				end
-			elseif source_chest then -- doesn't know what to take out of chest/inventory
-				return
 			end
 
-			local not_special = true -- mode for special items: trees, liquids using bucket, mese crystals
+			local not_special = true -- mode for special items: trees, liquids using bucket, mese crystals ore
 
-			-- if target chest put in chest
-			if target_chest then
+			if target_chest and not transport then -- if target chest put in chest
 				local inv = minetest.get_meta(pos2):get_inventory()
 				if dig then
 					if not source_chest then
@@ -1029,7 +1142,7 @@ minetest.register_node("basic_machines:mover", {
 									inv:add_item("main", item)
 									minetest.set_node(pos1, {name = harvest_node1[1]})
 								else
-									return
+									if msg then meta:set_string("infotext", msg) end; return
 								end
 							end
 						end
@@ -1076,44 +1189,41 @@ minetest.register_node("basic_machines:mover", {
 			end
 
 			local count = meta:get_int("activation_count")
-			if count < 15 then
+			if count < 16 then
 				minetest.sound_play("basic_machines_transporter", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
 			end
 
-			local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-			if t0 >= t1 - machines_minstep then
+			if t0 > tn then
 				meta:set_int("activation_count", count + 1)
-			elseif count > 1 and t0 < t1 - machines_minstep then
+			elseif count > 0 then
 				meta:set_int("activation_count", 0)
 			end
-			meta:set_int("t", t1)
 
 			if target_chest and source_chest then -- chest to chest transport has lower cost, * 0.1
 				fuel_cost = fuel_cost * 0.1
 			end
 
 			fuel = fuel - fuel_cost; meta:set_float("fuel", fuel)
-			meta:set_string("infotext", S("Mover block. Fuel status @1.", fuel))
+			meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
 
 			if transport then -- transport nodes parallel as defined by source1 and target, clone with complete metadata
 				local meta1 = minetest.get_meta(pos1):to_table()
 				minetest.set_node(pos2, node1); minetest.get_meta(pos2):from_table(meta1)
 				minetest.set_node(pos1, {name = "air"}); minetest.get_meta(pos1):from_table(nil)
-				return
-			end
-
-			-- REMOVE NODE DUG
-			if not target_chest and not bonemeal then
-				if drop then -- drops node instead of placing it
-					minetest.add_item(pos2, item_to_stack(node1)) -- drops it
-				else
-					minetest.set_node(pos2, node1)
+			else
+				-- REMOVE NODE DUG
+				if not target_chest and not bonemeal then
+					if drop then -- drops node instead of placing it
+						minetest.add_item(pos2, item_to_stack(node1)) -- drops it
+					else
+						minetest.set_node(pos2, node1)
+					end
 				end
-			end
 
-			if not source_chest and not_special then
-				minetest.set_node(pos1, {name = "air"})
-				if dig then check_for_falling(pos1) end -- pre 5.0.0 nodeupdate(pos1)
+				if not source_chest and not_special then
+					minetest.set_node(pos1, {name = "air"})
+					if dig then check_for_falling(pos1) end -- pre 5.0.0 nodeupdate(pos1)
+				end
 			end
 		end,
 

@@ -44,7 +44,7 @@ basic_machines.get_distributor_form = function(pos)
 
 	local y = 0.25 + n * 0.75
 	form[#form + 1] = "label[0.25," .. (0.4 + n * 0.75) .. ";" .. minetest.colorize("lawngreen", F(S("delay"))) ..
-		"]field[1.25," .. (0.5 + n * 0.75) .. ";1,1;delay;;" .. meta:get_float("delay") ..
+		"]field[1.25," .. (0.5 + n * 0.75) .. ";1,1;delay;;" .. basic_machines.twodigits_float(meta:get_float("delay")) ..
 		"]button_exit[2.97," .. y .. ";1,1;OK;" .. F(S("OK")) .. "]button[4.25," .. y .. ";1,1;ADD;" .. F(S("ADD")) ..
 		"]button[5.25," .. y .. ";1,1;view;" .. F(S("view")) .. "]button[6.25," .. y .. ";1,1;help;" .. F(S("help")) .. "]"
 
@@ -84,6 +84,7 @@ minetest.register_node("basic_machines:distributor", {
 		end
 		meta:set_int("n", 2) -- how many targets initially
 		meta:set_float("delay", 0) -- delay when transmitting signal
+		meta:set_int("t", 0); meta:set_int("T", 0)
 	end,
 
 	can_dig = function(pos, player)
@@ -98,7 +99,6 @@ minetest.register_node("basic_machines:distributor", {
 
 	effector = {
 		action_on = function(pos, ttl)
-			if type(ttl) ~= "number" then ttl = 1 end
 			if ttl < 1 then return end -- machines_TTL prevents infinite recursion
 
 			local meta = minetest.get_meta(pos)
@@ -108,20 +108,18 @@ minetest.register_node("basic_machines:distributor", {
 
 			if t0 > t1 - machines_minstep then -- activated before natural time
 				T = T + 1
-			else
-				if T > 0 then
+			elseif T > 0 then
+				if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
+					T = 0; meta:set_string("infotext", "")
+				else
 					T = T - 1
-					if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
-						T = 0; meta:set_string("infotext", "")
-					end
 				end
 			end
-			meta:set_int("T", T)
-			meta:set_int("t", t1) -- update last activation time
+			meta:set_int("t", t1); meta:set_int("T", T)
 
 			if T > 2 then -- overheat
 				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
-				meta:set_string("infotext", S("Overheat: temperature @1", T))
+				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
 			end
 
@@ -165,7 +163,6 @@ minetest.register_node("basic_machines:distributor", {
 		end,
 
 		action_off = function(pos, ttl)
-			if type(ttl) ~= "number" then ttl = 1 end
 			if ttl < 1 then return end -- machines_TTL prevents infinite recursion
 
 			local meta = minetest.get_meta(pos)
@@ -175,20 +172,18 @@ minetest.register_node("basic_machines:distributor", {
 
 			if t0 > t1 - machines_minstep then -- activated before natural time
 				T = T + 1
-			else
-				if T > 0 then
+			elseif T > 0 then
+				if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
+					T = 0; meta:set_string("infotext", "")
+				else
 					T = T - 1
-					if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
-						T = 0; meta:set_string("infotext", "")
-					end
 				end
 			end
-			meta:set_int("T", T)
-			meta:set_int("t", t1) -- update last activation time
+			meta:set_int("t", t1); meta:set_int("T", T)
 
 			if T > 2 then -- overheat
 				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
-				meta:set_string("infotext", S("Overheat: temperature @1", T))
+				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
 			end
 

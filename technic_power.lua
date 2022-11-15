@@ -74,14 +74,14 @@ local function battery_recharge(pos)
 		meta:set_string("infotext", S("(R) Energy: @1 / @2", math.ceil(energy * 10) / 10, capacity))
 
 		local count = meta:get_int("activation_count")
-		if count < 15 then
+		if count < 16 then
 			minetest.sound_play("basic_machines_electric_zap", {pos = pos, gain = 0.05, max_hear_distance = 8}, true)
 		end
 
 		local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-		if t0 >= t1 - machines_minstep then
+		if t0 > t1 - machines_minstep then
 			meta:set_int("activation_count", count + 1)
-		elseif count > 1 and t0 < t1 - machines_minstep then
+		elseif count > 0 then
 			meta:set_int("activation_count", 0)
 		end
 		meta:set_int("t", t1)
@@ -109,7 +109,7 @@ basic_machines.check_power = function(pos, power_draw)
 
 	if power_draw > maxpower then
 		meta:set_string("infotext", S("Power draw required: @1, maximum power output @2. Please upgrade battery.",
-			power_draw, maxpower)); return 0
+			basic_machines.twodigits_float(power_draw), maxpower)); return 0
 	elseif power_draw > energy then
 		not_R = false; energy = battery_recharge(pos) -- try recharge battery and continue operation immediately
 	end
@@ -185,7 +185,7 @@ minetest.register_node("basic_machines:battery_0", {
 		meta:set_float("maxpower", 1)
 		meta:set_float("energy", 0)
 		meta:set_int("upgrade", 0) -- upgrade level determines max energy output
-		meta:set_int("activation_count", 0); meta:set_int("t", 0)
+		meta:set_int("t", 0); meta:set_int("activation_count", 0)
 
 		local inv = meta:get_inventory()
 		inv:set_size("fuel", 1) -- place to put crystals
@@ -334,9 +334,7 @@ local minenergy = 17500 -- amount of energy required to initialize a generator
 
 local function generator_update_form(meta, not_init)
 	if not_init then
-		local upgrade = meta:get_float("upgrade")
-		local _, f = math.modf(upgrade)
-		if f > 0 then upgrade = ("%.2f"):format(upgrade) end
+		local upgrade = basic_machines.twodigits_float(meta:get_float("upgrade"))
 
 		meta:set_string("formspec", ([[
 			size[8,6.5]

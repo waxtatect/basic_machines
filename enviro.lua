@@ -129,7 +129,9 @@ minetest.register_node("basic_machines:enviro", {
 
 	on_receive_fields = function(pos, formname, fields, sender)
 		local name = sender:get_player_name()
-		if fields.OK and not minetest.is_protected(pos, name) then
+		if fields.OK then
+			if minetest.is_protected(pos, name) then return end
+
 			local meta = minetest.get_meta(pos)
 			meta:set_string("infotext", S("Right click to set it. Activate by signal."))
 			local privs = minetest.check_player_privs(name, "privs")

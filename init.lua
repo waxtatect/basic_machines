@@ -40,6 +40,8 @@ basic_machines = {
 		grinder_dusts_quantity	= 2,		-- quantity of dusts produced by lump/ingot, minimum 0
 		grinder_dusts_legacy	= false,	-- legacy dust mode: dust_33 (smelt) -> dust_66 (smelt) -> ingot
 		grinder_extractors_type	= 1,		-- recipe priority if optional mod present, 1: farming_redo, 2: x_farming
+		-- mover
+		mover_max_temp			= 176,		-- overheat above this temperature, minimum 1
 		-- technic_power
 		generator_upgrade		= 0,		-- upgrade available in addition to the current limit (50)
 		-- space
@@ -88,6 +90,19 @@ local creative_cache = minetest.settings:get_bool("creative_mode")
 function basic_machines.creative(name)
 	return creative_cache or minetest.check_player_privs(name,
 		{creative = true})
+end
+
+-- result: float with precision of two digits or unchanged number
+local modf = math.modf
+function basic_machines.twodigits_float(number)
+	local r
+	if number ~= 0 then
+		local _, f = modf(number)
+		if f ~= 0 then r = ("%.2f"):format(number) else r = number end
+	else
+		r = 0
+	end
+	return r
 end
 
 -- load files

@@ -32,6 +32,7 @@ minetest.register_node("basic_machines:detector", {
 		meta:set_string("node", ""); meta:set_int("NOT", 2)
 		meta:set_string("mode", "node")
 		meta:set_int("state", 0)
+		meta:set_int("t", 0); meta:set_int("T", 0)
 	end,
 
 	can_dig = function(pos, player)
@@ -111,7 +112,6 @@ minetest.register_node("basic_machines:detector", {
 
 	effector = {
 		action_on = function(pos, ttl)
-			if type(ttl) ~= "number" then ttl = 1 end
 			if ttl < 1 then return end -- machines_TTL prevents infinite recursion
 
 			local meta = minetest.get_meta(pos)
@@ -121,15 +121,14 @@ minetest.register_node("basic_machines:detector", {
 
 			if t0 > t1 - machines_minstep then -- activated before natural time
 				T = T + 1
-			else
-				if T > 0 then T = T - 1 end
+			elseif T > 0 then
+				T = T - 1
 			end
-			meta:set_int("T", T)
-			meta:set_int("t", t1) -- update last activation time
+			meta:set_int("t", t1); meta:set_int("T", T)
 
 			if T > 2 then -- overheat
 				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
-				meta:set_string("infotext", S("Overheat: temperature @1", T))
+				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
 			end
 
