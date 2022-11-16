@@ -963,8 +963,12 @@ minetest.register_node("basic_machines:mover", {
 
 
 			-- NORMAL, DIG, DROP, TRANSPORT MODES
+			local bonemeal
+
 			if prefer ~= "" then -- filter check
-				if not source_chest then
+				if source_chest then
+					bonemeal = mover.bonemeal_table[prefer]
+				else
 					if prefer ~= node1_name then -- only take preferred node
 						if msg then meta:set_string("infotext", msg) end; return
 					else
@@ -987,7 +991,6 @@ minetest.register_node("basic_machines:mover", {
 
 			local node2_name = minetest.get_node(pos2).name
 			local target_chest = mover.chests[node2_name] or false
-			local bonemeal = mover.bonemeal_table[prefer]
 
 			-- do nothing if target non-empty and not chest and not bonemeal or transport mode and target chest
 			if not target_chest and node2_name ~= "air" and not bonemeal or transport and target_chest then
@@ -998,13 +1001,13 @@ minetest.register_node("basic_machines:mover", {
 
 			-- filtering
 			if prefer ~= "" then -- preferred node set
-				local normal = mode == "normal"; local def
+				local plant, normal = mover.plants_table[prefer], mode == "normal"; local def
 
-				if drop or normal and target_chest then
-					node1.name, node1_name = prefer, prefer
-				elseif mreverse == 1 and mover.plants_table[prefer] or
-					normal or dig or transport
+				if drop or mreverse == 1 and plant and
+					normal and target_chest
 				then
+					node1.name, node1_name = prefer, prefer
+				elseif normal or dig or transport then
 					def = minetest.registered_nodes[prefer]
 					if def then
 						node1.name, node1_name = prefer, prefer
@@ -1033,12 +1036,12 @@ minetest.register_node("basic_machines:mover", {
 					if inv:contains_item("main", stack, match_meta) then
 						if mreverse == 1 and not match_meta then
 							if normal or dig then
-								if mover.plants_table[prefer] then -- planting mode: check if transform seed -> plant is needed
-									prefer = mover.plants_table[prefer]
-									if prefer then
-										node1 = {name = prefer, param1 = nil,
+								if plant then -- planting mode: check if transform seed -> plant is needed
+									def = minetest.registered_nodes[plant]
+									if def then
+										node1 = {name = plant, param1 = nil,
 											param2 = def.place_param2}
-										node1_name = prefer
+										node1_name = plant
 									else
 										if msg then meta:set_string("infotext", msg) end; return
 									end
@@ -1050,7 +1053,8 @@ minetest.register_node("basic_machines:mover", {
 								if on_use then
 									vplayer[owner] = vplayer[owner] or create_virtual_player(owner)
 									local itemstack = on_use(ItemStack(prefer .. " 2"),
-										vplayer[owner], {type = "node", under = pos2})
+										vplayer[owner], {type = "node",	under = pos2,
+										above = {x = pos2.x, y = pos2.y + 1, z = pos2.z}})
 									bonemeal = itemstack and itemstack:get_count() == 1 or
 										basic_machines.creative(owner)
 								else
