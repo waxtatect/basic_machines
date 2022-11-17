@@ -1003,7 +1003,7 @@ minetest.register_node("basic_machines:mover", {
 			if prefer ~= "" then -- preferred node set
 				local plant, normal = mover.plants_table[prefer], mode == "normal"; local def
 
-				if drop or mreverse == 1 and plant and
+				if drop or mreverse == 1 and plant or
 					normal and target_chest
 				then
 					node1.name, node1_name = prefer, prefer
