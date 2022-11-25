@@ -395,8 +395,7 @@ local mover_upgrades = {
 minetest.register_node("basic_machines:mover", {
 	description = S("Mover - universal digging/harvesting/teleporting/transporting machine, it's upgradeable"),
 	groups = {cracky = 3},
-	tiles = {"basic_machines_compass_top.png", "default_furnace_top.png", "basic_machines_mover_side.png",
-		"basic_machines_mover_side.png", "basic_machines_mover_side.png", "basic_machines_mover_side.png"},
+	tiles = {"basic_machines_mover.png"},
 	sounds = default.node_sound_wood_defaults(),
 
 	after_place_node = function(pos, placer)
