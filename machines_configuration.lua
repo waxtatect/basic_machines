@@ -25,6 +25,7 @@ minetest.register_on_mods_loaded(function()
 			end
 		end
 	end
+	sounds_array = nil
 end)
 
 minetest.register_on_joinplayer(function(player)
@@ -87,7 +88,9 @@ minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 	if punch_state == 0 then
 		if punchset_desc == "KEYPAD" then
 			local meta = minetest.get_meta(pos)
-			if meta:get_int("x0") ~= 0 or meta:get_int("y0") ~= 0 or meta:get_int("z0") ~= 0 then -- already configured
+			if meta:get_int("x0") ~= 0 or meta:get_int("y0") ~= 0 or meta:get_int("z0") ~= 0 or
+				meta:get_string("text") ~= ""
+			then -- already configured
 				check_keypad(pos, name); return -- not setup, just standard operation
 			elseif minetest.is_protected(pos, name) then
 				minetest.chat_send_player(name, S("KEYPAD: You must be able to build to set up keypad.")); return
@@ -736,7 +739,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 			local idx, text = sound_selected[name], meta:get_string("text")
 			if idx and text:byte() == 36 or text:byte() == 36 then -- text starts with $
-				local text = text:sub(2)
+				text = text:sub(2)
 				if text ~= "" then
 					local sound_text
 					if idx then
