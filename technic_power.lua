@@ -167,8 +167,7 @@ end
 local machines_activate_furnace = minetest.registered_nodes["default:furnace"].on_metadata_inventory_put
 
 minetest.register_node("basic_machines:battery_0", {
-	description = S("Battery - stores energy, generates energy from fuel, can power nearby machines," ..
-		" or accelerate/run furnace above it, it's upgradeable"),
+	description = S("Battery"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_outlet.png", "basic_machines_battery.png", "basic_machines_battery_0.png"},
 	sounds = default.node_sound_wood_defaults(),
@@ -205,7 +204,7 @@ minetest.register_node("basic_machines:battery_0", {
 	on_receive_fields = function(pos, formname, fields, sender)
 		if fields.help then
 			minetest.show_formspec(sender:get_player_name(), "basic_machines:help_battery",
-				"size[6,7]textarea[0,0;6.5,8.5;help;" .. F(S("BATTERY HELP")) .. ";" ..
+				"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("BATTERY HELP")) .. ";" ..
 				F(S("Battery provides power to machines or furnace. It can either use " ..
 				"power crystals or convert ordinary furnace fuels into energy. 1 coal lump gives 1 energy.\n\n" ..
 				"UPGRADE with diamond blocks for more available power output or with " ..
@@ -443,7 +442,7 @@ local function generator_near_found(pos, name) -- check to prevent too many gene
 end
 
 minetest.register_node("basic_machines:generator", {
-	description = S("Generator - very expensive, generates power crystals that provide power, it's upgradeable"),
+	description = S("Generator"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_generator.png"},
 	sounds = default.node_sound_wood_defaults(),
@@ -476,7 +475,7 @@ minetest.register_node("basic_machines:generator", {
 	on_receive_fields = function(pos, formname, fields, sender)
 		if fields.help then
 			minetest.show_formspec(sender:get_player_name(), "basic_machines:help_generator",
-				"size[6,7]textarea[0,0;6.5,8.5;help;" .. F(S("GENERATOR HELP")) .. ";" ..
+				"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("GENERATOR HELP")) .. ";" ..
 				F(S("Generator slowly produces power crystals. Those can be used to recharge batteries and come in 3 flavours:\n\n" ..
 				"Low (0-4), medium (5-19) and high level (20+)." ..
 				" Upgrading the generator (upgrade with generators) will increase the rate at which the crystals are produced.\n\n" ..
@@ -569,7 +568,7 @@ minetest.register_node("basic_machines:generator", {
 
 -- CRAFTS
 minetest.register_craftitem("basic_machines:power_cell", {
-	description = S("Power Cell - provides @1 energy", 1 * energy_multiplier),
+	description = S("Power Cell"),
 	groups = {energy = 1},
 	inventory_image = "basic_machines_power_cell.png",
 	stack_max = power_stackmax,
@@ -577,7 +576,7 @@ minetest.register_craftitem("basic_machines:power_cell", {
 })
 
 minetest.register_craftitem("basic_machines:power_block", {
-	description = S("Power Block - provides @1 energy", 11 * energy_multiplier),
+	description = S("Power Block"),
 	groups = {energy = 1},
 	inventory_image = "basic_machines_power_block.png",
 	stack_max = power_stackmax,
@@ -585,7 +584,7 @@ minetest.register_craftitem("basic_machines:power_block", {
 })
 
 minetest.register_craftitem("basic_machines:power_rod", {
-	description = S("Power Rod - provides @1 energy", 100 * energy_multiplier),
+	description = S("Power Rod"),
 	groups = {energy = 1},
 	inventory_image = "basic_machines_power_rod.png",
 	stack_max = power_stackmax,

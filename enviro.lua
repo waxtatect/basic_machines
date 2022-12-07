@@ -92,7 +92,7 @@ end
 
 -- environment changer
 minetest.register_node("basic_machines:enviro", {
-	description = S("Changes environment for players around target location"),
+	description = S("Environment Changer"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_enviro.png"},
 	drawtype = "allfaces",
@@ -176,7 +176,8 @@ minetest.register_node("basic_machines:enviro", {
 
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_enviro",
-				"size[6,7]textarea[0,0;6.5,8.5;help;" .. F(S("ENVIRONMENT MODIFICATIONS")) .. ";" .. F(S([[
+				"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("ENVIRONMENT MODIFICATIONS")) .. ";" ..
+F(S([[
 VALUES
 
 Target:		Center position of the area to apply environment effects

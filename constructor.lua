@@ -182,7 +182,7 @@ end
 
 -- CONSTRUCTOR
 local def = {
-	description = "Constructor: used to make machines",
+	description = "Constructor",
 	recipe = {
 		{"default:steel_ingot", "default:steel_ingot", "default:steel_ingot"},
 		{"default:steel_ingot", "default:copperblock", "default:steel_ingot"},
@@ -203,7 +203,7 @@ local def = {
 
 		["Battery"] = {
 			item = "basic_machines:battery_0",
-			description = "Power for machines",
+			description = "Store energy, can power nearby machines",
 			craft = {"default:bronzeblock 2", "default:mese", "default:diamond"}
 		},
 
@@ -221,7 +221,7 @@ local def = {
 
 		["Detector"] = {
 			item = "basic_machines:detector",
-			description = "Detect and measure players, objects, blocks, light level",
+			description = "Detect block, player, object, light level...",
 			craft = {"default:mese_crystal 4", "basic_machines:keypad"}
 		},
 
@@ -231,7 +231,7 @@ local def = {
 			craft = {"default:steel_ingot", "default:mese_crystal", "basic_machines:keypad"}
 		},
 
-		["Environment"] = {
+		["Environment Changer"] = {
 			item = "basic_machines:enviro",
 			description = "Change gravity and more",
 			craft = {"basic_machines:generator 8", "basic_machines:clockgen"}
@@ -245,13 +245,13 @@ local def = {
 
 		["Grinder"] = {
 			item = "basic_machines:grinder",
-			description = "Makes dusts and grinds materials",
+			description = "Make dusts and grind materials",
 			craft = {"default:diamond 13", "default:mese 4"}
 		},
 
 		["Keypad"] = {
 			item = "basic_machines:keypad",
-			description = "Turns on/off lights and activates machines or opens doors",
+			description = "Activate machines by sending signal",
 			craft = {"default:wood", "default:stick"}
 		},
 
@@ -263,19 +263,19 @@ local def = {
 
 		["Mover"] = {
 			item = "basic_machines:mover",
-			description = "Can dig, harvest, plant, teleport or move items from/in inventories",
+			description = "Universal digging, harvesting, teleporting, transporting machine",
 			craft = {"default:mese_crystal 6", "default:stone 2", "basic_machines:keypad"}
 		},
 
 		["Power Block"] = {
 			item = "basic_machines:power_block 5",
-			description = "Energy cell, contains 11 energy units",
+			description = "Energy block",
 			craft = {"basic_machines:power_rod"}
 		},
 
 		["Power Cell"] = {
 			item = "basic_machines:power_cell 5",
-			description = "Energy cell, contains 1 energy unit",
+			description = "Energy cell",
 			craft = {"basic_machines:power_block"}
 		},
 
@@ -298,7 +298,7 @@ local def = {
 		"Recycler",
 		"Autocrafter",
 		"Ball Spawner",
-		"Environment",
+		"Environment Changer",
 		"Power Block",
 		"Power Cell",
 		"Coal Lump"

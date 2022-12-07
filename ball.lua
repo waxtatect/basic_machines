@@ -316,7 +316,7 @@ end
 bounce_materialslist = table.concat(bounce_materialslist, "\n")
 
 minetest.register_node("basic_machines:ball_spawner", {
-	description = S("Spawns energy ball"),
+	description = S("Ball Spawner"),
 	groups = {cracky = 3, oddly_breakable_by_hand = 1},
 	drawtype = "allfaces",
 	tiles = {"basic_machines_ball.png"},
@@ -465,7 +465,8 @@ minetest.register_node("basic_machines:ball_spawner", {
 		elseif fields.help then
 			local lifetime = minetest.get_meta(pos):get_int("admin") == 1 and S("\nLifetime:		[1,   +∞[") or ""
 			minetest.show_formspec(name, "basic_machines:help_ball",
-				"size[6,7]textarea[0,0;6.5,8.5;help;" .. F(S("BALL SPAWNER CAPABILITIES")) .. ";" .. F(S([[
+				"formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" .. F(S("BALL SPAWNER CAPABILITIES")) .. ";" ..
+F(S([[
 VALUES
 
 Target*:		Direction of velocity
@@ -690,7 +691,7 @@ end)
 
 -- ball as magic spell user can cast
 minetest.register_tool("basic_machines:ball_spell", {
-	description = S("Ball Spawner"),
+	description = S("Ball Spell"),
 	groups = {not_in_creative_inventory = 1},
 	inventory_image = "basic_machines_ball.png",
 	light_source = 10,

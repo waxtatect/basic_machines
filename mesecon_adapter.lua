@@ -1,5 +1,6 @@
 -- Block that can be activated by/activate mesecon blocks
 
+local S = basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 
 local adapter_effector = {
@@ -43,12 +44,16 @@ local adapter_effector = {
 }
 
 minetest.register_node("basic_machines:mesecon_adapter", {
-	description = basic_machines.S("Interface between machines and mesecons - place block to be activated on top of it"),
+	description = S("Mesecon Adapter"),
 	groups = {cracky = 3, mesecon_effector_on = 1, mesecon_effector_off = 1, mesecon_needs_receiver = 1},
 	tiles = {"basic_machines_clock_generator.png", "basic_machines_clock_generator.png",
 		"jeija_luacontroller_top.png", "jeija_luacontroller_top.png",
 		"jeija_luacontroller_top.png", "jeija_luacontroller_top.png"},
 	sounds = default.node_sound_wood_defaults(),
+
+	after_place_node = function(pos, placer)
+		minetest.get_meta(pos):set_string("infotext", S("Mesecon Adapter: place machine to be activated on top"))
+	end,
 
 	effector = adapter_effector,
 

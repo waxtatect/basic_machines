@@ -145,11 +145,9 @@ if basic_machines.settings.grinder_register_dusts then
 
 		for i, purity in ipairs(purity_table) do
 			minetest.register_craftitem(dust .. purity, {
-				description = S(name:gsub("^%l", string.upper) .. " dust purity @1% " ..
-					(purity == "00" and "(combine with chemicals to create " .. name .. " extractor)" or
-					"(smelt to increase purity)"), purity),
+				description = S(name:gsub("^%l", string.upper) .. " Dust (purity @1%)", purity),
 				groups = {dust = 1},
-				inventory_image = "basic_machines_dust.png^[colorize:#" .. hex .. ":180",
+				inventory_image = "basic_machines_dust.png^[colorize:#" .. hex .. ":" .. (114 + purity),
 				light_source = light_source and light_source[i]
 			})
 			if have_ui_categories then
@@ -200,7 +198,7 @@ if basic_machines.settings.grinder_register_dusts then
 			local item = "basic_machines:" .. name .. "_extractor"
 
 			minetest.register_craftitem(item, {
-				description = S("Smelt to get " .. name),
+				description = S(name:gsub("^%l", string.upper) .. " Extractor"),
 				groups = {extractor = 1},
 				inventory_image = "basic_machines_ore_extractor.png^[colorize:#" .. hex .. ":180"
 			})
@@ -408,7 +406,7 @@ minetest.register_node("basic_machines:grinder", {
 				grinder_recipes_help = F(table.concat(grinder_recipes_translated, "\n"))
 			end
 			minetest.show_formspec(sender:get_player_name(), "basic_machines:help_grinder",
-				"size[6,7]textarea[0,0;6.5,8.5;help;" .. F(S("GRINDER HELP")) .. ";" ..
+				"formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" .. F(S("GRINDER HELP")) .. ";" ..
 				F(S("To upgrade grinder, put grinders in upgrade slot." ..
 				" Each upgrade adds ability to process additional materials.\n\n")) .. grinder_recipes_help .. "]")
 		end

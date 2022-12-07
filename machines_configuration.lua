@@ -2,14 +2,39 @@ local F, S = basic_machines.F, basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local max_range = basic_machines.properties.max_range
 local mover_upgrade_max = basic_machines.properties.mover_upgrade_max
-local punchset = {}
+local sounds, punchset, keypad_soundlist, sound_selected = {}, {}, nil, {}
+
+minetest.register_on_mods_loaded(function()
+	local sounds_array, i = {}, 1
+	for _, mod_name in ipairs(minetest.get_modnames()) do
+		local sounds_path = minetest.get_modpath(mod_name) .. "/sounds"
+		for _, sound_file in ipairs(minetest.get_dir_list(sounds_path, false)) do
+			local sound_name = sound_file:match("(.*)%.ogg$")
+			if sound_name then
+				local sounds_name = sound_name:gsub("%.[0-9]$", "")
+				if sound_name == sounds_name then
+					sounds[i] = {name = sound_name}; i = i + 1
+				else
+					local sound = sounds_array[sounds_name]
+					local id, count = (sound or {}).id or i, (sound or {}).count
+					count = count and count + 1 or 1
+					sounds_array[sounds_name] = {id = id, count = count}
+					sounds[id] = {name = sounds_name, count = count}
+					if count == 1 then i = i + 1 end
+				end
+			end
+		end
+	end
+end)
 
 minetest.register_on_joinplayer(function(player)
 	punchset[player:get_player_name()] = {state = 0, node = ""}
 end)
 
 minetest.register_on_leaveplayer(function(player)
-	punchset[player:get_player_name()] = nil
+	local name = player:get_player_name()
+	punchset[name] = nil
+	sound_selected[name] = nil
 end)
 
 -- SETUP BY PUNCHING
@@ -30,12 +55,13 @@ local function check_keypad(pos, name) -- called only when manually activated vi
 
 	if meta:get_string("text") == "@" then -- keypad works as a keyboard
 		minetest.show_formspec(name, "basic_machines:check_keypad_" .. minetest.pos_to_string(pos),
-			"size[3,1.25]field[0.25,0.25;3,1;pass;" .. F(S("Enter text:")) ..
-			";]button_exit[0,0.75;1,1;OK;" .. F(S("OK")) .. "]")
+			"formspec_version[4]size[4,2.2]field[0.25,0.4;3.5,0.8;pass;" .. F(S("Enter text:")) ..
+			";]button_exit[0.25,1.3;1,0.8;OK;" .. F(S("OK")) .. "]")
 	else
 		minetest.show_formspec(name, "basic_machines:check_keypad_" .. minetest.pos_to_string(pos),
-			"size[3,1.25]no_prepend[]bgcolor[#FF8888BB;false]field[0.25,0.25;3,1;pass;" .. F(S("Enter password:")) ..
-			";]button_exit[0,0.75;1,1;OK;" .. F(S("OK")) .. "]")
+			"formspec_version[4]size[4,2.2]no_prepend[]bgcolor[#FF8888BB;false]" ..
+			"pwdfield[0.25,0.4;3.5,0.8;pass;" .. F(S("Enter password:")) ..
+			"]button_exit[0.25,1.3;1,0.8;OK;" .. F(S("OK")) .. "]")
 	end
 end
 
@@ -61,7 +87,9 @@ minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 	if punch_state == 0 then
 		if punchset_desc == "KEYPAD" then
 			local meta = minetest.get_meta(pos)
-			if meta:get_int("x0") ~= 0 or meta:get_int("y0") ~= 0 or meta:get_int("z0") ~= 0 then -- already configured
+			if meta:get_int("x0") ~= 0 or meta:get_int("y0") ~= 0 or meta:get_int("z0") ~= 0 or
+				meta:get_string("text") ~= ""
+			then -- already configured
 				check_keypad(pos, name); return -- not setup, just standard operation
 			elseif minetest.is_protected(pos, name) then
 				minetest.chat_send_player(name, S("KEYPAD: You must be able to build to set up keypad.")); return
@@ -297,6 +325,7 @@ local fnames = {
 	"basic_machines:distributor_",
 	"basic_machines:keypad_",
 	"basic_machines:check_keypad_",
+	"basic_machines:sounds_keypad_",
 	"basic_machines:detector_"
 }
 
@@ -452,7 +481,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			end
 
 		elseif fields.help then
-			minetest.show_formspec(name, "basic_machines:help_mover", "size[6,7]textarea[0,0;6.5,8.5;help;" ..
+			minetest.show_formspec(name, "basic_machines:help_mover", "formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" ..
 				F(S("MOVER HELP")) .. ";" .. F(S("version @1\nSETUP: For interactive setup punch the mover and then punch source1, source2, target node (follow instructions)." ..
 				" Put the mover directly next to a battery. For advanced setup right click mover." ..
 				" Positions are defined by x y z coordinates (see top of mover for orientation)." ..
@@ -583,7 +612,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			minetest.chat_send_player(name, S("DISTRIBUTOR: Connected @1 targets.", count))
 
 		elseif fields.help then
-			minetest.show_formspec(name, "basic_machines:help_distributor", "size[5.5,5.5]textarea[0,0;6,7;help;" ..
+			minetest.show_formspec(name, "basic_machines:help_distributor", "formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" ..
 				F(S("DISTRIBUTOR HELP")) .. ";" .. F(S("SETUP: To select target nodes for activation click SET then click target node.\n" ..
 				"You can add more targets with ADD. To see where target node is click SHOW button next to it.\n" ..
 				"\n4 numbers in each row represent (from left to right): first 3 numbers are target coordinates x y z, last number (MODE) controls how signal is passed to target.\n" ..
@@ -694,8 +723,45 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				end
 			end
 
+		elseif fields.sounds then
+			if keypad_soundlist == nil then
+				keypad_soundlist = {}
+				for i, v in ipairs(sounds) do
+					local count, sound = v.count, v.name
+					if count and count > 1 then
+						sound = sound .. " " .. S("(@1 sounds)", count)
+					end
+					keypad_soundlist[i] = F(sound:gsub("_", " "))
+				end
+				keypad_soundlist = table.concat(keypad_soundlist, ",")
+			end
+
+			local idx, text = sound_selected[name], meta:get_string("text")
+			if idx and text:byte() == 36 or text:byte() == 36 then -- text starts with $
+				text = text:sub(2)
+				if text ~= "" then
+					local sound_text
+					if idx then
+						local sound_name = (sounds[idx] or {}).name
+						sound_text = sound_name and "$" .. sound_name
+					end
+					text = text:split(" ")[1]
+					if sound_text and sound_text ~= text or not sound_text then
+						for i, v in ipairs(sounds) do
+							if v.name == text then sound_selected[name] = i; break end
+						end
+					end
+				end
+			end
+
+			minetest.show_formspec(name, "basic_machines:sounds_keypad_" .. minetest.pos_to_string(pos),
+				"formspec_version[4]size[7.75,5.75]" ..
+				"label[0.25,0.25;" .. F(S("Sounds (@1):", #sounds)) ..
+				"]textlist[0.25,0.5;6,5;sound;" .. keypad_soundlist .. ";" .. (sound_selected[name] or 0) ..
+				"]button_exit[6.5,0.6;1,0.8;OK;" .. F(S("OK")) .. "]")
+
 		elseif fields.help then
-			minetest.show_formspec(name, "basic_machines:help_keypad", "size[6,7]textarea[0,0;6.5,8.5;help;" ..
+			minetest.show_formspec(name, "basic_machines:help_keypad", "formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" ..
 				F(S("KEYPAD HELP")) .. ";" .. F(S("Mode: 1=OFF, 2=ON, 3=TOGGLE control the way how target node is activated." ..
 				"\n\nRepeat: Number to control how many times activation is repeated after initial punch." ..
 				"\n\nPassword: Enter password and press OK. Password will be encrypted." ..
@@ -715,7 +781,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				" Next time keypad is used it will work as text input device." ..
 				"\n\nDisplaying messages to nearby players (up to 5 blocks around keypad's target): Set text to \"!text\"." ..
 				" Upon activation player will see \"text\" in their chat." ..
-				"\n\nPlaying sound to nearby players: set text to \"$sound_name\", optionally followed by a space and pitch value: 0.01 to 10.")) ..
+				"\n\nPlaying sound to nearby players: set text to \"$sound_name\", optionally followed by a space and pitch value: 0.01 to 10. Can choose a sound with sounds menu.")) ..
 				F(S("\n\nADVANCED:\nText replacement: Suppose keypad A is set with text \"@@some @@. text @@!\" and there are blocks on top of keypad A with infotext '1' and '2'." ..
 				" Suppose we target B with A and activate A. Then text of keypad B will be set to \"some 1. text 2!\"." ..
 				"\nWord extraction: Suppose similar setup but now keypad A is set with text \"%1\"." ..
@@ -746,6 +812,28 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			else
 				basic_machines.use_keypad(pos, 1, true, S("Operation aborted by user. Punch to activate.")) -- reset
 			end
+		end
+
+	elseif formname_sub == "sounds_keypad" then
+		if minetest.is_protected(pos, name) then return end
+
+		if fields.sound then
+			sound_selected[name] = minetest.explode_textlist_event(fields.sound).index
+
+		elseif fields.OK then
+			local i = sound_selected[name]
+			if i then
+				local sound_name = (sounds[i] or {}).name
+				if sound_name then
+					local sound_text = "$" .. sound_name
+					if sound_text ~= meta:get_string("text"):split(" ")[1] then
+						meta:set_string("text", sound_text)
+					end
+				end
+			end
+
+		else
+			sound_selected[name] = nil
 		end
 
 
@@ -786,7 +874,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			meta:set_string("inv1", strip_translator_sequence(fields.inv1, ""))
 
 		elseif fields.help then
-			minetest.show_formspec(name, "basic_machines:help_detector", "size[5.5,5.5]textarea[0,0;6,7;help;" ..
+			minetest.show_formspec(name, "basic_machines:help_detector", "formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" ..
 				F(S("DETECTOR HELP")) .. ";" .. F(S("SETUP: Right click or punch and follow chat instructions." ..
 				" With a detector you can detect nodes, objects, players, items inside inventories, nodes information and light levels. " ..
 				"If detector activates it will trigger machine at target position." ..

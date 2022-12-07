@@ -29,7 +29,7 @@ minetest.register_abm({
 })
 
 minetest.register_node("basic_machines:clockgen", {
-	description = S("Clock Generator - use sparingly, continually activates top block"),
+	description = S("Clock Generator"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_clock_generator.png"},
 	sounds = default.node_sound_wood_defaults(),
