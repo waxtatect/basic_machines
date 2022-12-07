@@ -52,7 +52,7 @@ basic_machines.get_distributor_form = function(pos)
 end
 
 minetest.register_node("basic_machines:distributor", {
-	description = S("Distributor - can forward signal up to 16 different targets"),
+	description = S("Distributor"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_distributor.png"},
 	sounds = default.node_sound_wood_defaults(),

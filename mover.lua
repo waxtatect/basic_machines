@@ -393,7 +393,7 @@ local mover_upgrades = {
 }
 
 minetest.register_node("basic_machines:mover", {
-	description = S("Mover - universal digging/harvesting/teleporting/transporting machine, it's upgradeable"),
+	description = S("Mover"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_mover.png"},
 	sounds = default.node_sound_wood_defaults(),
@@ -432,7 +432,7 @@ minetest.register_node("basic_machines:mover", {
 				player_meta:set_int("basic_machines:mover_intro", 2)
 			end
 
-			minetest.show_formspec(name, "basic_machines:intro_mover", "size[5.5,5.5]textarea[0,0;6,7;intro_mover;" ..
+			minetest.show_formspec(name, "basic_machines:intro_mover", "formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;intro_mover;" ..
 				F(S("MOVER INTRODUCTION")) .. ";" .. F(S("This machine can move anything. General idea is the following:\n\n" ..
 				"First you need to define rectangle box work area (larger area, where it takes from, defined by source1/source2 which appear as two number 1 boxes) and target position (where it puts, marked by one number 2 box) by punching mover then following CHAT instructions exactly.\n\n" ..
 				"CHECK why it doesn't work: 1. did you click OK in mover after changing setting 2. does it have battery, 3. does battery have enough fuel 4. did you set filter for taking out of chest ?\n\n" ..

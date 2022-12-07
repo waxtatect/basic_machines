@@ -12,7 +12,7 @@ end
 detector_modelist_translated = table.concat(detector_modelist_translated, ",")
 
 minetest.register_node("basic_machines:detector", {
-	description = S("Detector - can detect blocks/players/objects and activate machines"),
+	description = S("Detector"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_detector.png"},
 	sounds = default.node_sound_wood_defaults(),
@@ -246,11 +246,11 @@ minetest.register_node("basic_machines:detector", {
 			local state = meta:get_int("state")
 
 			-- -2: only false, -1: NOT, 0: no signal, 1: normal signal: 2: only true, 3: only if change
-			if NOT ~= 1 then -- else, just go on normally
-				if NOT == -1 then trigger = not trigger -- NEGATION
+			if NOT ~= 1 and NOT ~= 4 then -- else, just go on normally
+				if NOT == 2 and not trigger then meta:set_string("infotext", ""); return -- ONLY TRUE
 				elseif NOT == -2 and trigger then meta:set_string("infotext", ""); return -- ONLY FALSE
+				elseif NOT == -1 then trigger = not trigger -- NEGATION
 				elseif NOT == 0 then meta:set_string("infotext", ""); return -- do nothing
-				elseif NOT == 2 and not trigger then meta:set_string("infotext", ""); return -- ONLY TRUE
 				elseif NOT == 3 and ((trigger and state == 1) or (not trigger and state == 0)) then
 					meta:set_string("infotext", ""); return -- no change of state
 				end

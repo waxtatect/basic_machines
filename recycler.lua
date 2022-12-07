@@ -165,7 +165,7 @@ local function recycler_process(pos)
 end
 
 minetest.register_node("basic_machines:recycler", {
-	description = S("Recycler - use to get some ingredients back from crafted things"),
+	description = S("Recycler"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_recycler.png"},
 	sounds = default.node_sound_wood_defaults(),

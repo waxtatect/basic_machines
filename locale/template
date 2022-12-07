@@ -26,7 +26,7 @@ Scale=
 Visual=
 help=
 OK=
-Spawns energy ball=
+Ball Spawner=
 @nLifetime:		[1,   +∞[=
 ## ball spawner help
 BALL SPAWNER CAPABILITIES=
@@ -52,10 +52,10 @@ Visual*:		"cube" or "sprite"@
 @nNote: Hold sneak while digging to get the Ball Spawner@n=
 ##
 Overheat! Temperature: @1=
-Ball Spawner=
+Ball Spell=
 
 # clockgen.lua
-Clock Generator - use sparingly, continually activates top block=
+Clock Generator=
 Clock Generator: Interference from nearby clock generator detected=
 Clock Generator (owned by @1): place machine to be activated on top=
 
@@ -65,7 +65,7 @@ CRAFT=
 @#CRAFTING: '@1' (@2)=
 Constructor: to operate it insert materials, select item to make and click craft button=
 ## basic_machines:constructor
-Constructor: used to make machines=
+Constructor=
 Keypad=
 Light=
 Grinder=
@@ -74,28 +74,27 @@ Battery=
 Generator=
 Detector=
 Distributor=
-Clock Generator=
 Recycler=
-Environment=
+Environment Changer=
 Power Block=
 Power Cell=
 Coal Lump=
 Mesecon Adapter=
 Automate crafting=
 Spawn moving energy balls=
-Power for machines=
+Store energy, can power nearby machines=
 For making circuits that run non stop=
 Coal lump, contains 1 energy unit=
-Detect and measure players, objects, blocks, light level=
+Detect block, player, object, light level...=
 Organize your circuits better=
 Change gravity and more=
 Generate power crystals=
-Makes dusts and grinds materials=
-Turns on/off lights and activates machines or opens doors=
+Make dusts and grind materials=
+Activate machines by sending signal=
 Light in darkness=
-Can dig, harvest, plant, teleport or move items from/in inventories=
-Energy cell, contains 11 energy units=
-Energy cell, contains 1 energy unit=
+Universal digging, harvesting, teleporting, transporting machine=
+Energy block=
+Energy cell=
 Recycle old tools=
 Interface between machines and mesecons=
 
@@ -106,7 +105,6 @@ object=
 inventory=
 infotext=
 light=
-Detector - can detect blocks/players/objects and activate machines=
 Detector. Right click/punch to set it up.=
 Inventory selection=
 Source1=
@@ -131,7 +129,6 @@ scan=
 view=
 delay=
 ADD=
-Distributor - can forward signal up to 16 different targets=
 DISTRIBUTOR: Event handler nearest position found at @1 (@2) - displaying mark 1=
 Distributor. Right click to set it up.=
 
@@ -143,7 +140,6 @@ Jump=
 Sneak=
 Sky=
 FUEL=
-Changes environment for players around target location=
 Right click to set it. Activate by signal.=
 ## environment machine help
 ENVIRONMENT MODIFICATIONS=
@@ -169,30 +165,22 @@ IN: @1@nOUT(@2): @3@n=
 IN(@1): @2@nOUT: @3@n=
 IN(@1): @2@nOUT(@3): @4@n=
 IN: @1@nOUT: @2@n=
-Iron dust purity @1% (combine with chemicals to create iron extractor)=
-Iron dust purity @1% (smelt to increase purity)=
-Copper dust purity @1% (combine with chemicals to create copper extractor)=
-Copper dust purity @1% (smelt to increase purity)=
-Tin dust purity @1% (combine with chemicals to create tin extractor)=
-Tin dust purity @1% (smelt to increase purity)=
-Gold dust purity @1% (combine with chemicals to create gold extractor)=
-Gold dust purity @1% (smelt to increase purity)=
-Mese dust purity @1% (combine with chemicals to create mese extractor)=
-Mese dust purity @1% (smelt to increase purity)=
-Diamond dust purity @1% (combine with chemicals to create diamond extractor)=
-Diamond dust purity @1% (smelt to increase purity)=
-Silver dust purity @1% (combine with chemicals to create silver extractor)=
-Silver dust purity @1% (smelt to increase purity)=
-Mithril dust purity @1% (combine with chemicals to create mithril extractor)=
-Mithril dust purity @1% (smelt to increase purity)=
-Smelt to get iron=
-Smelt to get copper=
-Smelt to get tin=
-Smelt to get gold=
-Smelt to get mese=
-Smelt to get diamond=
-Smelt to get silver=
-Smelt to get mithril=
+Iron Dust (purity @1%)=
+Copper Dust (purity @1%)=
+Tin Dust (purity @1%)=
+Gold Dust (purity @1%)=
+Mese Dust (purity @1%)=
+Diamond Dust (purity @1%)=
+Silver Dust (purity @1%)=
+Mithril Dust (purity @1%)=
+Iron Extractor=
+Copper Extractor=
+Tin Extractor=
+Gold Extractor=
+Mese Extractor=
+Diamond Extractor=
+Silver Extractor=
+Mithril Extractor=
 IN=
 OUT=
 UPGRADE=
@@ -218,17 +206,15 @@ Protection fail. Reset.=
 KEYPAD: Resetting. Punch again after @1s to activate.=
 Keypad operation: @1 cycle left=
 Keypad operation: @1 cycles left=
-Keypad - basic way to activate machines by sending signal=
 Keypad. Right click to set it up or punch it. Set any password and text "@@" to work as keyboard.=
-Repeat=
 Mode=
+Repeat=
 Password=
 MODE: 1@=OFF, 2@=ON, 3@=TOGGLE=
 Text=
 
 # light.lua
-Light Off=
-Light On=
+Light off=
 Deactivate after:=
 
 # machines_configuration.lua
@@ -305,9 +291,8 @@ KEYPAD: Position is protected. Aborting.=
 KEYPAD: All coordinates must be between @1 and @2.=
 Punch keyboard to use it.=
 Punch keypad to use it. Password protected.=
-ACCESS DENIED. WRONG PASSWORD.=
-ACCESS GRANTED=
-Operation aborted by user. Punch to activate.=
+(@1 sounds)=
+Sounds (@1):=
 ## keypad help
 KEYPAD HELP=
 #
@@ -322,12 +307,15 @@ Mode: 1@=OFF, 2@=ON, 3@=TOGGLE control the way how target node is activated.@
 To set text on other nodes (text shows when you look at node) just target the node and set nonempty text. Upon activation text will be set. When target node is another keypad, its "text" field will be set. When targets is mover/detector, its "filter" field will be set. To clear "filter" set text to "@@". When target is distributor, you can change i-th target of distributor to mode mode with "i mode".@
 @nKeyboard: To use keypad as keyboard for text input write "@@" in "text" field and set any password. Next time keypad is used it will work as text input device.@
 @nDisplaying messages to nearby players (up to 5 blocks around keypad's target): Set text to "!text". Upon activation player will see "text" in their chat.@
-@nPlaying sound to nearby players: set text to "$sound_name", optionally followed by a space and pitch value: 0.01 to 10.=
+@nPlaying sound to nearby players: set text to "$sound_name", optionally followed by a space and pitch value: 0.01 to 10. Can choose a sound with sounds menu.=
 #
 @n@nADVANCED:@
 Text replacement: Suppose keypad A is set with text "@@some @@. text @@!" and there are blocks on top of keypad A with infotext '1' and '2'. Suppose we target B with A and activate A. Then text of keypad B will be set to "some 1. text 2!".@
 Word extraction: Suppose similar setup but now keypad A is set with text "%1". Then upon activation text of keypad B will be set to 1.st word of infotext.=
 ##
+ACCESS DENIED. WRONG PASSWORD.=
+ACCESS GRANTED=
+Operation aborted by user. Punch to activate.=
 DETECTOR: Position is protected. Aborting.=
 DETECTOR: All coordinates must be between @1 and @2.=
 ## detector help
@@ -343,7 +331,7 @@ You can also filter output signal in any modes:@
 ##
 
 # mesecon_adapter.lua
-Interface between machines and mesecons - place block to be activated on top of it=
+Mesecon Adapter: place machine to be activated on top=
 
 # control_doors.lua
 @#steel door: punch me one more time to remove me=
@@ -381,7 +369,6 @@ REVERSE source and target (0/1/2/3)=
 Toggle mover introduction=
 Mover introduction enabled=
 Mover introduction disabled=
-Mover - universal digging/harvesting/teleporting/transporting machine, it's upgradeable=
 Mover block. Set it up by punching or right click. Activated by signal.=
 ## mover introduction
 MOVER INTRODUCTION=
@@ -408,7 +395,6 @@ MOVER: Wrong filter (@1) at @2,@3,@4.=
 At least @1 of '@2' (@3) required=
 Fuel status @1, recycling '@2' (@3)=
 Select recipe:=
-Recycler - use to get some ingredients back from crafted things=
 Recycler: Put one item in 'IN' (src) and obtain 75% of raw materials in 'OUT' (dst). To operate it insert fuel, then insert item to recycle or activate with signal.=
 
 # space.lua
@@ -426,7 +412,6 @@ Recharge problem: capacity @1, needed @2=
 Power draw required: @1, maximum power output @2. Please upgrade battery.=
 Used fuel provides too little power for current power draw @1=
 Energy: @1 / @2=
-Battery - stores energy, generates energy from fuel, can power nearby machines, or accelerate/run furnace above it, it's upgradeable=
 Battery - stores energy, generates energy from fuel, can power nearby machines, or accelerate/run furnace above it=
 ## battery help
 BATTERY HELP=
@@ -446,7 +431,6 @@ High upgrade: power rod=
 Medium upgrade: power block=
 Low upgrade: power cell=
 Generator: Interference from nearby generator detected=
-Generator - very expensive, generates power crystals that provide power, it's upgradeable=
 Generator - generates power crystals that provide power, upgrade with up to @1 generators=
 ## generator help
 GENERATOR HELP=
@@ -455,6 +439,4 @@ Generator slowly produces power crystals. Those can be used to recharge batterie
 @nLow (0-4), medium (5-19) and high level (20+). Upgrading the generator (upgrade with generators) will increase the rate at which the crystals are produced.@
 @nYou can automate the process of battery recharging by using mover in inventory mode, taking from inventory "fuel".=
 ##
-Power Cell - provides @1 energy=
-Power Block - provides @1 energy=
-Power Rod - provides @1 energy=
+Power Rod=

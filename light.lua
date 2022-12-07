@@ -1,7 +1,7 @@
 local F, S = basic_machines.F, basic_machines.S
 
 minetest.register_node("basic_machines:light_off", {
-	description = S("Light Off"),
+	description = S("Light off"),
 	groups = {cracky = 3, not_in_creative_inventory = 1},
 	tiles = {"basic_machines_light_off.png"},
 
@@ -19,7 +19,7 @@ minetest.register_node("basic_machines:light_off", {
 })
 
 minetest.register_node("basic_machines:light_on", {
-	description = S("Light On"),
+	description = S("Light"),
 	groups = {cracky = 3},
 	light_source = default.LIGHT_MAX,
 	tiles = {"basic_machines_light.png"},
