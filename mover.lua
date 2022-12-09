@@ -267,12 +267,8 @@ local mover_modes = {
 	["transport"] = {id = 6, desc = F(S("This will move all blocks at source area to new area starting at target position\n" ..
 		"This mode preserves all inventories and other metadata"))}
 }
-local mover_modelist_translated = {}
-
-for k, v in pairs(mover_modes) do
-	mover_modelist_translated[v.id] = F(S(k))
-end
-mover_modelist_translated = table.concat(mover_modelist_translated, ",")
+local mover_modelist_translated = -- translations of mover_modes keys
+	table.concat({F(S("normal")), F(S("dig")), F(S("drop")), F(S("object")), F(S("inventory")), F(S("transport"))}, ",")
 
 basic_machines.get_mover_form = function(pos, name)
 	local meta = minetest.get_meta(pos)
@@ -377,13 +373,14 @@ minetest.register_chatcommand("mover_intro", {
 	privs = {interact = true},
 	func = function(name, _)
 		local player = minetest.get_player_by_name(name); if not player then return end
-		local player_meta = player:get_meta(); local msg
+		local player_meta = player:get_meta()
 		if player_meta:get_int("basic_machines:mover_intro") == 1 then
-			player_meta:set_int("basic_machines:mover_intro", 3); msg = "disabled"
+			player_meta:set_int("basic_machines:mover_intro", 3)
+			minetest.chat_send_player(name, S("Mover introduction disabled"))
 		else
-			player_meta:set_int("basic_machines:mover_intro", 1); msg = "enabled"
+			player_meta:set_int("basic_machines:mover_intro", 1)
+			minetest.chat_send_player(name, S("Mover introduction enabled"))
 		end
-		minetest.chat_send_player(name, S("Mover introduction " .. msg))
 	end
 })
 

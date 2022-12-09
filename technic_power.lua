@@ -352,7 +352,7 @@ local function generator_update_form(meta, not_init)
 		))
 	else
 		local upgrade = meta:get_int("upgrade")
-		local level = upgrade >= 20 and "high" or (upgrade >= 5 and "medium" or "low")
+		local level = upgrade >= 20 and S("high") or (upgrade >= 5 and S("medium") or S("low"))
 
 		meta:set_string("formspec", ([[
 			size[8,6.5]
@@ -368,7 +368,7 @@ local function generator_update_form(meta, not_init)
 			listring[context;upgrade]
 			listring[current_player;main]
 			%s
-		]]):format(F(S("POWER CRYSTALS")), F(S("Power: @1 (" .. level .. ")", upgrade)),
+		]]):format(F(S("POWER CRYSTALS")), F(S("Power: @1 (@2)", upgrade, level)),
 			F(S("help")), F(S("UPGRADE")), default.get_hotbar_bg(0, 2.25)
 		))
 	end
@@ -405,18 +405,18 @@ minetest.register_abm({
 
 		if upgrade >= 20 then
 			crystal = "basic_machines:power_rod " .. math.floor(1 + (upgrade - 20) * 9 / 178)
-			text = "High upgrade: power rod"
+			text = S("High upgrade: power rod")
 		elseif upgrade >= 5 then
 			crystal = "basic_machines:power_block " .. math.floor(1 + (upgrade - 5) * 9 / 15)
-			text = "Medium upgrade: power block"
+			text = S("Medium upgrade: power block")
 		else
 			crystal = "basic_machines:power_cell " .. math.floor(1 + 2 * upgrade)
-			text = "Low upgrade: power cell"
+			text = S("Low upgrade: power cell")
 		end
 
 		stack:add_item(ItemStack(crystal))
 		inv:set_stack("fuel", 1, stack)
-		meta:set_string("infotext", S(text))
+		meta:set_string("infotext", text)
 	end
 })
 

@@ -268,7 +268,7 @@ minetest.register_node("basic_machines:autocrafter", {
 			local output_item = craft.output.item
 			-- only use crafts that have an actual result
 			if output_item:is_empty() then
-				meta:set_string("infotext", S("Unconfigured autocrafter: unknown recipe")); return
+				meta:set_string("infotext", S("Unconfigured autocrafter: Unknown recipe")); return
 			end
 
 			autocraft(inventory, craft)

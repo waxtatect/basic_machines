@@ -191,6 +191,12 @@ then
 	})
 end
 
+-- for translations script (inventory list names)
+--[[
+	S("dst"); S("fuel"); S("main"); S("output");
+	S("recipe"); S("src"); S("upgrade")
+--]]
+
 -- COMPATIBILITY
 minetest.register_alias("basic_machines:battery", "basic_machines:battery_0")
 

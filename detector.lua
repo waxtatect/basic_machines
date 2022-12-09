@@ -3,13 +3,9 @@ local machines_minstep = basic_machines.properties.machines_minstep
 local detector_oplist = {["-"] = 1, ["AND"] = 2, ["OR"] = 3}
 local detector_modelist = {["node"] = 1, ["player"] = 2, ["object"] = 3, ["inventory"] = 4,
 	["infotext"] = 5, ["light"] = 6}
-local detector_modelist_translated = {}
+local detector_modelist_translated = -- translations of detector_modelist keys
+	table.concat({F(S("node")), F(S("player")), F(S("object")), F(S("inventory")), F(S("infotext")), F(S("light"))}, ",")
 local vector_add = vector.add
-
-for k, v in pairs(detector_modelist) do
-	detector_modelist_translated[v] = F(S(k))
-end
-detector_modelist_translated = table.concat(detector_modelist_translated, ",")
 
 minetest.register_node("basic_machines:detector", {
 	description = S("Detector"),

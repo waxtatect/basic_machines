@@ -44,12 +44,8 @@ local skyboxes = {
 		"basic_machines_stars.png", "basic_machines_stars.png", "basic_machines_stars.png"
 	}}
 }
-local enviro_skylist_translated = {}
-
-for k, v in pairs(skyboxes) do
-	enviro_skylist_translated[v.id] = F(S(k))
-end
-enviro_skylist_translated = table.concat(enviro_skylist_translated, ",")
+local enviro_skylist_translated = -- translations of skyboxes keys
+	table.concat({F(S("-")), F(S("surface")), F(S("cave")), F(S("space"))}, ",")
 
 local function enviro_update_form(meta)
 	local skybox = meta:get_string("skybox")
@@ -177,12 +173,11 @@ minetest.register_node("basic_machines:enviro", {
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_enviro",
 				"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("ENVIRONMENT MODIFICATIONS")) .. ";" ..
-F(S([[
-VALUES
+F(S([[VALUES
 
 Target:		Center position of the area to apply environment effects
 			x: [-@1, @2], y: [-@3, @4], z: [-@5, @6]
-Radius:		[0,   @7]@
+Radius:		[0,   @7]
 Speed:		[0,   1.2]
 Jump:		[0,   2]
 Gravity:	[0.1, 40]
@@ -229,12 +224,12 @@ Sky:		-, surface, cave or space
 			}
 
 			if inv:contains_item("fuel", stack) and admin ~= 1 then
-				meta:set_string("infotext", S("#SETTINGS Speed=@1 Jump=@2 Gravity=@3 Sneak=@4 Sky=@5",
+				meta:set_string("infotext", S("SETTINGS Speed=@1 Jump=@2 Gravity=@3 Sneak=@4 Sky=@5",
 					format_num(physics.speed, "%.2f"), format_num(physics.jump, "%.2f"),
 					format_num(physics.gravity, "%.2f"), physics.sneak, S(skybox)))
 				inv:remove_item("fuel", stack)
 			elseif admin == 1 then
-				meta:set_string("infotext", S("ADMIN #SETTINGS Speed=@1 Jump=@2 Gravity=@3 Sneak=@4 Sky=@5",
+				meta:set_string("infotext", S("ADMIN - SETTINGS Speed=@1 Jump=@2 Gravity=@3 Sneak=@4 Sky=@5",
 					format_num(physics.speed, "%.2f"), format_num(physics.jump, "%.2f"),
 					format_num(physics.gravity, "%.2f"), physics.sneak, S(skybox)))
 			else

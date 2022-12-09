@@ -141,34 +141,30 @@ local function make_it_nondiggable_but_removable(name, dropname, door)
 			local meta = minetest.get_meta(pos)
 			-- can be dug by owner or if unprotected
 			if pname == meta:get_string("owner") or not minetest.is_protected(pos, pname) then
-				local t0 = meta:get_int("punchtime")
+				local t0, t = meta:get_int("punchtime"), minetest.get_gametime()
 				local count = meta:get_int("punchcount")
-				local t = minetest.get_gametime()
 
 				if t - t0 < 2 then count = (count + 1) % 3 else count = 0 end
+				meta:set_int("punchtime", t); meta:set_int("punchcount", count)
 
 				if count == 1 then
-					minetest.chat_send_player(pname, S("#steel " .. door .. ": punch me one more time to remove me"))
+					minetest.chat_send_player(pname, S("@1: Punch me one more time to remove me", door))
 				elseif count == 2 then -- remove steel door and drop it
 					minetest.set_node(pos, {name = "air"})
 					minetest.add_item(pos, ItemStack(dropname))
 				end
-
-				meta:set_int("punchcount", count)
-				meta:set_int("punchtime", t)
-				-- minetest.chat_send_all("punch by " .. name .. " count " .. count)
 			end
 		end
 	})
 end
 
 local impervious_steel = {
-	{"doors:door_steel_a", "doors:door_steel", "door"},
-	{"doors:door_steel_b", "doors:door_steel", "door"},
-	{"doors:door_steel_c", "doors:door_steel", "door"},
-	{"doors:door_steel_d", "doors:door_steel", "door"},
-	{"doors:trapdoor_steel", "doors:trapdoor_steel", "trapdoor"},
-	{"doors:trapdoor_steel_open", "doors:trapdoor_steel", "trapdoor"}
+	{"doors:door_steel_a", "doors:door_steel", S("Steel Door")},
+	{"doors:door_steel_b", "doors:door_steel", S("Steel Door")},
+	{"doors:door_steel_c", "doors:door_steel", S("Steel Door")},
+	{"doors:door_steel_d", "doors:door_steel", S("Steel Door")},
+	{"doors:trapdoor_steel", "doors:trapdoor_steel", S("Steel Trapdoor")},
+	{"doors:trapdoor_steel_open", "doors:trapdoor_steel", S("Steel Trapdoor")}
 }
 
 for _, door in ipairs(impervious_steel) do

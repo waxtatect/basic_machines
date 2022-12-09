@@ -132,33 +132,55 @@ if basic_machines.settings.grinder_register_dusts then
 		end
 	end
 	local have_ff = farming_mod and minetest.global_exists("flowers")
-	local have_ui_categories = use_unified_inventory and unified_inventory.registered_categories
-	local purity_table = {"00", "33", "66"}; if grinder_dusts_legacy or not have_ff then table.remove(purity_table, 1) end
 
 	-- REGISTER DUSTS
 	-- dust_00 (mix)-> extractor (smelt) -> dust_33 (smelt) -> dust_66 (smelt) -> ingot
 	-- or legacy mode: dust_33 (smelt) -> dust_66 (smelt) -> ingot
-	local function register_dust(name, input_name, output_name, grind_cost, cooktime, quantity, hex, light_source)
+	local have_ui_categories = use_unified_inventory and unified_inventory.registered_categories
+	local function register_dust(name, description, hex, purity, light_source)
+		minetest.register_craftitem(name, {
+			description = description,
+			groups = {dust = 1},
+			inventory_image = "basic_machines_dust.png^[colorize:#" .. hex .. ":" .. (114 + purity),
+			light_source = light_source
+		})
+		if have_ui_categories then
+			unified_inventory.add_category_item("minerals", name)
+		end
+	end
+
+	local purity_table = {"00", "33", "66"}; if grinder_dusts_legacy or not have_ff then table.remove(purity_table, 1) end
+	local light_source = {{7, 11, 13}, {9, 11, 14}, {8, 12, 14}} -- diamond, silver, mithril
+	local moreores_tin_lump_present = minetest.registered_items["moreores:tin_lump"]
+
+	for i, purity in ipairs(purity_table) do
+		register_dust("basic_machines:iron_dust_" .. purity,
+			S("Iron Dust (purity @1%)", purity), "999999", purity)
+		register_dust("basic_machines:copper_dust_" .. purity,
+			S("Copper Dust (purity @1%)", purity), "C8800D", purity)
+		register_dust("basic_machines:tin_dust_" .. purity,
+			S("Tin Dust (purity @1%)", purity), "9F9F9F", purity)
+		register_dust("basic_machines:gold_dust_" .. purity,
+			S("Gold Dust (purity @1%)", purity), "FFFF00", purity)
+		register_dust("basic_machines:mese_dust_" .. purity,
+			S("Mese Dust (purity @1%)", purity), "CCCC00", purity)
+		register_dust("basic_machines:diamond_dust_" .. purity,
+			S("Diamond Dust (purity @1%)", purity), "00EEFF", purity, light_source[1][i])
+
+		if moreores_tin_lump_present then -- are moreores (tin, silver, mithril) present ?
+			-- register_dust("basic_machines:tin_dust_" .. purity,
+				-- S("Tin Dust (purity @1%)", purity), "FFFFFF", purity)
+			register_dust("basic_machines:silver_dust_" .. purity,
+				S("Silver Dust (purity @1%)", purity), "BBBBBB", purity, light_source[2][i])
+			register_dust("basic_machines:mithril_dust_" .. purity,
+				S("Mithril Dust (purity @1%)", purity), "0000FF", purity, light_source[3][i])
+		end
+	end
+
+	local quantity = math.max(0, basic_machines.settings.grinder_dusts_quantity)
+	local function register_dust_recipe(name, input_name, grind_cost, output_name, cooktime)
 		local dust = "basic_machines:" .. name .. "_dust_"
-		local dust_output = dust .. purity_table[1]
 		local dust_66 = dust .. "66"
-
-		for i, purity in ipairs(purity_table) do
-			minetest.register_craftitem(dust .. purity, {
-				description = S(name:gsub("^%l", string.upper) .. " Dust (purity @1%)", purity),
-				groups = {dust = 1},
-				inventory_image = "basic_machines_dust.png^[colorize:#" .. hex .. ":" .. (114 + purity),
-				light_source = light_source and light_source[i]
-			})
-			if have_ui_categories then
-				unified_inventory.add_category_item("minerals", dust .. purity)
-			end
-		end
-
-		register_recipe(input_name, {grind_cost, dust_output, quantity, 1}) -- register grinder recipe
-		if output_name then
-			register_recipe(output_name, {grind_cost, dust_output, quantity, 1}) -- grinding ingots gives dust too
-		end
 
 		minetest.register_craft({
 			type = "cooking",
@@ -173,32 +195,34 @@ if basic_machines.settings.grinder_register_dusts then
 			recipe = dust_66,
 			cooktime = cooktime
 		})
+
+		local dust_output = dust .. purity_table[1]
+		register_recipe(input_name, {grind_cost, dust_output, quantity, 1}) -- register grinder recipe
+		if output_name then
+			register_recipe(output_name, {grind_cost, dust_output, quantity, 1}) -- grinding ingots gives dust too
+		end
 	end
 
-	local qt = math.max(0, basic_machines.settings.grinder_dusts_quantity)
+	register_dust_recipe("iron", "default:iron_lump", 4, "default:steel_ingot", 8)
+	register_dust_recipe("copper", "default:copper_lump", 4, "default:copper_ingot", 8)
+	register_dust_recipe("tin", "default:tin_lump", 4, "default:tin_ingot", 8)
+	register_dust_recipe("gold", "default:gold_lump", 6, "default:gold_ingot", 25)
+	register_dust_recipe("mese", "default:mese_crystal", 8, nil, 250)
+	register_dust_recipe("diamond", "default:diamond", 16, nil, 500) -- 0.3hr cooking time to make diamond!
 
-	register_dust("iron", "default:iron_lump", "default:steel_ingot", 4, 8, qt, "999999")
-	register_dust("copper", "default:copper_lump", "default:copper_ingot", 4, 8, qt, "C8800D")
-	register_dust("tin", "default:tin_lump", "default:tin_ingot", 4, 8, qt, "9F9F9F")
-	register_dust("gold", "default:gold_lump", "default:gold_ingot", 6, 25, qt, "FFFF00")
-	register_dust("mese", "default:mese_crystal", nil, 8, 250, qt, "CCCC00")
-	-- 0.3hr cooking time to make diamond!
-	register_dust("diamond", "default:diamond", nil, 16, 500, qt, "00EEFF", {7, 11, 13})
-
-	-- are moreores (tin, silver, mithril) present ?
-	if minetest.registered_items["moreores:tin_lump"] then
-		-- register_dust("tin", "moreores:tin_lump", "moreores:tin_ingot", 4, 8, qt, "FFFFFF")
-		register_dust("silver", "moreores:silver_lump", "moreores:silver_ingot", 5, 15, qt, "BBBBBB", {9, 11, 14})
-		register_dust("mithril", "moreores:mithril_lump", "moreores:mithril_ingot", 16, 750, qt, "0000FF", {8, 12, 14})
+	if moreores_tin_lump_present then
+		-- register_dust_recipe("tin", "moreores:tin_lump", 4, "moreores:tin_ingot", 8)
+		register_dust_recipe("silver", "moreores:silver_lump", 5, "moreores:silver_ingot", 15)
+		register_dust_recipe("mithril", "moreores:mithril_lump", 16, "moreores:mithril_ingot", 750)
 	end
 
 	-- REGISTER EXTRACTORS, their recipes and smelting recipes
 	if not grinder_dusts_legacy and have_ff then
-		local function register_extractor(name, hex, recipe)
+		local function register_extractor(name, description, hex, recipe)
 			local item = "basic_machines:" .. name .. "_extractor"
 
 			minetest.register_craftitem(item, {
-				description = S(name:gsub("^%l", string.upper) .. " Extractor"),
+				description = description,
 				groups = {extractor = 1},
 				inventory_image = "basic_machines_ore_extractor.png^[colorize:#" .. hex .. ":180"
 			})
@@ -227,17 +251,22 @@ if basic_machines.settings.grinder_register_dusts then
 			recipe.mese = {"x_farming:strawberry", "x_farming:strawberry", "basic_machines:mese_dust_00"}
 		end
 
-		register_extractor("iron", "999999", {"default:leaves", "default:leaves", "basic_machines:iron_dust_00"})
-		register_extractor("copper", "C8800D", {"default:papyrus", "default:papyrus", "basic_machines:copper_dust_00"})
-		register_extractor("tin", "C89F9F", recipe.tin)
-		register_extractor("gold", "FFFF00",
+		register_extractor("iron", S("Iron Extractor"), "999999",
+			{"default:leaves", "default:leaves", "basic_machines:iron_dust_00"})
+		register_extractor("copper", S("Copper Extractor"), "C8800D",
+			{"default:papyrus", "default:papyrus", "basic_machines:copper_dust_00"})
+		register_extractor("tin", S("Tin Extractor"), "C89F9F", recipe.tin)
+		register_extractor("gold", S("Gold Extractor"), "FFFF00",
 			{"basic_machines:tin_extractor", "basic_machines:copper_extractor", "basic_machines:gold_dust_00"})
-		register_extractor("mese", "CCCC00", recipe.mese)
-		register_extractor("diamond", "00EEFF", {"farming:wheat", "farming:cotton", "basic_machines:diamond_dust_00"})
+		register_extractor("mese", S("Mese Extractor"), "CCCC00", recipe.mese)
+		register_extractor("diamond", S("Diamond Extractor"), "00EEFF",
+			{"farming:wheat", "farming:cotton", "basic_machines:diamond_dust_00"})
 
-		if minetest.registered_items["moreores:tin_lump"] then
-			register_extractor("silver", "BBBBBB", {"flowers:geranium", "flowers:tulip_black", "basic_machines:silver_dust_00"})
-			register_extractor("mithril", "0000FF", {"flowers:geranium", "flowers:geranium", "basic_machines:mithril_dust_00"})
+		if moreores_tin_lump_present then
+			register_extractor("silver", S("Silver Extractor"), "BBBBBB",
+				{"flowers:geranium", "flowers:tulip_black", "basic_machines:silver_dust_00"})
+			register_extractor("mithril", S("Mithril Extractor"), "0000FF",
+				{"flowers:geranium", "flowers:geranium", "basic_machines:mithril_dust_00"})
 		end
 	end
 end

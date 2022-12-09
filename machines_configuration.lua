@@ -44,6 +44,12 @@ local punchable_nodes = {
 	["basic_machines:mover"] = "MOVER"
 }
 
+local description_translated = {
+	["DETECTOR"] = S("DETECTOR"),
+	["DISTRIBUTOR"] = S("DISTRIBUTOR"),
+	["MOVER"] = S("MOVER")
+}
+
 local function check_keypad(pos, name) -- called only when manually activated via punch
 	local meta = minetest.get_meta(pos)
 
@@ -78,7 +84,7 @@ minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 
 	if punchset_desc ~= "KEYPAD" and minetest.is_protected(pos, name) then
 		if punch_state > 0 then
-			minetest.chat_send_player(name, S(punchset_desc .. ": Punched position is protected. Aborting."))
+			minetest.chat_send_player(name, S("@1: Punched position is protected. Aborting.", description_translated[punchset_desc]))
 			punchset[name] = {state = 0, node = ""}
 		end
 		return
