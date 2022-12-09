@@ -140,7 +140,7 @@ minetest.register_entity("basic_machines:ball", {
 									end
 								end
 								local newhp = obj:get_hp() - self._hurt
-								minetest.chat_send_player(self._owner, S("#BALL: target hp @1", newhp))
+								minetest.chat_send_player(self._owner, S("BALL: Target hp @1", newhp))
 								if newhp > 0 then obj:set_hp(newhp) else obj:remove() end
 							end
 
@@ -193,7 +193,7 @@ minetest.register_entity("basic_machines:ball", {
 					end
 				else
 					-- algorithm to determine bounce direction - problem:
-					-- with lag it's impossible to determine reliable which node was hit and which face ..
+					-- with lag it's impossible to determine reliable which node was hit and which face...
 					if v.x <= 0 then n.x = 1 else n.x = -1 end -- possible bounce directions
 					if v.y <= 0 then n.y = 1 else n.y = -1 end
 					if v.z <= 0 then n.z = 1 else n.z = -1 end
@@ -466,8 +466,7 @@ minetest.register_node("basic_machines:ball_spawner", {
 			local lifetime = minetest.get_meta(pos):get_int("admin") == 1 and S("\nLifetime:		[1,   +∞[") or ""
 			minetest.show_formspec(name, "basic_machines:help_ball",
 				"formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" .. F(S("BALL SPAWNER CAPABILITIES")) .. ";" ..
-F(S([[
-VALUES
+F(S([[VALUES
 
 Target*:		Direction of velocity
 				x: [-@1, @2], y: [-@3, @4], z: [-@5, @6]

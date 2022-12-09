@@ -43,7 +43,7 @@ local function constructor_update_form(constructor, meta)
 		listring[current_player;main]
 		%s
 	]]):format(recipes_order_translated[constructor], meta:get_int("selected"),
-		item, F(S("CRAFT")), F(S(description)), default.get_hotbar_bg(0, 6)))
+		item, F(S("CRAFT")), F(description), default.get_hotbar_bg(0, 6)))
 end
 
 local function constructor_process(pos, constructor, name)
@@ -66,7 +66,7 @@ local function constructor_process(pos, constructor, name)
 
 					for _, v in ipairs(recipe) do
 						if not inv:contains_item("main", ItemStack(v)) then
-							meta:set_string("infotext", S("#CRAFTING: you need '@1' to craft '@2'", v, item)); return
+							meta:set_string("infotext", S("CRAFTING: You need '@1' to craft '@2'", v, item)); return
 						end
 					end
 
@@ -80,7 +80,7 @@ local function constructor_process(pos, constructor, name)
 		end
 
 		if name or meta:get_string("infotext") == "" then
-			meta:set_string("infotext", S("#CRAFTING: '@1' (@2)",
+			meta:set_string("infotext", S("CRAFTING: '@1' (@2)",
 				def and def.description or S("Unknown item"), item))
 		end
 	end
@@ -89,15 +89,10 @@ end
 local function add_constructor(name, def)
 	craft_recipes[name] = def.craft_recipes
 	recipes_order[name] = def.recipes_order
-	recipes_order_translated[name] = {}
-
-	for i, v in ipairs(recipes_order[name]) do
-		recipes_order_translated[name][i] = F(S(v))
-	end
-	recipes_order_translated[name] = table.concat(recipes_order_translated[name], ",")
+	recipes_order_translated[name] = table.concat(def.recipes_order_translated, ",")
 
 	minetest.register_node(name, {
-		description = S(def.description),
+		description = def.description,
 		groups = {cracky = 3, constructor = 1},
 		tiles = {name:gsub(":", "_") .. ".png"},
 		sounds = default.node_sound_wood_defaults(),
@@ -182,7 +177,7 @@ end
 
 -- CONSTRUCTOR
 local def = {
-	description = "Constructor",
+	description = S("Constructor"),
 	recipe = {
 		{"default:steel_ingot", "default:steel_ingot", "default:steel_ingot"},
 		{"default:steel_ingot", "default:copperblock", "default:steel_ingot"},
@@ -191,97 +186,97 @@ local def = {
 	craft_recipes = {
 		["Autocrafter"] = {
 			item = "basic_machines:autocrafter",
-			description = "Automate crafting",
+			description = S("Automate crafting"),
 			craft = {"default:steel_ingot 5", "default:mese_crystal 2", "default:diamondblock 2"}
 		},
 
 		["Ball Spawner"] = {
 			item = "basic_machines:ball_spawner",
-			description = "Spawn moving energy balls",
+			description = S("Spawn moving energy balls"),
 			craft = {"basic_machines:power_cell", "basic_machines:keypad"}
 		},
 
 		["Battery"] = {
 			item = "basic_machines:battery_0",
-			description = "Store energy, can power nearby machines",
+			description = S("Store energy, can power nearby machines"),
 			craft = {"default:bronzeblock 2", "default:mese", "default:diamond"}
 		},
 
 		["Clock Generator"] = {
 			item = "basic_machines:clockgen",
-			description = "For making circuits that run non stop",
+			description = S("For making circuits that run non stop"),
 			craft = {"default:diamondblock", "basic_machines:keypad"}
 		},
 
 		["Coal Lump"] = {
 			item = "default:coal_lump",
-			description = "Coal lump, contains 1 energy unit",
+			description = S("Coal lump, contains 1 energy unit"),
 			craft = {"basic_machines:power_cell 2"}
 		},
 
 		["Detector"] = {
 			item = "basic_machines:detector",
-			description = "Detect block, player, object, light level...",
+			description = S("Detect block, player, object, light level..."),
 			craft = {"default:mese_crystal 4", "basic_machines:keypad"}
 		},
 
 		["Distributor"] = {
 			item = "basic_machines:distributor",
-			description = "Organize your circuits better",
+			description = S("Organize your circuits better"),
 			craft = {"default:steel_ingot", "default:mese_crystal", "basic_machines:keypad"}
 		},
 
 		["Environment Changer"] = {
 			item = "basic_machines:enviro",
-			description = "Change gravity and more",
+			description = S("Change gravity and more"),
 			craft = {"basic_machines:generator 8", "basic_machines:clockgen"}
 		},
 
 		["Generator"] = {
 			item = "basic_machines:generator",
-			description = "Generate power crystals",
+			description = S("Generate power crystals"),
 			craft = {"default:diamondblock 5", "basic_machines:battery_0 5", "default:goldblock 5"}
 		},
 
 		["Grinder"] = {
 			item = "basic_machines:grinder",
-			description = "Make dusts and grind materials",
+			description = S("Make dusts and grind materials"),
 			craft = {"default:diamond 13", "default:mese 4"}
 		},
 
 		["Keypad"] = {
 			item = "basic_machines:keypad",
-			description = "Activate machines by sending signal",
+			description = S("Activate machines by sending signal"),
 			craft = {"default:wood", "default:stick"}
 		},
 
 		["Light"] = {
 			item = "basic_machines:light_on",
-			description = "Light in darkness",
+			description = S("Light in darkness"),
 			craft = {"default:torch 4"}
 		},
 
 		["Mover"] = {
 			item = "basic_machines:mover",
-			description = "Universal digging, harvesting, teleporting, transporting machine",
+			description = S("Universal digging, harvesting, teleporting, transporting machine"),
 			craft = {"default:mese_crystal 6", "default:stone 2", "basic_machines:keypad"}
 		},
 
 		["Power Block"] = {
 			item = "basic_machines:power_block 5",
-			description = "Energy block",
+			description = S("Energy block"),
 			craft = {"basic_machines:power_rod"}
 		},
 
 		["Power Cell"] = {
 			item = "basic_machines:power_cell 5",
-			description = "Energy cell",
+			description = S("Energy cell"),
 			craft = {"basic_machines:power_block"}
 		},
 
 		["Recycler"] = {
 			item = "basic_machines:recycler",
-			description = "Recycle old tools",
+			description = S("Recycle old tools"),
 			craft = {"default:mese_crystal 8", "default:diamondblock"}
 		}
 	},
@@ -302,16 +297,23 @@ local def = {
 		"Power Block",
 		"Power Cell",
 		"Coal Lump"
+	},
+	recipes_order_translated = { -- for translation
+		F(S("Keypad")), F(S("Light")), F(S("Grinder")), F(S("Mover")), F(S("Battery")),
+		F(S("Generator")), F(S("Detector")), F(S("Distributor")), F(S("Clock Generator")),
+		F(S("Recycler")), F(S("Autocrafter")), F(S("Ball Spawner")), F(S("Environment Changer")),
+		F(S("Power Block")), F(S("Power Cell")), F(S("Coal Lump"))
 	}
 }
 
 if minetest.global_exists("mesecon") then -- add mesecon adapter
 	def.craft_recipes["Mesecon Adapter"] = {
 		item = "basic_machines:mesecon_adapter",
-		description = "Interface between machines and mesecons",
+		description = S("Interface between machines and mesecons"),
 		craft = {"default:mese_crystal_fragment"}
 	}
 	def.recipes_order[#def.recipes_order + 1] = "Mesecon Adapter"
+	def.recipes_order_translated[#def.recipes_order_translated + 1] = F(S("Mesecon Adapter"))
 end
 
 add_constructor("basic_machines:constructor", def)

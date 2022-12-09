@@ -77,18 +77,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 		end
 	end
 
-	local tpos = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
-	local node = minetest.get_node_or_nil(tpos); if not node then return end -- error
-	local text, name = meta:get_string("text"), node.name
-
-	if text == "" or name ~= "basic_machines:keypad" and not vector.equals(pos, tpos) then
-		if count < 2 then
-			meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
-		else
-			meta:set_string("infotext", S("Keypad operation: @1 cycles left", count))
-		end
-	end
-
+	local text = meta:get_string("text")
 	if text ~= "" then -- TEXT MODE; set text on target
 		if text == "@" and meta:get_string("pass") ~= "" then -- keyboard mode, set text from input
 			text = meta:get_string("input")
@@ -97,22 +86,11 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 
 		local bit = byte(text)
 
-		if bit == 33 then -- if text starts with !, then we send chat text to all nearby players, radius 5
+		if bit == 36 then -- text starts with $, play sound
 			local text_sub = text:sub(2)
 			if text_sub ~= "" then
-				local sqrt = math.sqrt
-				for _, player in ipairs(minetest.get_connected_players()) do
-					local pos1 = player:get_pos()
-					if sqrt((pos1.x - tpos.x)^2 + (pos1.y - tpos.y)^2 + (pos1.z - tpos.z)^2) <= 5 then
-						minetest.chat_send_player(player:get_player_name(), text_sub)
-					end
-				end
-				return
-			end
-
-		elseif bit == 36 then -- text starts with $, play sound
-			local text_sub = text:sub(2)
-			if text_sub ~= "" then
+				if iter > 1 then meta:set_int("count", iter); count = 0 end -- play sound only once
+				meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
 				local i = text_sub:find(" ")
 				if not i then
 					minetest.sound_play(text_sub, {pos = pos, gain = 1, max_hear_distance = 16}, true)
@@ -123,19 +101,43 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 				end
 				return
 			end
+
+		elseif bit == 33 then -- if text starts with !, then we send chat text to all nearby players, radius 5
+			local text_sub = text:sub(2)
+			if text_sub ~= "" then
+				if iter > 1 then meta:set_int("count", iter); count = 0 end -- send text only once
+				meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
+				local sqrt = math.sqrt
+				local tpos = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
+				for _, player in ipairs(minetest.get_connected_players()) do
+					local pos1 = player:get_pos()
+					if sqrt((pos1.x - tpos.x)^2 + (pos1.y - tpos.y)^2 + (pos1.z - tpos.z)^2) <= 5 then
+						minetest.chat_send_player(player:get_player_name(), text_sub)
+					end
+				end
+				return
+			end
 		end
 
-		local tmeta = minetest.get_meta(tpos)
+		local tpos = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
+		local node = minetest.get_node_or_nil(tpos); if not node then return end -- error
+		local name, tmeta = node.name, minetest.get_meta(tpos)
+
+		if name ~= "basic_machines:keypad" and not vector.equals(pos, tpos) then
+			if count < 2 then
+				meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
+			else
+				meta:set_string("infotext", S("Keypad operation: @1 cycles left", count))
+			end
+		end
 
 		if signs[name] then -- update text on signs with signs_lib
 			tmeta:set_string("infotext", text)
 			tmeta:set_string("text", text)
-			local def = minetest.registered_nodes[name]
-			if use_signs_lib and signs_lib.update_sign and def.on_punch then
-				-- signs_lib.update_sign(pos)
-				def.on_punch(tpos, node, nil) -- warning - this can cause problems if no signs_lib installed
+			if use_signs_lib and signs_lib.update_sign then
+				local on_punch = (minetest.registered_nodes[name] or {}).on_punch
+				if on_punch then on_punch(tpos, node, nil) end
 			end
-			return
 
 		-- target is keypad, special functions: @, % that output to target keypad text
 		elseif name == "basic_machines:keypad" then -- special modify of target keypad text and change its target
@@ -143,9 +145,10 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 				text = text:sub(2); if text == "" then tmeta:set_string("text", ""); return end -- clear target keypad text
 				-- read words [j] from blocks above keypad:
 				local j = 0
-				text = text:gsub("@", function()
-					j = j + 1; return minetest.get_meta({x = pos.x, y = pos.y + 1, z = pos.z}):get_string("infotext")
-				end) -- replace every @ in ttext with string on blocks above
+				local function replace()
+					j = j + 1; return minetest.get_meta({x = pos.x, y = pos.y + j, z = pos.z}):get_string("infotext")
+				end
+				text = text:gsub("@", replace) -- replace every @ in text with string on blocks above
 
 				-- set target keypad's text
 				tmeta:set_string("text", text)
@@ -154,17 +157,16 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 				local i = tonumber(text:sub(2, 2)) or 1 -- read the number following the %
 				-- extract i - th word from text
 				local j = 0
-				for word in string.gmatch(ttext, "%S+") do
+				for word in ttext:gmatch("%S+") do
 					j = j + 1; if j == i then text = word; break end
 				end
 
 				-- set target keypad's target's text
 				tmeta:set_string("text", text)
 			else
-				-- just set text..
+				-- just set text...
 				tmeta:set_string("infotext", text)
 			end
-			return
 
 		elseif name == "basic_machines:detector" then -- change filter on detector
 			if bit == 64 then -- if text starts with @ clear the filter
@@ -172,7 +174,6 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			else
 				tmeta:set_string("node", text)
 			end
-			return
 
 		elseif name == "basic_machines:mover" then -- change filter on mover
 			if bit == 64 then -- if text starts with @ clear the filter
@@ -188,7 +189,6 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 					tmeta:get_inventory():set_list("filter", {})
 				end
 			end
-			return
 
 		elseif name == "basic_machines:distributor" then
 			local i = text:find(" ")
@@ -199,30 +199,38 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 					tmeta:set_int("active" .. ti, tm)
 				end
 			end
-			return
+
+		else
+			tmeta:set_string("infotext", text:gsub("^ +$", "")) -- else just set text
 		end
 
-		tmeta:set_string("infotext", text:gsub("^ +$", "")) -- else just set text
-	end
-
-	-- activate target
-	local def = minetest.registered_nodes[name]
-	if def and (def.effector or def.mesecons and def.mesecons.effector) then -- activate target
-		local mode = meta:get_int("mode")
-
-		if mode == 3 then -- keypad in toggle mode
-			local state = meta:get_int("state"); state = 1 - state; meta:set_int("state", state)
-			if state == 0 then mode = 2 else mode = 1 end
+	else
+		if count < 2 then
+			meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
+		else
+			meta:set_string("infotext", S("Keypad operation: @1 cycles left", count))
 		end
 
-		local effector = def.effector or def.mesecons.effector
-		local param = def.effector and ttl or node
+		local tpos = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
+		local node = minetest.get_node_or_nil(tpos); if not node then return end -- error
+		local def = minetest.registered_nodes[node.name]
+		if def and (def.effector or def.mesecons and def.mesecons.effector) then -- activate target
+			local mode = meta:get_int("mode")
 
-		-- pass the signal on to target, depending on mode
-		if mode == 2 and effector.action_on then -- on
-			effector.action_on(tpos, param) -- run
-		elseif mode == 1 and effector.action_off then -- off
-			effector.action_off(tpos, param) -- run
+			if mode == 3 then -- keypad in toggle mode
+				local state = meta:get_int("state"); state = 1 - state; meta:set_int("state", state)
+				if state == 0 then mode = 2 else mode = 1 end
+			end
+
+			local effector = def.effector or def.mesecons.effector
+			local param = def.effector and ttl or node
+
+			-- pass the signal on to target, depending on mode
+			if mode == 2 and effector.action_on then -- on
+				effector.action_on(tpos, param) -- run
+			elseif mode == 1 and effector.action_off then -- off
+				effector.action_off(tpos, param) -- run
+			end
 		end
 	end
 end
