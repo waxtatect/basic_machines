@@ -7,21 +7,23 @@ local S = basic_machines.S
 local autocrafterCache = {}
 
 local function autocrafter_update_form(meta)
-	meta:set_string("formspec",	"size[8,11.25]" ..
-		"list[context;recipe;0,0;3,3;]" ..
-		"image[3,1;1,1;gui_hb_bg.png^[colorize:#141318:255]" ..
-		"list[context;output;3,1;1,1;]" ..
-		"list[context;src;0,3.5;8,3;]" ..
-		"list[context;dst;4,0;4,3;]" ..
-		"list[current_player;main;0,7;8,1;]" ..
-		"list[current_player;main;0,8.25;8,3;8]" ..
-		"listring[context;dst]" ..
-		"listring[current_player;main]" ..
-		"listring[context;src]" ..
-		"listring[current_player;main]" ..
-		"listring[context;recipe]" ..
-		"listring[current_player;main]" ..
-		default.get_hotbar_bg(0, 7))
+	local form = {
+		"formspec_version[4]size[10.45,13.4]",
+		"style_type[list;spacing=0.25,0.15]",
+		"list[context;recipe;0.35,0.3;3,3]",
+		"image[4.1,1.45;1,1;[combine:1x1^[noalpha^[colorize:#141318]",
+		"list[context;output;4.1,1.45;1,1]",
+		"list[context;dst;5.35,0.3;4,3]",
+		"list[context;src;0.35,4.2;8,3]",
+		basic_machines.get_form_player_inventory(0.25, 0.35, 8.25, 8, 4),
+		"listring[context;dst]",
+		"listring[current_player;main]",
+		"listring[context;src]",
+		"listring[current_player;main]",
+		"listring[context;recipe]",
+		"listring[current_player;main]"
+	}
+	meta:set_string("formspec",	table.concat(form))
 end
 
 local function count_index(invlist)

@@ -336,29 +336,30 @@ local function grinder_process(pos)
 	if fuel < fuel_req then -- we need new fuel
 		local fuellist = inv:get_list("fuel"); if not fuellist then return end
 		local fueladd, afterfuel = minetest.get_craft_result({method = "fuel", width = 1, items = fuellist})
+		local add_fuel = fueladd.time
 
-		if fueladd.time == 0 then -- no fuel inserted, try look for outlet
+		if add_fuel == 0 then -- no fuel inserted, try look for outlet
 			-- tweaked so 1 coal = 1 energy
 			local supply = basic_machines.check_power({x = pos.x, y = pos.y - 1, z = pos.z}, fuel_req)
 			if supply > 0 then
-				fueladd.time = supply -- same as 10 coal
+				add_fuel = supply -- same as 10 coal
 			else
 				meta:set_string("infotext", S("Please insert fuel")); return
 			end
 		else
 			inv:set_stack("fuel", 1, afterfuel.items[1])
-			fueladd.time = fueladd.time * 0.1 / 4 -- thats 1 for coal
+			add_fuel = add_fuel * 0.1 / 4 -- thats 1 for coal
 		end
 
-		if fueladd.time > 0 then
-			fuel = fuel + fueladd.time; meta:set_float("fuel", fuel)
+		if add_fuel > 0 then
+			fuel = fuel + add_fuel; meta:set_float("fuel", fuel)
 		end
 
 		if fuel < fuel_req then
 			meta:set_string("infotext",
 				S("Need at least @1 fuel to complete operation", twodigits_float(fuel_req - fuel))); return
 		else
-			msg = S("Added fuel furnace burn time @1, fuel status @2", fueladd.time, twodigits_float(fuel))
+			msg = S("Added fuel furnace burn time @1, fuel status @2", add_fuel, twodigits_float(fuel))
 		end
 	end
 

@@ -134,8 +134,7 @@ minetest.register_node("basic_machines:detector", {
 			local node = meta:get_string("node") -- detection filter
 			local NOT = meta:get_int("NOT")
 
-			local detected_obj = ""
-			local trigger = false
+			local detected_obj, trigger = nil, false
 
 			if mode == "node" then
 				local tnode = minetest.get_node(pos1).name -- read node at source position
@@ -176,7 +175,7 @@ minetest.register_node("basic_machines:detector", {
 				if node == "" then -- if there is item report name and trigger
 					if inv:is_empty(inv1m) then
 						trigger = false
-					else -- nonempty
+					else -- non-empty
 						trigger = true
 						for i = 1, inv:get_size(inv1m) do -- find item to move in inventory
 							local stack = inv:get_stack(inv1m, i)
@@ -205,8 +204,11 @@ minetest.register_node("basic_machines:detector", {
 
 			elseif mode == "infotext" then
 				detected_obj = minetest.get_meta(pos1):get_string("infotext")
-				-- if detected_obj == node or node == "" then trigger = true end
-				if detected_obj:find(node) or node == "" then trigger = true end
+				if node == "" or node == detected_obj or
+					node == minetest.get_translated_string("", detected_obj)
+				then
+					trigger = true
+				end
 
 			elseif mode == "light" then
 				detected_obj = minetest.get_node_light(pos1) or 0
@@ -268,7 +270,7 @@ minetest.register_node("basic_machines:detector", {
 						meta:set_string("infotext", S("Detector: on"))
 						if NOT == 4 then -- set detected object name as target text (target must be keypad, if not changes infotext)
 							if node.name == "basic_machines:keypad" then
-								minetest.get_meta(pos2):set_string("text", detected_obj)
+								minetest.get_meta(pos2):set_string("text", detected_obj or "")
 							end
 						end
 						effector.action_on(pos2, param) -- run
