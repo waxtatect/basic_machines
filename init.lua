@@ -52,6 +52,17 @@ basic_machines = {
 		--
 		register_crafts			= false		-- machines crafts recipes
 	},
+	-- form
+	get_form_player_inventory = function(s, x, y, w, h)
+		local player_inv = {
+			("list[current_player;main;%g,%g;%i,1]"):format(x, y, w),
+			("list[current_player;main;%g,%g;%i,%i;%i]"):format(x, y + 1.4, w, h - 1, w)
+		}
+		for i = 0 , w - 1 do
+			player_inv[i + 3] = ("image[%g,%g;1,1;[combine:1x1^[noalpha^[colorize:black^[opacity:43]"):format(x + (s + 1) * i, y)
+		end
+		return table.concat(player_inv)
+	end,
 	-- distributor
 	get_distributor_form = function() end,
 	-- enviro
@@ -92,13 +103,13 @@ function basic_machines.creative(name)
 		{creative = true})
 end
 
--- result: float with precision of two digits or unchanged number
+-- result: float with precision of two digits or integer number
 local modf = math.modf
 function basic_machines.twodigits_float(number)
 	local r
 	if number ~= 0 then
-		local _, f = modf(number)
-		if f ~= 0 then r = ("%.2f"):format(number) else r = number end
+		local i, f = modf(number)
+		if f ~= 0 then r = i + ("%.2f"):format(f) else r = number end
 	else
 		r = 0
 	end
