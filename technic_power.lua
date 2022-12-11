@@ -35,7 +35,7 @@ local energy_crystals = {
 	["basic_machines:power_rod"] = 100 * energy_multiplier
 }
 
-local function battery_recharge(pos, no_update)
+local function battery_recharge(pos, origin)
 	local meta = minetest.get_meta(pos)
 	local energy = meta:get_float("energy")
 	local capacity = meta:get_float("capacity")
@@ -74,7 +74,7 @@ local function battery_recharge(pos, no_update)
 
 		meta:set_float("energy", energy_new)
 
-		if no_update ~= "check_power" then
+		if origin ~= "check_power" then
 			if capacity > 0 then
 				local full_coef_new = math.floor(energy_new / capacity * 3) -- 0, 1, 2
 				local full_coef = math.floor(energy / capacity * 3)
@@ -85,7 +85,7 @@ local function battery_recharge(pos, no_update)
 				end
 			end
 
-			if no_update == "recharge_furnace" and energy_new < 1 then
+			if origin == "recharge_furnace" and energy_new < 1 then
 				meta:set_string("infotext", S("Furnace needs at least 1 energy"))
 			else
 				meta:set_string("infotext", S("(R) Energy: @1 / @2", math.ceil(energy_new * 10) / 10, capacity))
@@ -106,7 +106,7 @@ local function battery_recharge(pos, no_update)
 			meta:set_int("activation_count", 0)
 		end
 		meta:set_int("t", t1)
-	elseif no_update == "recharge_furnace" and energy < 1 then
+	elseif origin == "recharge_furnace" and energy < 1 then
 		minetest.swap_node(pos, {name = "basic_machines:battery_0"})
 		meta:set_string("infotext", S("Furnace needs at least 1 energy"))
 	else
@@ -280,7 +280,7 @@ minetest.register_node("basic_machines:battery_0", {
 			local energy = meta:get_float("energy")
 
 			-- try to power furnace on top of it
-			if energy > 0 then -- need at least 1 energy
+			if energy >= 1 then -- need at least 1 energy
 				local fpos = {x = pos.x, y = pos.y + 1, z = pos.z} -- furnace pos
 				local node = minetest.get_node(fpos).name
 				if node == "default:furnace_active" or node == "default:furnace" then
