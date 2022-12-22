@@ -3,50 +3,48 @@ local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
 local vector_add = vector.add
 
-local function pos_to_string(pos) return ("%s,%s,%s"):format(pos.x, pos.y, pos.z) end
+local function pos_to_string(pos) return ("%s, %s, %s"):format(pos.x, pos.y, pos.z) end
 
 basic_machines.get_distributor_form = function(pos)
 	local meta = minetest.get_meta(pos)
 
 	local n = meta:get_int("n")
-	local form = {"size[7," .. (0.75 + n * 0.75) .. "]"}
+	local form = {"formspec_version[4]size[9.35," .. (1.8 + n * 0.85) .. "]"}
 
 	if meta:get_int("view") == 0 then
-		form[2] = "label[0,-0.25;" .. minetest.colorize("lawngreen",
-			F(S("Target: x y z, Mode: -2=only OFF, -1=NOT input, 0/1=input, 2=only ON"))) .. "]"
+		form[2] = "label[0.25,0.3;" .. F(S("Target")) .. "]label[4,0.3;" .. F(S("Mode")) .. "]"
 		for i = 1, n do
 			local posi = {x = meta:get_int("x" .. i), y = meta:get_int("y" .. i), z = meta:get_int("z" .. i)}
-			local y1, y2 = 0.5 + (i - 1) * 0.75, 0.25 + (i - 1) * 0.75
-			form[i + 2] = "field[0.25," .. y1 .. ";1,1;x" .. i .. ";;" .. posi.x ..
-				"]field[1.25," .. y1 .. ";1,1;y" .. i .. ";;" .. posi.y ..
-				"]field[2.25," .. y1 .. ";1,1;z" .. i .. ";;" .. posi.z ..
-				"]field[3.25," .. y1 .. ";1,1;active" .. i .. ";;" .. meta:get_int("active" .. i) ..
-				"]button[4," .. y2 .. ";1.5,1;SHOW" .. i .. ";" .. F(S("SHOW @1", i)) ..
-				"]button_exit[5.25," .. y2 .. ";1,1;SET" .. i .. ";" .. F(S("SET")) ..
-				"]button[6.25," .. y2 .. ";1,1;X" .. i .. ";" .. F(S("X")) .. "]"
+			local yi = 0.5 + (i - 1) * 0.85
+			form[i + 2] = "field[0.25," .. yi .. ";1,0.8;x" .. i .. ";;" .. posi.x ..
+				"]field[1.5," .. yi .. ";1,0.8;y" .. i .. ";;" .. posi.y ..
+				"]field[2.75," .. yi .. ";1,0.8;z" .. i .. ";;" .. posi.z ..
+				"]field[4," .. yi .. ";1,0.8;active" .. i .. ";;" .. meta:get_int("active" .. i) ..
+				"]button[5.25," .. yi .. ";1.6,0.8;SHOW" .. i .. ";" .. F(S("Show @1", i)) ..
+				"]button_exit[6.8," .. yi .. ";1,0.8;SET" .. i .. ";" .. F(S("Set")) ..
+				"]button[8.1," .. yi .. ";1,0.8;X" .. i .. ";" .. F(S("x")) .. "]"
 		end
 	else
-		form[2] = "label[0,-0.25;" .. minetest.colorize("lawngreen",
-			F(S("Target Name, Mode: -2=only OFF, -1=NOT input, 0/1=input, 2=only ON"))) .. "]"
+		form[2] = "label[0.25,0.3;" .. F(S("Position Name")) .. "]label[4,0.3;" .. F(S("Mode")) .. "]"
 		for i = 1, n do
 			local posi = {x = meta:get_int("x" .. i), y = meta:get_int("y" .. i), z = meta:get_int("z" .. i)}
-			local y1, y2 = 0.5 + (i - 1) * 0.75, 0.25 + (i - 1) * 0.75
+			local yi = 0.5 + (i - 1) * 0.85
 			local tname = minetest.get_node(vector_add(pos, posi)).name
 			tname = posi.x .. " " .. posi.y .. " " .. posi.z .. " " .. tname:sub((tname:find(":") or 0) + 1)
-			form[i + 2] = "field[0.25," .. y1 .. ";3,1;text;;" .. tname ..
-				"]field[3.25," .. y1 .. ";1,1;active" .. i .. ";;" .. meta:get_int("active" .. i) ..
-				"]button[4," .. y2 .. ";1.5,1;SHOW" .. i .. ";" .. F(S("SHOW @1", i)) ..
-				"]button_exit[5.25," .. y2 .. ";1,1;SET" .. i .. ";" .. F(S("SET")) ..
-				"]button[6.25," .. y2 .. ";1,1;X" .. i .. ";" .. F(S("X")) .. "]"
+			form[i + 2] = "field[0.25," .. yi .. ";3.5,0.8;text;;" .. tname ..
+				"]field[4," .. yi .. ";1,0.8;active" .. i .. ";;" .. meta:get_int("active" .. i) ..
+				"]button[5.25," .. yi .. ";1.6,0.8;SHOW" .. i .. ";" .. F(S("Show @1", i)) ..
+				"]button_exit[6.8," .. yi .. ";1,0.8;SET" .. i .. ";" .. F(S("Set")) ..
+				"]button[8.1," .. yi .. ";1,0.8;X" .. i .. ";" .. F(S("x")) .. "]"
 		end
-		form[#form + 1] = "button_exit[1.97," .. (0.25 + n * 0.75) .. ";1,1;scan;" .. F(S("scan")) .. "]"
+		form[#form + 1] = "button_exit[2.75," .. (0.75 + n * 0.85) .. ";1,0.8;scan;" .. F(S("scan")) .. "]"
 	end
 
-	local y = 0.25 + n * 0.75
-	form[#form + 1] = "label[0.25," .. (0.4 + n * 0.75) .. ";" .. minetest.colorize("lawngreen", F(S("delay"))) ..
-		"]field[1.25," .. (0.5 + n * 0.75) .. ";1,1;delay;;" .. basic_machines.twodigits_float(meta:get_float("delay")) ..
-		"]button_exit[2.97," .. y .. ";1,1;OK;" .. F(S("OK")) .. "]button[4.25," .. y .. ";1,1;ADD;" .. F(S("ADD")) ..
-		"]button[5.25," .. y .. ";1,1;view;" .. F(S("view")) .. "]button[6.25," .. y .. ";1,1;help;" .. F(S("help")) .. "]"
+	local y = 0.75 + n * 0.85
+	form[#form + 1] = "label[0.5," .. (1.15 + n * 0.85) .. ";" .. F(S("Delay")) ..
+		"]field[1.5," .. y .. ";1,0.8;delay;;" .. basic_machines.twodigits_float(meta:get_float("delay")) ..
+		"]button_exit[4," .. y .. ";1,0.8;OK;" .. F(S("OK")) .. "]button[5.55," .. y .. ";1,0.8;ADD;" .. F(S("Add")) ..
+		"]button[6.8," .. y .. ";1,0.8;view;" .. F(S("view")) .. "]button[8.1," .. y .. ";1,0.8;help;" .. F(S("help")) .. "]"
 
 	return table.concat(form)
 end
@@ -57,15 +55,15 @@ minetest.register_node("basic_machines:distributor", {
 	tiles = {"basic_machines_distributor.png"},
 	sounds = default.node_sound_wood_defaults(),
 
-	on_use = function(itemstack, user, pointed_thing)
-		if user and (user:get_player_control() or {}).sneak then
+	on_secondary_use = function(itemstack, user, pointed_thing)
+		if user then
 			local round = math.floor
 			local pos, r, name = user:get_pos(), 20, user:get_player_name()
 			local p = {x = round(pos.x / r + 0.5) * r, y = round(pos.y / r + 0.5) * r + 1, z = round(pos.z / r + 0.5) * r}
 
 			if minetest.is_protected(p, name) then return end
 
-			minetest.chat_send_player(name, S("DISTRIBUTOR: Event handler nearest position found at @1 (@2) - displaying mark 1",
+			minetest.chat_send_player(name, S("DISTRIBUTOR: Position found at @1 (@2) - displaying mark 1",
 				pos_to_string(vector.round(vector.subtract(p, pos))), pos_to_string(p)))
 			machines.mark_pos1(name, p)
 		end

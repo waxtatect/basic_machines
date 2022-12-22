@@ -47,13 +47,14 @@ basic_machines = {
 		-- space
 		space_start_eff			= 1500,		-- space efficiency height
 		space_start				= 1100,		-- space height
+		space_textures			= "",		-- skybox space textures replacement with up to 6 texture names separated by commas
 		exclusion_height		= 6666,		-- above, without "include" priv, player is teleported to a random location
 		space_effects			= false,	-- enable damage mechanism
 		--
 		register_crafts			= false		-- machines crafts recipes
 	},
 	-- form
-	get_form_player_inventory = function(s, x, y, w, h)
+	get_form_player_inventory = function(x, y, w, h, s)
 		local player_inv = {
 			("list[current_player;main;%g,%g;%i,1]"):format(x, y, w),
 			("list[current_player;main;%g,%g;%i,%i;%i]"):format(x, y + 1.4, w, h - 1, w)
@@ -90,6 +91,8 @@ for k, v in pairs(basic_machines.settings) do
 		setting = minetest.settings:get_bool("basic_machines_" .. k)
 	elseif type(v) == "number" then
 		setting = tonumber(minetest.settings:get("basic_machines_" .. k))
+	elseif type(v) == "string" then
+		setting = minetest.settings:get("basic_machines_" .. k)
 	end
 	if setting ~= nil then
 		basic_machines.settings[k] = setting
@@ -98,14 +101,14 @@ end
 
 -- creative check
 local creative_cache = minetest.settings:get_bool("creative_mode")
-function basic_machines.creative(name)
+basic_machines.creative = function(name)
 	return creative_cache or minetest.check_player_privs(name,
 		{creative = true})
 end
 
 -- result: float with precision of two digits or integer number
 local modf = math.modf
-function basic_machines.twodigits_float(number)
+basic_machines.twodigits_float = function(number)
 	local r
 	if number ~= 0 then
 		local i, f = modf(number)

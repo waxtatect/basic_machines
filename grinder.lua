@@ -9,7 +9,7 @@ local use_i3 = minetest.global_exists("i3")
 -- grinder recipes:
 -- ["in"] = {fuel cost, "out", quantity of material produced, quantity of material required for processing}
 local grinder_recipes = {}
-local grinder_recipes_translated, grinder_recipes_help = {S("RECIPES\n")}, nil
+local grinder_recipes_translated, grinder_recipes_help = {S("Recipes:\n")}, nil
 
 if use_unified_inventory then
 	unified_inventory.register_craft_type("basic_machines_grinding", {
@@ -32,13 +32,13 @@ local function register_recipe(name, def)
 	if def then
 		local i = #grinder_recipes_translated + 1
 		if def[4] ~= 1 and def[3] ~= 1 then
-			grinder_recipes_translated[i] = S("IN(@1): @2\nOUT(@3): @4\n", def[4], name, def[3], def[2])
+			grinder_recipes_translated[i] = S("In (@1): @2\nOut (@3): @4\n", def[4], name, def[3], def[2])
 		elseif def[3] ~= 1 then
-			grinder_recipes_translated[i] = S("IN: @1\nOUT(@2): @3\n", name, def[3], def[2])
+			grinder_recipes_translated[i] = S("In: @1\nOut (@2): @3\n", name, def[3], def[2])
 		elseif def[4] ~= 1 then
-			grinder_recipes_translated[i] = S("IN(@1): @2\nOUT: @3\n", def[4], name, def[2])
+			grinder_recipes_translated[i] = S("In (@1): @2\nOut: @3\n", def[4], name, def[2])
 		else
-			grinder_recipes_translated[i] = S("IN: @1\nOUT: @2\n", name, def[2])
+			grinder_recipes_translated[i] = S("In: @1\nOut: @2\n", name, def[2])
 		end
 
 		if grinder_recipes_help == nil then
@@ -62,7 +62,7 @@ local function register_recipe(name, def)
 	if grinder_recipes_help ~= nil then
 		if is_recipe then
 			for i = 2, #grinder_recipes_translated do
-				if grinder_recipes_translated[i]:match("IN.-(" .. name .. ").-OUT") then
+				if grinder_recipes_translated[i]:match("In.-(" .. name .. ").-Out") then
 					table.remove(grinder_recipes_translated, i); break
 				end
 			end
@@ -272,28 +272,23 @@ if basic_machines.settings.grinder_register_dusts then
 end
 
 local function grinder_update_form(meta)
-	meta:set_string("formspec", ([[
-		size[8,8]
-		label[0,-0.25;%s]list[context;src;0,0.25;1,1;]
-		label[1,-0.25;%s]list[context;dst;1,0.25;3,3;]
-		label[5,0;%s]list[context;upgrade;5,0.5;1,1;]
-		button[6.5,0;1,1;OK;%s]
-		button[6.5,1;1,1;help;%s]
-		label[0,1.75;%s]list[context;fuel;0,2.25;1,1;]
-		list[current_player;main;0,3.75;8,1;]
-		list[current_player;main;0,5;8,3;8]
-		listring[context;dst]
-		listring[current_player;main]
-		listring[context;src]
-		listring[current_player;main]
-		listring[context;upgrade]
-		listring[current_player;main]
-		listring[context;fuel]
-		listring[current_player;main]
-		%s
-	]]):format(F(S("IN")), F(S("OUT")), F(S("UPGRADE")),
-		F(S("OK")), F(S("help")), F(S("FUEL")), default.get_hotbar_bg(0, 3.75)
-	))
+	meta:set_string("formspec", "formspec_version[4]size[10.25,9.5]" ..
+		"style_type[list;spacing=0.25,0.15]" ..
+		"label[0.25,0.3;" .. F(S("In")) .. "]list[context;src;0.25,0.5;1,1]" ..
+		"label[1.5,0.3;" .. F(S("Out")) .. "]list[context;dst;1.5,0.5;3,3]" ..
+		"label[6.5,0.7;" .. F(S("Upgrade")) .. "]list[context;upgrade;6.5,0.9;1,1]" ..
+		"button[8.38,0.5;1,0.8;OK;" .. F(S("OK")) ..
+		"]button[8.38,1.75;1,0.8;help;" .. F(S("help")) ..
+		"]label[0.25,2.6;" .. F(S("Fuel")) .. "]list[context;fuel;0.25,2.8;1,1]" ..
+		basic_machines.get_form_player_inventory(0.25, 4.55, 8, 4, 0.25) ..
+		"listring[context;dst]" ..
+		"listring[current_player;main]" ..
+		"listring[context;src]" ..
+		"listring[current_player;main]" ..
+		"listring[context;upgrade]" ..
+		"listring[current_player;main]" ..
+		"listring[context;fuel]" ..
+		"listring[current_player;main]")
 end
 
 local function grinder_process(pos)
@@ -436,7 +431,7 @@ minetest.register_node("basic_machines:grinder", {
 				grinder_recipes_help = F(table.concat(grinder_recipes_translated, "\n"))
 			end
 			minetest.show_formspec(sender:get_player_name(), "basic_machines:help_grinder",
-				"formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" .. F(S("GRINDER HELP")) .. ";" ..
+				"formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" .. F(S("Grinder help")) .. ";" ..
 				F(S("To upgrade grinder, put grinders in upgrade slot." ..
 				" Each upgrade adds ability to process additional materials.\n\n")) .. grinder_recipes_help .. "]")
 		end

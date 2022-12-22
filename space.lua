@@ -18,12 +18,14 @@ minetest.register_privilege("include", {
 	description = S("Allow player to move in exclusion zone")
 })
 
+local space_textures = basic_machines.settings.space_textures
+space_textures = space_textures ~= "" and space_textures:split() or {
+	"basic_machines_stars.png", "basic_machines_stars.png", "basic_machines_stars.png",
+	"basic_machines_stars.png", "basic_machines_stars.png", "basic_machines_stars.png"
+}
 local skyboxes = {
 	["surface"] = {type = "regular", tex = {}},
-	["space"] = {type = "skybox", tex = {
-		"basic_machines_stars.png", "basic_machines_stars.png", "basic_machines_stars.png",
-		"basic_machines_stars.png", "basic_machines_stars.png", "basic_machines_stars.png"
-	}}
+	["space"] = {type = "skybox", tex = space_textures}
 }
 
 local function toggle_visibility(player, b)
@@ -83,7 +85,7 @@ minetest.register_on_leaveplayer(function(player)
 end)
 
 local stimer = 0
-local function pos_to_string(pos) return ("%s,%s,%s"):format(pos.x, pos.y, pos.z) end
+local function pos_to_string(pos) return ("%s, %s, %s"):format(pos.x, pos.y, pos.z) end
 local round, random = math.floor, math.random
 
 local function protector_position(pos)

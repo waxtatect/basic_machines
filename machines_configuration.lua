@@ -61,13 +61,13 @@ local function check_keypad(pos, name) -- called only when manually activated vi
 
 	if meta:get_string("text") == "@" then -- keypad works as a keyboard
 		minetest.show_formspec(name, "basic_machines:check_keypad_" .. minetest.pos_to_string(pos),
-			"formspec_version[4]size[4,2.2]field[0.25,0.4;3.5,0.8;pass;" .. F(S("Enter text:")) ..
-			";]button_exit[0.25,1.3;1,0.8;OK;" .. F(S("OK")) .. "]")
+			"formspec_version[4]size[4,2.5]field[0.25,0.5;3.5,0.8;pass;" .. F(S("Enter text:")) ..
+			";]button_exit[0.25,1.45;1,0.8;OK;" .. F(S("OK")) .. "]")
 	else
 		minetest.show_formspec(name, "basic_machines:check_keypad_" .. minetest.pos_to_string(pos),
-			"formspec_version[4]size[4,2.2]no_prepend[]bgcolor[#FF8888BB;false]" ..
-			"pwdfield[0.25,0.4;3.5,0.8;pass;" .. F(S("Enter password:")) ..
-			"]button_exit[0.25,1.3;1,0.8;OK;" .. F(S("OK")) .. "]")
+			"formspec_version[4]size[4,2.5]no_prepend[]bgcolor[#FF8888BB;false]" ..
+			"pwdfield[0.25,0.5;3.5,0.8;pass;" .. F(S("Enter password:")) ..
+			"]button_exit[0.25,1.45;1,0.8;OK;" .. F(S("OK")) .. "]")
 	end
 end
 
@@ -424,7 +424,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				-- notification
 				meta:set_string("infotext", S("Mover block." ..
 					" Set up with source coordinates @1,@2,@3 -> @4,@5,@6 and target coordinates @7,@8,@9." ..
-					" Put charged battery next to it and start it with keypad/mese signal.", x0, y0, z0, x1, y1, z1, x2, y2, z2))
+					" Put charged battery next to it and start it with keypad.", x0, y0, z0, x1, y1, z1, x2, y2, z2))
 			else -- MODE
 				local mmode = meta:get_string("mode")
 				local mode = strip_translator_sequence(fields.mode, mmode)
@@ -488,31 +488,30 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_mover", "formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" ..
-				F(S("MOVER HELP")) .. ";" .. F(S("version @1\nSETUP: For interactive setup punch the mover and then punch source1, source2, target node (follow instructions)." ..
+				F(S("Mover help")) .. ";" .. F(S("version @1\nSetup: For interactive setup punch the mover and then punch source1, source2, target node (follow instructions)." ..
 				" Put the mover directly next to a battery. For advanced setup right click mover." ..
-				" Positions are defined by x y z coordinates (see top of mover for orientation)." ..
-				" Mover itself is at coordinates 0, 0, 0.", basic_machines.version)) ..
-				F(S("\n\nMODES of operation: normal (just teleport block), dig (digs and gives you resulted node - good for harvesting farms);" ..
+				" Positions are defined by (x, y, z) coordinates. Mover itself is at coordinates (0, 0, 0).", basic_machines.version)) ..
+				F(S("\n\nModes of operation: normal (just teleport block), dig (digs and gives you resulted node - good for harvesting farms);" ..
 				" by setting 'filter' only selected node is moved, drop (drops node on ground), object (teleportation of players and objects)" ..
-				" - distance between source1/2 defines teleport radius; by setting 'filter' you can specify move time - [0.2, 20] - for non players." ..
-				"\nAfter changing from/to object mode, you need to reconfigure sources position." ..
-				"\nInventory mode can exchange items between node inventories." ..
-				" You need to select inventory name for source/target from the dropdown list on the right.\n" ..
-				"\nADVANCED:\nYou can reverse start/end position by setting reverse nonzero." ..
+				" - distance between source1/2 defines teleport radius; by setting 'filter' you can specify move time - [0.2, 20] - for non players.\n" ..
+				"After changing from/to object mode, you need to reconfigure sources position.\n" ..
+				"Inventory mode can exchange items between node inventories." ..
+				" You need to select inventory name for source/target from the dropdown list on the right." ..
+				"\n\nAdvanced:\nYou can reverse start/end position by setting reverse nonzero." ..
 				" This is useful for placing stuff at many locations-planting." ..
 				" If you put reverse = 2/3 in transport mode it will disable parallel transport but will still do reverse effect with 3." ..
 				" If you activate mover with OFF signal it will toggle reverse.")) ..
-				F(S("\n\nFUEL CONSUMPTION depends on blocks to be moved, distance and temperature." ..
+				F(S("\n\nFuel consumption depends on blocks to be moved, distance and temperature." ..
 				" For example, stone or tree is harder to move than dirt, harvesting wheat is very cheap and and moving lava is very hard." ..
 				" High temperature increases fuel consumption while low temperature reduces it." ..
-				"\n\nUPGRADE mover by moving mese blocks in upgrade inventory." ..
+				"\n\nUpgrade mover by moving mese blocks in upgrade inventory." ..
 				" Each mese block increases mover range by @1, fuel consumption is divided by number of mese blocks in upgrade." ..
 				" Max @2 blocks are used for upgrade." ..
 				"\n\nActivate mover by keypad/detector signal or mese signal through mesecon adapter (if mesecons mod).",
 				max_range, mover_upgrade_max)) .. "]")
 
 		elseif fields.mode then
-			if minetest.is_protected(pos, name) then return end
+			if fields.quit or minetest.is_protected(pos, name) then return end
 
 			local mode = strip_translator_sequence(fields.mode, meta:get_string("mode"))
 			-- input validation
@@ -534,7 +533,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		if fields.OK then
 			if minetest.is_protected(pos, name) then return end
 
-			local view = meta:get_int("view") == 0
+			local not_view = meta:get_int("view") == 0
 			for i = 1, meta:get_int("n") do
 				local xi, yi, zi = meta:get_int("x" .. i), meta:get_int("y" .. i), meta:get_int("z" .. i)
 				local posfi = {
@@ -548,7 +547,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 						minetest.pos_to_string(posfi))); return
 				end
 
-				if view and (xi ~= posfi.x or yi ~= posfi.y or zi ~= posfi.z) then
+				if not_view and (posfi.xi ~= xi or posfi.yi ~= yi or posfi.z ~= zi) then
 					if not minetest.check_player_privs(name, "privs") and
 						(abs(posfi.x) > 2 * max_range or abs(posfi.y) > max_range or abs(posfi.z) > 2 * max_range)
 					then
@@ -619,17 +618,19 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_distributor", "formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" ..
-				F(S("DISTRIBUTOR HELP")) .. ";" .. F(S("SETUP: To select target nodes for activation click SET then click target node.\n" ..
-				"You can add more targets with ADD. To see where target node is click SHOW button next to it.\n" ..
-				"\n4 numbers in each row represent (from left to right): first 3 numbers are target coordinates x y z, last number (MODE) controls how signal is passed to target.\n" ..
+				F(S("Distributor help")) .. ";" .. F(S("Target: Coordinates (x, y, z) relative to the distributor." ..
+				"\n\nMode: -2=only OFF, -1=NOT input, 0/1=input, 2=only ON, output signal of the target." ..
+				"\n\nDelay: Adds delay to activations, in seconds. A negative delay activation is randomized with probability -delay/1000.")) ..
+				F(S("\n\nSetup: To select a target for activation, click \"Set\" button then click the target.\n" ..
+				"You can add more targets with \"Add\" button. To see where the target is click \"Show\" button next to it.\n" ..
+				"4 numbers in each row represent (from left to right): first 3 numbers are target coordinates (x, y, z), last number (Mode) controls how signal is passed to target.\n" ..
 				"For example, to only pass OFF signal use -2, to only pass ON use 2, -1 negates the signal, 1 passes original signal, 0 blocks signal.\n" ..
-				"delay option adds delay to activations, in seconds. A negative delay activation is randomized with probability -delay/1000.\n" ..
-				"view button toggles view of target names, in names view there is button scan which automatically scans for valid targets in a box defined by first and second target.\n"..
-				"\nADVANCED:\nYou can use the distributor as an event handler - it listens to events like interact attempts and chat around the distributor.\n" ..
+				"\"view\" button toggles view of target names, in names view there is \"scan\" button which automatically scans for valid targets in a box defined by first and second target."..
+				"\n\nAdvanced:\nYou can use the distributor as an event handler - it listens to events like interact attempts and chat around the distributor.\n" ..
 				"You need to place the distributor at a position (x, y, z), with coordinates of the form (20*i, 20*j+1, 20*k) for some integers i, j, k.\n" ..
-				"Left click while holding sneak key with a distributor in the hand to show a suitable position.\n" ..
+				"Right click holding a distributor in the hand to show a suitable position.\n" ..
 				"Then you need to configure first row of numbers in the distributor:\n" ..
-				"by putting 0 as MODE it will start to listen." ..
+				"By putting 0 as Mode it will start to listen." ..
 				" First number x = 0/1 controls if node listens to failed interact attempts around it, second number y = -1/0/1 controls listening to chat (-1 additionally mutes chat)")) .. "]")
 
 		else
@@ -762,33 +763,32 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 			minetest.show_formspec(name, "basic_machines:sounds_keypad_" .. minetest.pos_to_string(pos),
 				"formspec_version[4]size[7.75,5.75]" ..
-				"label[0.25,0.25;" .. F(S("Sounds (@1):", #sounds)) ..
+				"label[0.25,0.3;" .. F(S("Sounds (@1):", #sounds)) ..
 				"]textlist[0.25,0.5;6,5;sound;" .. keypad_soundlist .. ";" .. (sound_selected[name] or 0) ..
 				"]button_exit[6.5,0.6;1,0.8;OK;" .. F(S("OK")) .. "]")
 
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_keypad", "formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" ..
-				F(S("KEYPAD HELP")) .. ";" .. F(S("Mode: 1=OFF, 2=ON, 3=TOGGLE control the way how target node is activated." ..
+				F(S("Keypad help")) .. ";" .. F(S("Mode: 0=IDLE, 1=OFF, 2=ON, 3=TOGGLE, control the way how the target is activated." ..
 				"\n\nRepeat: Number to control how many times activation is repeated after initial punch." ..
 				"\n\nPassword: Enter password and press OK. Password will be encrypted." ..
 				" Next time you use keypad you will need to enter correct password to gain access." ..
 				"\n\nText: If set then text on target node will be changed." ..
 				" In case target is detector/mover, filter settings will be changed. Can be used for special operations." ..
-				"\n\nTarget: Represents coordinates (x, y, z) relative to keypad." ..
+				"\n\nTarget: Coordinates (x, y, z) relative to the keypad." ..
 				" (0, 0, 0) is keypad itself, (0, 1, 0) is one node above, (0, -1, 0) one node below." ..
-				" X coordinate axes goes from east to west, Y from down to up, Z from south to north." ..
-				"\n\n****************\nUsage\n****************\n")) ..
-				F(S("\nJust punch (left click) keypad, then the target block will be activated." ..
-				"\nTo set text on other nodes (text shows when you look at node) just target the node and set nonempty text." ..
+				" X coordinate axes goes from east to west, Y from down to up, Z from south to north.")) ..
+				F(S("\n\nSetup: Just punch (left click) keypad, then the target block will be activated.\n" ..
+				"To set text on other nodes (text shows when you look at node) just target the node and set nonempty text." ..
 				" Upon activation text will be set. When target node is another keypad, its \"text\" field will be set." ..
 				" When targets is mover/detector, its \"filter\" field will be set. To clear \"filter\" set text to \"@@\"." ..
-				" When target is distributor, you can change i-th target of distributor to mode mode with \"i mode\"." ..
+				" When target is distributor, you can change i-th target of distributor mode with \"i mode\"." ..
 				"\n\nKeyboard: To use keypad as keyboard for text input write \"@@\" in \"text\" field and set any password." ..
 				" Next time keypad is used it will work as text input device." ..
 				"\n\nDisplaying messages to nearby players (up to 5 blocks around keypad's target): Set text to \"!text\"." ..
 				" Upon activation player will see \"text\" in their chat." ..
 				"\n\nPlaying sound to nearby players: set text to \"$sound_name\", optionally followed by a space and pitch value: 0.01 to 10. Can choose a sound with sounds menu.")) ..
-				F(S("\n\nADVANCED:\nText replacement: Suppose keypad A is set with text \"@@some @@. text @@!\" and there are blocks on top of keypad A with infotext '1' and '2'." ..
+				F(S("\n\nAdvanced:\nText replacement: Suppose keypad A is set with text \"@@some @@. text @@!\" and there are blocks on top of keypad A with infotext '1' and '2'." ..
 				" Suppose we target B with A and activate A. Then text of keypad B will be set to \"some 1. text 2!\"." ..
 				"\nWord extraction: Suppose similar setup but now keypad A is set with text \"%1\"." ..
 				" Then upon activation text of keypad B will be set to 1.st word of infotext.")) .. "]")
@@ -881,16 +881,16 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_detector", "formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" ..
-				F(S("DETECTOR HELP")) .. ";" .. F(S("SETUP: Right click or punch and follow chat instructions." ..
+				F(S("Detector help")) .. ";" .. F(S("Setup: Right click or punch and follow chat instructions." ..
 				" With a detector you can detect nodes, objects, players, items inside inventories, nodes information and light levels. " ..
-				"If detector activates it will trigger machine at target position." ..
+				"If detector activates it will trigger machine (on or off) at target position." ..
 				"\n\nThere are 6 modes of operation - node/player/object/inventory/infotext/light detection." ..
 				" Inside detection filter write node/player/object name or infotext/light level." ..
 				" If you detect node/player/object you can specify a range of detection." ..
-				" If you want detector to activate target precisely when its not triggered set output signal to 1.\n" ..
-				"\nFor example, to detect empty space write air, to detect tree write default:tree, to detect ripe wheat write farming:wheat_8, for flowing water write default:water_flowing... " ..
-				"If mode is inventory it will check for items in specified inventory of source node like a chest.\n" ..
-				"\nADVANCED:\nIn inventory (must set a filter)/node detection mode, you can specify a second source and then select AND/OR from the right top dropdown list to do logical operations." ..
+				" If you want detector to activate target precisely when its not triggered set output signal to 1." ..
+				"\n\nFor example, to detect empty space write air, to detect tree write default:tree, to detect ripe wheat write farming:wheat_8, for flowing water write default:water_flowing... " ..
+				"If mode is inventory it will check for items in specified inventory of source node like a chest." ..
+				"\n\nAdvanced:\nIn inventory (must set a filter)/node detection mode, you can specify a second source and select AND/OR from the right top dropdown list to do logical operations." ..
 				"\nYou can also filter output signal in any modes:\n" ..
 				"-2=only OFF, -1=NOT, 0/1=normal, 2=only ON, 3=only if changed, 4=if target is keypad set its text to detected object name.")) .. "]")
 		end

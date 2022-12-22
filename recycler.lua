@@ -18,21 +18,20 @@ local no_recycle_list = { -- prevent unrealistic recycling
 }
 
 local function recycler_update_form(meta)
-	meta:set_string("formspec", "size[8,8]" .. -- width, height
-		"label[0,-0.25;" .. F(S("IN")) .. "]list[context;src;0,0.25;1,1;]" ..
-		"label[1,-0.25;" .. F(S("OUT")) .. "]list[context;dst;1,0.25;3,3;]" ..
-		"field[4.5,0.65;2,1;recipe;" .. F(S("Select recipe:")) .. ";" .. meta:get_int("recipe") ..
-		"]button[6.5,0;1,1;OK;" .. F(S("OK")) ..
-		"]label[0,1.75;" .. F(S("FUEL")) .. "]list[context;fuel;0,2.25;1,1;]" ..
-		"list[current_player;main;0,3.75;8,1;]" ..
-		"list[current_player;main;0,5;8,3;8]" ..
+	meta:set_string("formspec", "formspec_version[4]size[10.25,9.5]" ..
+		"style_type[list;spacing=0.25,0.15]" ..
+		"label[0.25,0.3;" .. F(S("In")) .. "]list[context;src;0.25,0.5;1,1]" ..
+		"label[1.5,0.3;" .. F(S("Out")) .. "]list[context;dst;1.5,0.5;3,3]" ..
+		"field[5.75,0.9;2,0.8;recipe;" .. F(S("Select recipe:")) .. ";" .. meta:get_int("recipe") ..
+		"]button[8.38,0.5;1,0.8;OK;" .. F(S("OK")) ..
+		"]label[0.25,2.6;" .. F(S("Fuel")) .. "]list[context;fuel;0.25,2.8;1,1]" ..
+		basic_machines.get_form_player_inventory(0.25, 4.55, 8, 4, 0.25) ..
 		"listring[context;dst]" ..
 		"listring[current_player;main]" ..
 		"listring[context;src]" ..
 		"listring[current_player;main]" ..
 		"listring[context;fuel]" ..
-		"listring[current_player;main]" ..
-		default.get_hotbar_bg(0, 3.75))
+		"listring[current_player;main]")
 end
 
 local function recycler_process(pos)
@@ -176,7 +175,7 @@ minetest.register_node("basic_machines:recycler", {
 
 		local meta, name = minetest.get_meta(pos), placer:get_player_name()
 		meta:set_string("infotext",
-			S("Recycler: Put one item in 'IN' (src) and obtain 75% of raw materials in 'OUT' (dst)." ..
+			S("Recycler: Put one item in 'In' (src) and obtain 75% of raw materials in 'Out' (dst)." ..
 			" To operate it insert fuel, then insert item to recycle or activate with signal."))
 		meta:set_string("owner", name)
 

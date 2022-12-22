@@ -279,23 +279,21 @@ basic_machines.get_mover_form = function(pos, name)
 		local mode = mover_modes[mode_string]
 		local list_name = "nodemeta:" .. pos.x .. ',' .. pos.y .. ',' .. pos.z
 
-		return ("size[8,8.75]tabheader[0,0;tabs;" ..
-			F(S("MODE OF OPERATION")) .. "," .. F(S("WHERE TO MOVE")) .. ";" .. seltab .. ";true;true]" ..
-			"label[0,0;" .. minetest.colorize("lawngreen", F(S("MODE selection"))) ..
-			"]dropdown[0,0.4;3,1;mode;" .. mover_modelist_translated .. ";" .. (mode and mode.id or 1) ..
-			"]button[3,0.35;1,1;help;" .. F(S("help")) .. "]button_exit[5,0.35;1,1;OK;" .. F(S("OK")) ..
-			"]textarea[0.25,1.25;8,2;description;;" .. (mode and mode.desc or F(S("description"))) ..
-			"]field[0.25,3.6;3,1;prefer;" .. F(S("FILTER")) .. ";" .. F(meta:get_string("prefer")) ..
-			"]list[" .. list_name .. ";filter;3,3.3;1,1;]" ..
-			"image[3,3.3;1,1;gui_hb_bg.png^[colorize:#141318:255]" ..
-			"]label[5,2.9;" .. F(S("UPGRADE")) .. "]list[" .. list_name .. ";upgrade;5,3.3;1,1;]" ..
-			"list[current_player;main;0,4.5;8,1;]" ..
-			"list[current_player;main;0,5.75;8,3;8]" ..
+		return ("formspec_version[4]size[10.25,10.8]style_type[list;spacing=0.25,0.15]tabheader[0,0;tabs;" ..
+			F(S("Mode of operation")) .. "," .. F(S("Where to move")) .. ";" .. seltab .. ";true;true]" ..
+			"label[0.25,0.3;" .. minetest.colorize("lawngreen", F(S("Mode selection"))) ..
+			"]dropdown[0.25,0.5;3.5,0.8;mode;" .. mover_modelist_translated .. ";" .. (mode and mode.id or 1) ..
+			"]button[4,0.5;1,0.8;help;" .. F(S("help")) .. "]button_exit[6.5,0.5;1,0.8;OK;" .. F(S("OK")) ..
+			"]textarea[0.25,1.6;9.75,2;description;;" .. (mode and mode.desc or F(S("description"))) ..
+			"]field[0.25,4.2;3.5,0.8;prefer;" .. F(S("Filter")) .. ";" .. F(meta:get_string("prefer")) ..
+			"]image[4,4.1;1,1;[combine:1x1^[noalpha^[colorize:#141318]" ..
+			"list[" .. list_name .. ";filter;4,4.1;1,1]" ..
+			"]label[6.5,3.9;" .. F(S("Upgrade")) .. "]list[" .. list_name .. ";upgrade;6.5,4.1;1,1]" ..
+			basic_machines.get_form_player_inventory(0.25, 5.85, 8, 4, 0.25) ..
 			"listring[" .. list_name .. ";upgrade]" ..
 			"listring[current_player;main]" ..
 			"listring[" .. list_name .. ";filter]" ..
-			"listring[current_player;main]" ..
-			default.get_hotbar_bg(0, 4.5))
+			"listring[current_player;main]")
 	else -- POSITIONS
 		local pos1 = {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")}
 		local pos11 = {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")}
@@ -324,9 +322,9 @@ basic_machines.get_mover_form = function(pos, name)
 				if k == inv2m then inv2 = j; end; j = j + 1
 			end
 
-			inventory_list1 = "label[4.5,0.35;" .. F(S("Source inventory")) .. "]dropdown[4.5,0.75;1.5,1;inv1;" ..
+			inventory_list1 = "label[5.5,0.7;" .. F(S("Source inventory")) .. "]dropdown[5.5,0.9;2.25,0.8;inv1;" ..
 				inv_list1:gsub(",$", "") .. ";" .. inv1 .. "]"
-			inventory_list2 = "label[4.5,3.1;" .. F(S("Target inventory")) .. "]dropdown[4.5,3.5;1.5,1;inv2;" ..
+			inventory_list2 = "label[5.5,3.85;" .. F(S("Target inventory")) .. "]dropdown[5.5,4.05;2.25,0.8;inv2;" ..
 				inv_list2:gsub(",$", "") .. ";" .. inv2 .. "]"
 		else
 			inventory_list1, inventory_list2 = "", ""
@@ -335,21 +333,22 @@ basic_machines.get_mover_form = function(pos, name)
 		if mode_string == "object" then
 			btns_ns = ""
 		else
-			btns_ns = "button_exit[0,5.7;1,1;now;" .. F(S("Now")) .. "]button_exit[1,5.7;1,1;show;" .. F(S("Show")) .. "]"
+			btns_ns = "button_exit[0.25,6.8;1,0.8;now;" .. F(S("Now")) .. "]button_exit[1.5,6.8;1,0.8;show;" .. F(S("Show")) .. "]"
 		end
 
-		return ("size[6.25,6.5]tabheader[0,0;tabs;" ..
-			F(S("MODE OF OPERATION")) .. "," .. F(S("WHERE TO MOVE")) .. ";" .. seltab .. ";true;true]" ..
-			"label[0,0;" .. minetest.colorize("lawngreen", F(S("INPUT AREA - mover will dig here"))) ..
-			"]field[0.25,1;1,1;x0;" .. F(S("Source1")) .. ";" .. pos1.x .. "]field[1.25,1;1,1;y0;;" .. pos1.y .. "]field[2.25,1;1,1;z0;;" .. pos1.z ..
-			"]image[3,0.75;1,1;machines_pos1.png]" .. inventory_list1 ..
-			"field[0.25,2;1,1;x1;" .. F(S("Source2")) .. ";" .. pos11.x .. "]field[1.25,2;1,1;y1;;" .. pos11.y .. "]field[2.25,2;1,1;z1;;" .. pos11.z ..
-			"]image[3,1.75;1,1;machines_pos11.png]" ..
-			"label[0,2.75;" .. minetest.colorize("red", F(S("TARGET POSITION - mover will move to here"))) ..
-			"]field[0.25,3.75;1,1;x2;" .. F(S("Target")) .. ";" .. pos2.x .. "]field[1.25,3.75;1,1;y2;;" .. pos2.y .. "]field[2.25,3.75;1,1;z2;;" .. pos2.z ..
-			"]image[3,3.5;1,1;machines_pos2.png]" .. inventory_list2 .. "label[0,4.4;" .. F(S("REVERSE source and target (0/1/2/3)")) ..
-			"]field[0.25,5;1,1;reverse;;" .. meta:get_int("reverse") .. "]" .. btns_ns ..
-			"button[4.1,5.7;1,1;help;" .. F(S("help")) .. "]button_exit[5.1,5.7;1,1;OK;" .. F(S("OK")) .. "]")
+		return ("formspec_version[4]size[8,7.8]tabheader[0,0;tabs;" ..
+			F(S("Mode of operation")) .. "," .. F(S("Where to move")) .. ";" .. seltab .. ";true;true]" ..
+			"label[0.25,0.3;" .. minetest.colorize("lawngreen", F(S("Input area - mover will dig here"))) ..
+			"]field[0.25,0.9;1,0.8;x0;" .. F(S("Source1")) .. ";" .. pos1.x .. "]field[1.5,0.9;1,0.8;y0;;" .. pos1.y ..
+			"]field[2.75,0.9;1,0.8;z0;;" .. pos1.z .. "]image[4,0.8;1,1;machines_pos1.png]" .. inventory_list1 ..
+			"field[0.25,2.15;1,0.8;x1;" .. F(S("Source2")) .. ";" .. pos11.x .. "]field[1.5,2.15;1,0.8;y1;;" .. pos11.y ..
+			"]field[2.75,2.15;1,0.8;z1;;" .. pos11.z .. "]image[4,2.05;1,1;machines_pos11.png]" ..
+			"label[0.25,3.45;" .. minetest.colorize("red", F(S("Target position - mover will move to here"))) ..
+			"]field[0.25,4.05;1,0.8;x2;" .. F(S("Target")) .. ";" .. pos2.x .. "]field[1.5,4.05;1,0.8;y2;;" .. pos2.y ..
+			"]field[2.75,4.05;1,0.8;z2;;" .. pos2.z .. "]image[4,3.95;1,1;machines_pos2.png]" .. inventory_list2 ..
+			"label[0.25,5.3;" .. F(S("Reverse source and target (0/1/2/3)")) ..
+			"]field[0.25,5.55;1,0.8;reverse;;" .. meta:get_int("reverse") .. "]" .. btns_ns ..
+			"button[5.5,6.8;1,0.8;help;" .. F(S("help")) .. "]button_exit[6.75,6.8;1,0.8;OK;" .. F(S("OK")) .. "]")
 	end
 end
 
@@ -430,10 +429,10 @@ minetest.register_node("basic_machines:mover", {
 			end
 
 			minetest.show_formspec(name, "basic_machines:intro_mover", "formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;intro_mover;" ..
-				F(S("MOVER INTRODUCTION")) .. ";" .. F(S("This machine can move anything. General idea is the following:\n\n" ..
-				"First you need to define rectangle box work area (larger area, where it takes from, defined by source1/source2 which appear as two number 1 boxes) and target position (where it puts, marked by one number 2 box) by punching mover then following CHAT instructions exactly.\n\n" ..
-				"CHECK why it doesn't work: 1. did you click OK in mover after changing setting 2. does it have battery, 3. does battery have enough fuel 4. did you set filter for taking out of chest ?\n\n" ..
-				"IMPORTANT: Please read the help button inside machine before first use.")) .. "]")
+				F(S("Mover introduction")) .. ";" .. F(S("This machine can move anything. General idea is the following:\n\n" ..
+				"First you need to define rectangle box work area (larger area, where it takes from, defined by source1/source2 which appear as two number 1 boxes) and target position (where it puts, marked by one number 2 box) by punching mover then following chat instructions exactly." ..
+				"\n\nCheck why it doesn't work: 1. did you click OK in mover after changing setting 2. does it have battery, 3. does battery have enough fuel 4. did you set filter for taking out of chest ?" ..
+				"\n\nImportant: Please read the help button inside machine before first use.")) .. "]")
 		end
 	end,
 

@@ -271,40 +271,31 @@ minetest.register_entity("basic_machines:ball", {
 })
 
 local function ball_spawner_update_form(meta)
-	local field_lifetime = ""
-
+	local field_lifetime
 	if meta:get_int("admin") == 1 then
-		field_lifetime = ("field[2.25,2.5;1,1;lifetime;%s;%i]"):format(F(S("Lifetime")), meta:get_int("lifetime"))
+		field_lifetime = ("field[2.75,3;1,0.8;lifetime;%s;%i]"):format(F(S("Lifetime")), meta:get_int("lifetime"))
+	else
+		field_lifetime = ""
 	end
-
-	meta:set_string("formspec", ([[
-		size[4,5]
-		field[0.25,0.5;1,1;x0;%s;%.2f]
-		field[1.25,0.5;1,1;y0;;%.2f]
-		field[2.25,0.5;1,1;z0;;%.2f]
-		field[3.25,0.5;1,1;speed;%s;%.2f]
-		field[0.25,1.5;1,1;energy;%s;%i]
-		field[1.25,1.5;1,1;bounce;%s;%i]
-		field[2.25,1.5;1,1;gravity;%s;%.2f]
-		field[3.25,1.5;1,1;punchable;%s;%i]
-		tooltip[2.95,0.97;0.8,0.34;%s]
-		field[0.25,2.5;1,1;hp;%s;%.2f]
-		field[1.25,2.5;1,1;hurt;%s;%.2f]
-		%s
-		field[3.25,2.5;1,1;solid;%s;%i]
-		field[0.25,3.5;4,1;texture;%s;%s]
-		field[0.25,4.5;1,1;scale;%s;%i]
-		field[1.25,4.5;1,1;visual;%s;%s]
-		button[2,4.2;1,1;help;%s]button_exit[3,4.2;1,1;OK;%s]
-	]]):format(F(S("Target")), meta:get_float("x0"), meta:get_float("y0"), meta:get_float("z0"),
-		F(S("Speed")), meta:get_float("speed"), F(S("Energy")), meta:get_int("energy"),
-		F(S("Bounce")), meta:get_int("bounce"), F(S("Gravity")), meta:get_float("gravity"),
-		F(S("Punch.")), meta:get_int("punchable"), F(S("Punchable")),
-		F(S("HP")), meta:get_float("hp"), F(S("Hurt")), meta:get_float("hurt"),
-		field_lifetime, F(S("Solid")), meta:get_int("solid"),
-		F(S("Texture")), F(meta:get_string("texture")), F(S("Scale")), meta:get_int("scale"),
-		F(S("Visual")), meta:get_string("visual"), F(S("help")), F(S("OK"))
-	))
+	local function twodigits(f) return ("%.2f"):format(f) end
+	meta:set_string("formspec", "formspec_version[4]size[5.25,6.6]" ..
+		"field[0.25,0.5;1,0.8;x0;" .. F(S("Target")) .. ";" .. twodigits(meta:get_float("x0")) ..
+		"]field[1.5,0.5;1,0.8;y0;;" .. twodigits(meta:get_float("y0")) ..
+		"]field[2.75,0.5;1,0.8;z0;;" .. twodigits(meta:get_float("z0")) ..
+		"]field[4,0.5;1,0.8;speed;" .. F(S("Speed")) .. ";" .. twodigits(meta:get_float("speed")) ..
+		"]field[0.25,1.75;1,0.8;energy;" .. F(S("Energy")) .. ";" .. meta:get_int("energy") ..
+		"]field[1.5,1.75;1,0.8;bounce;" .. F(S("Bounce")) .. ";" .. meta:get_int("bounce") ..
+		"]field[2.75,1.75;1,0.8;gravity;" .. F(S("Gravity")) .. ";" .. twodigits(meta:get_float("gravity")) ..
+		"]field[4,1.75;1,0.8;punchable;" .. F(S("Punch.")) .. ";" .. meta:get_int("punchable") ..
+		"]tooltip[4,1.35;1,0.4;" .. F(S("Punchable")) ..
+		"]field[0.25,3;1,0.8;hp;" .. F(S("HP")) .. ";" .. twodigits(meta:get_float("hp")) ..
+		"]field[1.5,3;1,0.8;hurt;" .. F(S("Hurt")) .. ";" .. twodigits(meta:get_float("hurt")) .. "]" ..
+		field_lifetime ..
+		"field[4,3;1,0.8;solid;" .. F(S("Solid")) .. ";" .. meta:get_int("solid") ..
+		"]field[0.25,4.25;4.75,0.8;texture;" .. F(S("Texture")) .. ";" .. F(meta:get_string("texture")) ..
+		"]field[0.25,5.5;1,0.8;scale;" .. F(S("Scale")) .. ";" .. meta:get_int("scale") ..
+		"]field[1.5,5.5;1,0.8;visual;" .. F(S("Visual")) .. ";" .. F(meta:get_string("visual")) ..
+		"]button[2.75,5.5;1,0.8;help;" .. F(S("help")) .. "]button_exit[4,5.5;1,0.8;OK;" .. F(S("OK")) .. "]")
 end
 
 -- to be used with bounce setting 2 in ball spawner:
@@ -416,7 +407,7 @@ minetest.register_node("basic_machines:ball_spawner", {
 
 			-- gravity
 			local gravity = tonumber(fields.gravity) or ball_default.gravity
-			if (gravity < 0.1 or gravity > 40) and not privs then return end
+			if (gravity < 0 or gravity > 40) and not privs then return end
 			meta:set_float("gravity", ("%.2f"):format(gravity))
 
 			-- punchable
@@ -465,15 +456,15 @@ minetest.register_node("basic_machines:ball_spawner", {
 		elseif fields.help then
 			local lifetime = minetest.get_meta(pos):get_int("admin") == 1 and S("\nLifetime:		[1,   +∞[") or ""
 			minetest.show_formspec(name, "basic_machines:help_ball",
-				"formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" .. F(S("BALL SPAWNER CAPABILITIES")) .. ";" ..
-F(S([[VALUES
+				"formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" .. F(S("Ball spawner help")) .. ";" ..
+F(S([[Values:
 
 Target*:		Direction of velocity
 				x: [-@1, @2], y: [-@3, @4], z: [-@5, @6]
 Speed:			[-10, 10]
 Energy:			[-1,  1]
 Bounce**:		[0,   2]
-Gravity:		[0.1, 40]
+Gravity:		[0,  40]
 Punchable***:	[0,   2]
 Hp:				[0,   +∞[
 Hurt:			]-∞,  @7]@8

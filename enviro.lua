@@ -32,6 +32,11 @@ if use_player_monoids then
 	})
 end
 
+local space_textures = basic_machines.settings.space_textures
+space_textures = space_textures ~= "" and space_textures:split() or {
+	"basic_machines_stars.png", "basic_machines_stars.png", "basic_machines_stars.png",
+	"basic_machines_stars.png", "basic_machines_stars.png", "basic_machines_stars.png"
+}
 local skyboxes = {
 	["-"] = {id = 1, type = "", tex = {}},
 	["surface"] = {id = 2, type = "regular", tex = {}},
@@ -39,43 +44,31 @@ local skyboxes = {
 		"basic_machines_black.png", "basic_machines_black.png", "basic_machines_black.png",
 		"basic_machines_black.png", "basic_machines_black.png", "basic_machines_black.png"
 	}},
-	["space"] = {id = 4, type = "skybox", tex = {
-		"basic_machines_stars.png", "basic_machines_stars.png", "basic_machines_stars.png",
-		"basic_machines_stars.png", "basic_machines_stars.png", "basic_machines_stars.png"
-	}}
+	["space"] = {id = 4, type = "skybox", tex = space_textures}
 }
 local enviro_skylist_translated = -- translations of skyboxes keys
 	table.concat({F(S("-")), F(S("surface")), F(S("cave")), F(S("space"))}, ",")
 
 local function enviro_update_form(meta)
 	local skybox = meta:get_string("skybox")
-
-	meta:set_string("formspec", ([[
-		size[8,8]
-		field[0.25,0.5;1,1;x0;%s;%i]
-		field[1.25,0.5;1,1;y0;;%i]
-		field[2.25,0.5;1,1;z0;;%i]
-		field[3.25,0.5;1,1;radius;%s;%i]
-		field[0.25,1.5;1,1;speed;%s;%.2f]
-		field[1.25,1.5;1,1;jump;%s;%.2f]
-		field[2.25,1.5;1,1;gravity;%s;%.2f]
-		field[3.25,1.5;1,1;sneak;%s;%i]
-		label[-0.02,1.9;%s]dropdown[-0.02,2.3;1.5,1;skybox;%s;%i]
-		label[5,0;%s]list[context;fuel;5,0.5;1,1;]
-		button_exit[6.5,0;1,1;OK;%s]
-		button[6.5,1;1,1;help;%s]
-		list[current_player;main;0,3.75;8,1;]
-		list[current_player;main;0,5;8,3;8]
-		listring[context;fuel]
-		listring[current_player;main]
-		%s
-	]]):format(F(S("Target")), meta:get_int("x0"), meta:get_int("y0"), meta:get_int("z0"),
-		F(S("Radius")), meta:get_int("radius"), F(S("Speed")), meta:get_float("speed"),
-		F(S("Jump")), meta:get_float("jump"), F(S("Gravity")), meta:get_float("gravity"),
-		F(S("Sneak")), meta:get_int("sneak"), F(S("Sky")),
-		enviro_skylist_translated, skyboxes[skybox] and skyboxes[skybox].id or 1, F(S("FUEL")),
-		F(S("OK")), F(S("help")), default.get_hotbar_bg(0, 3.75)
-	))
+	local function twodigits(f) return ("%.2f"):format(f) end
+	meta:set_string("formspec", "formspec_version[4]size[10.25,9.65]" ..
+		"field[0.25,0.5;1,0.8;x0;" .. F(S("Target")) .. ";" .. meta:get_int("x0") ..
+		"]field[1.5,0.5;1,0.8;y0;;" .. meta:get_int("y0") .. "]field[2.75,0.5;1,0.8;z0;;" .. meta:get_int("z0") ..
+		"]field[4,0.5;1,0.8;radius;" .. F(S("Radius")) .. ";" .. meta:get_int("radius") ..
+		"]field[0.25,1.75;1,0.8;speed;" .. F(S("Speed")) .. ";" .. twodigits(meta:get_float("speed")) ..
+		"]field[1.5,1.75;1,0.8;jump;" .. F(S("Jump")) .. ";" .. twodigits(meta:get_float("jump")) ..
+		"]field[2.75,1.75;1,0.8;gravity;" .. F(S("Gravity")) .. ";" .. twodigits(meta:get_float("gravity")) ..
+		"]field[4,1.75;1,0.8;sneak;" .. F(S("Sneak")) .. ";" .. meta:get_int("sneak") ..
+		"]label[0.25,2.8;" .. F(S("Sky")) ..
+		"]dropdown[0.25,3;1.75,0.8;skybox;" .. enviro_skylist_translated .. ";" ..
+		(skyboxes[skybox] and skyboxes[skybox].id or 1) ..
+		"]label[6.5,0.7;" .. F(S("Fuel")) .. "]list[context;fuel;6.5,0.9;1,1]" ..
+		"button_exit[8.38,0.5;1,0.8;OK;" .. F(S("OK")) ..
+		"]button[8.38,1.75;1,0.8;help;" .. F(S("help")) .. "]" ..
+		basic_machines.get_form_player_inventory(0.25, 4.5, 8, 4, 0.25) ..
+		"listring[context;fuel]" ..
+		"listring[current_player;main]")
 end
 
 local function format_num(num, specifier) return (specifier):format(num) end
@@ -172,8 +165,8 @@ minetest.register_node("basic_machines:enviro", {
 
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_enviro",
-				"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("ENVIRONMENT MODIFICATIONS")) .. ";" ..
-F(S([[VALUES
+				"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("Environment changer help")) .. ";" ..
+F(S([[Values:
 
 Target:		Center position of the area to apply environment effects
 			x: [-@1, @2], y: [-@3, @4], z: [-@5, @6]

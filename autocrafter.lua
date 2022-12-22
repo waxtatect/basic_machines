@@ -7,23 +7,21 @@ local S = basic_machines.S
 local autocrafterCache = {}
 
 local function autocrafter_update_form(meta)
-	local form = {
-		"formspec_version[4]size[10.45,13.4]",
+	meta:set_string("formspec",	table.concat({
+		"formspec_version[4]size[10.45,13.35]",
 		"style_type[list;spacing=0.25,0.15]",
-		"list[context;recipe;0.35,0.3;3,3]",
-		"image[4.1,1.45;1,1;[combine:1x1^[noalpha^[colorize:#141318]",
-		"list[context;output;4.1,1.45;1,1]",
-		"list[context;dst;5.35,0.3;4,3]",
-		"list[context;src;0.35,4.2;8,3]",
-		basic_machines.get_form_player_inventory(0.25, 0.35, 8.25, 8, 4),
+		"list[context;recipe;0.35,0.35;3,3]",
+		"image[4.1,1.5;1,1;[combine:1x1^[noalpha^[colorize:#141318]",
+		"list[context;output;4.1,1.5;1,1]",
+		"list[context;dst;5.35,0.35;4,3]",
+		"list[context;src;0.35,4.25;8,3]",
+		basic_machines.get_form_player_inventory(0.35, 8.3, 8, 4, 0.25),
 		"listring[context;dst]",
 		"listring[current_player;main]",
 		"listring[context;src]",
 		"listring[current_player;main]",
 		"listring[context;recipe]",
-		"listring[current_player;main]"
-	}
-	meta:set_string("formspec",	table.concat(form))
+		"listring[current_player;main]"}))
 end
 
 local function count_index(invlist)
@@ -157,6 +155,7 @@ minetest.register_node("basic_machines:autocrafter", {
 	groups = {cracky = 3},
 	drawtype = "normal",
 	tiles = {"basic_machines_autocrafter.png"},
+	sounds = default.node_sound_wood_defaults(),
 
 	on_destruct = function(pos)
 		autocrafterCache[minetest.hash_node_position(pos)] = nil

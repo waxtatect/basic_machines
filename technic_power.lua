@@ -8,24 +8,19 @@ local space_start_eff = basic_machines.settings.space_start_eff
 
 -- BATTERY
 local function battery_update_form(meta)
-	meta:set_string("formspec", ([[
-		size[8,7]
-		label[0,0;%s]list[context;fuel;0,0.5;1,1;]
-		box[1.45,0.48;1.85,1;#222222]
-		label[1.5,0.5;%s]label[1.5,1;%s]
-		image_button[4.3,0.65;1.5,0.5;basic_machines_wool_black.png;help;%s]
-		label[6,0;%s]list[context;upgrade;6,0.5;2,2;]
-		list[current_player;main;0,2.75;8,1;]
-		list[current_player;main;0,4;8,3;8]
-		listring[context;upgrade]
-		listring[current_player;main]
-		listring[context;fuel]
-		listring[current_player;main]
-		%s
-	]]):format(F(S("FUEL")), F(S("Power: @1", meta:get_float("maxpower"))),
-		F(S("Capacity: @1", meta:get_float("capacity"))), F(S("help")),
-		F(S("UPGRADE")), default.get_hotbar_bg(0, 2.75)
-	))
+	meta:set_string("formspec", "formspec_version[4]size[10.25,8.35]" ..
+		"style_type[list;spacing=0.25,0.15]" ..
+		"label[0.25,0.3;" .. F(S("Fuel")) .. "]list[context;fuel;0.25,0.5;1,1]" ..
+		"box[2,0.5;2.35,1.1;#222222]" ..
+		"label[2.15,0.8;" .. F(S("Power: @1", meta:get_float("maxpower"))) ..
+		"]label[2.15,1.3;" .. F(S("Capacity: @1", meta:get_float("capacity"))) ..
+		"]image_button[5.6,0.85;1.55,0.35;basic_machines_wool_black.png;help;" .. F(S("help")) ..
+		"]label[7.75,0.3;" .. F(S("Upgrade")) .. "]list[context;upgrade;7.75,0.5;2,2]" ..
+		basic_machines.get_form_player_inventory(0.25, 3.4, 8, 4, 0.25) ..
+		"listring[context;upgrade]" ..
+		"listring[current_player;main]" ..
+		"listring[context;fuel]" ..
+		"listring[current_player;main]")
 end
 
 -- [power crystal name] = energy provided
@@ -234,10 +229,10 @@ minetest.register_node("basic_machines:battery_0", {
 	on_receive_fields = function(pos, formname, fields, sender)
 		if fields.help then
 			minetest.show_formspec(sender:get_player_name(), "basic_machines:help_battery",
-				"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("BATTERY HELP")) .. ";" ..
+				"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("Battery help")) .. ";" ..
 				F(S("Battery provides power to machines or furnace. It can either use " ..
-				"power crystals or convert ordinary furnace fuels into energy. 1 coal lump gives 1 energy.\n\n" ..
-				"UPGRADE with diamond blocks for more available power output or with " ..
+				"power crystals or convert ordinary furnace fuels into energy. 1 coal lump gives 1 energy." ..
+				"\n\nUpgrade with diamond blocks for more available power output or with " ..
 				"mese blocks for more power storage capacity.")) .. "]")
 		end
 	end,
@@ -364,43 +359,31 @@ local minenergy = 17500 -- amount of energy required to initialize a generator
 local function generator_update_form(meta, not_init)
 	if not_init then
 		local upgrade = basic_machines.twodigits_float(meta:get_float("upgrade"))
-
-		meta:set_string("formspec", ([[
-			size[8,6.5]
-			label[0,0;%s]list[context;fuel;0,0.5;1,1;]
-			box[1.45,0.48;2.5,1;#222222]
-			label[1.5,0.5;%s]label[1.5,1;%s]
-			image_button[4.5,0.65;1.5,0.5;basic_machines_wool_black.png;init;%s]
-			list[current_player;main;0,2.25;8,1;]
-			list[current_player;main;0,3.5;8,3;8]
-			listring[context;fuel]
-			listring[current_player;main]
-			%s
-		]]):format(F(S("FUEL")), F(S("Power: @1", -1)),
-			F(S("Energy: @1 / @2", upgrade, minenergy)),
-			F(S("initialize")), default.get_hotbar_bg(0, 2.25)
-		))
+		meta:set_string("formspec", "formspec_version[4]size[10.25,7.2]" ..
+			"style_type[list;spacing=0.25,0.15]" ..
+			"label[0.25,0.3;" .. F(S("Fuel")) .. "]list[context;fuel;0.25,0.5;1,1]" ..
+			"box[2,0.5;3.15,1.1;#222222]" ..
+			"label[2.15,0.8;" .. F(S("Power: @1", -1)) ..
+			"]label[2.15,1.3;" .. F(S("Energy: @1 / @2", upgrade, minenergy)) ..
+			"]image_button[5.6,0.85;1.55,0.35;basic_machines_wool_black.png;init;" .. F(S("initialize")) .. "]" ..
+			basic_machines.get_form_player_inventory(0.25, 2.25, 8, 4, 0.25) ..
+			"listring[context;fuel]" ..
+			"listring[current_player;main]")
 	else
 		local upgrade = meta:get_int("upgrade")
 		local level = upgrade >= 20 and S("high") or (upgrade >= 5 and S("medium") or S("low"))
-
-		meta:set_string("formspec", ([[
-			size[8,6.5]
-			label[0,0;%s]list[context;fuel;0,0.5;1,1;]
-			box[1.45,0.48;2,0.85;#222222]
-			label[1.5,0.5;%s]
-			image_button[4.5,0.65;1.5,0.5;basic_machines_wool_black.png;help;%s]
-			label[6,0;%s]list[context;upgrade;6,0.5;2,1;]
-			list[current_player;main;0,2.25;8,1;]
-			list[current_player;main;0,3.5;8,3;8]
-			listring[context;fuel]
-			listring[current_player;main]
-			listring[context;upgrade]
-			listring[current_player;main]
-			%s
-		]]):format(F(S("POWER CRYSTALS")), F(S("Power: @1 (@2)", upgrade, level)),
-			F(S("help")), F(S("UPGRADE")), default.get_hotbar_bg(0, 2.25)
-		))
+		meta:set_string("formspec", "formspec_version[4]size[10.25,7.2]" ..
+			"style_type[list;spacing=0.25,0.15]" ..
+			"label[0.25,0.3;" .. F(S("Power Crystals")) .. "]list[context;fuel;0.25,0.5;1,1]" ..
+			"box[2,0.5;2.85,0.9;#222222]" ..
+			"label[2.15,0.8;" .. F(S("Power: @1 (@2)", upgrade, level)) ..
+			"]image_button[5.6,0.85;1.55,0.35;basic_machines_wool_black.png;help;" .. F(S("help")) ..
+			"]label[7.75,0.3;" .. F(S("Upgrade")) .. "]list[context;upgrade;7.75,0.5;2,1]" ..
+			basic_machines.get_form_player_inventory(0.25, 2.25, 8, 4, 0.25) ..
+			"listring[context;fuel]" ..
+			"listring[current_player;main]" ..
+			"listring[context;upgrade]" ..
+			"listring[current_player;main]")
 	end
 end
 
@@ -412,11 +395,6 @@ minetest.register_abm({
 	chance = 1,
 	action = function(pos, node, active_object_count, active_object_count_wider)
 		local meta = minetest.get_meta(pos)
-		local upgrade = meta:get_int("upgrade")
-
-		if upgrade > generator_upgrade_max then
-			meta:set_string("infotext", S("Error: max upgrade is @1", generator_upgrade_max)); return
-		end
 
 		if meta:get_string("owner") == "" then
 			local inv = meta:get_inventory()
@@ -427,6 +405,12 @@ minetest.register_abm({
 				generator_update_form(meta, true)
 			end
 			return
+		end
+
+		local upgrade = meta:get_int("upgrade")
+
+		if upgrade > generator_upgrade_max then
+			meta:set_string("infotext", S("Error: max upgrade is @1", generator_upgrade_max)); return
 		end
 
 		local inv = meta:get_inventory()
@@ -505,11 +489,11 @@ minetest.register_node("basic_machines:generator", {
 	on_receive_fields = function(pos, formname, fields, sender)
 		if fields.help then
 			minetest.show_formspec(sender:get_player_name(), "basic_machines:help_generator",
-				"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("GENERATOR HELP")) .. ";" ..
+				"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("Generator help")) .. ";" ..
 				F(S("Generator slowly produces power crystals. Those can be used to recharge batteries and come in 3 flavours:\n\n" ..
 				"Low (0-4), medium (5-19) and high level (20+)." ..
-				" Upgrading the generator (upgrade with generators) will increase the rate at which the crystals are produced.\n\n" ..
-				"You can automate the process of battery recharging by using mover in inventory mode, taking from inventory \"fuel\".")) .. "]")
+				" Upgrading the generator (upgrade with generators) will increase the rate at which the crystals are produced." ..
+				"\n\nYou can automate the process of battery recharging by using mover in inventory mode, taking from inventory \"fuel\".")) .. "]")
 		elseif fields.init then
 			local name = sender:get_player_name()
 			if minetest.is_protected(pos, name) or generator_near_found(pos, name) then return end

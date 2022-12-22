@@ -29,21 +29,16 @@ local function constructor_update_form(constructor, meta)
 		description, item = "", ""
 	end
 
-	meta:set_string("formspec", ([[
-		size[8,10.25]
-		textlist[0,0;3,1.5;craft;%s;%i]
-		item_image[3.65,0;1,1;%s]
-		list[context;recipe;5,0;3,2;]
-		button[3.5,1;1.25,0.75;CRAFT;%s]
-		label[0,1.85;%s]
-		list[context;main;0,2.5;8,3;]
-		list[current_player;main;0,6;8,1;]
-		list[current_player;main;0,7.25;8,3;8]
-		listring[context;main]
-		listring[current_player;main]
-		%s
-	]]):format(recipes_order_translated[constructor], meta:get_int("selected"),
-		item, F(S("CRAFT")), F(description), default.get_hotbar_bg(0, 6)))
+	meta:set_string("formspec", "formspec_version[4]size[10.45,12.35]" ..
+		"style_type[list;spacing=0.25,0.15]" ..
+		"textlist[0.35,0.35;3.5,1.7;craft;" .. recipes_order_translated[constructor] .. ";" .. meta:get_int("selected") ..
+		"]item_image[4.75,0.35;1,1;" .. item .. "]button[4.6,1.65;1.3,0.8;CRAFT;" .. F(S("CRAFT")) ..
+		"]list[context;recipe;6.6,0.35;3,2]" ..
+		"label[0.35,2.85;" .. F(description) ..
+		"]list[context;main;0.35,3.25;8,3]" ..
+		basic_machines.get_form_player_inventory(0.35, 7.3, 8, 4, 0.25) ..
+		"listring[context;main]" ..
+		"listring[current_player;main]")
 end
 
 local function constructor_process(pos, constructor, name)

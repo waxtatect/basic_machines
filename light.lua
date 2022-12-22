@@ -1,61 +1,100 @@
 local F, S = basic_machines.F, basic_machines.S
-
-minetest.register_node("basic_machines:light_off", {
-	description = S("Light off"),
-	groups = {cracky = 3, not_in_creative_inventory = 1},
-	tiles = {"basic_machines_light_off.png"},
-
-	effector = {
-		action_on = function(pos, _)
-			minetest.swap_node(pos, {name = "basic_machines:light_on"})
+local def = {
+	groups = {cracky = 3},
+	light_on_actions = {action_on = function(pos, _)
+		local meta = minetest.get_meta(pos)
+		local count = tonumber(meta:get_string("infotext")) or 0
+		meta:set_string("infotext", count + 1) -- increase activate count
+	end}
+}
+if minetest.global_exists("unifieddyes") then
+	def.groups.ud_param2_colorable = 1
+	def.palette = "unifieddyes_palette_colorwallmounted.png"
+	def.paramtype2 = "color"
+	def.light_on_actions.action_off = function(pos, _)
+		local node = minetest.get_node_or_nil(pos)
+		if node and node.name == "basic_machines:light_on" then
+			minetest.swap_node(pos, {name = "basic_machines:light_off", param2 = node.param2})
+		end
+	end
+	def.light_off_action = {action_on = function(pos, _)
+		local node = minetest.get_node_or_nil(pos)
+		if node and node.name == "basic_machines:light_off" then
+			minetest.swap_node(pos, {name = "basic_machines:light_on", param2 = node.param2})
 			local deactivate = minetest.get_meta(pos):get_int("deactivate")
 			if deactivate > 0 then
 				minetest.after(deactivate, function()
-					minetest.swap_node(pos, {name = "basic_machines:light_off"}) -- turn off again
+					minetest.swap_node(pos, node) -- turn off again
 				end)
 			end
 		end
-	}
-})
+	end}
+else
+	def.light_on_actions.action_off = function(pos, _)
+		minetest.swap_node(pos, {name = "basic_machines:light_off"})
+	end
+	def.light_off_action = {action_on = function(pos, _)
+		minetest.swap_node(pos, {name = "basic_machines:light_on"})
+		local deactivate = minetest.get_meta(pos):get_int("deactivate")
+		if deactivate > 0 then
+			minetest.after(deactivate, function()
+				minetest.swap_node(pos, {name = "basic_machines:light_off"}) -- turn off again
+			end)
+		end
+	end}
+end
 
+
+-- LIGHT ON
 minetest.register_node("basic_machines:light_on", {
 	description = S("Light"),
-	groups = {cracky = 3},
+	groups = def.groups,
 	light_source = default.LIGHT_MAX,
 	tiles = {"basic_machines_light.png"},
+	paramtype2 = def.paramtype2,
+	palette = def.palette,
+	sounds = default.node_sound_wood_defaults(),
 
 	after_place_node = function(pos, placer)
 		local meta = minetest.get_meta(pos)
-		meta:set_string("formspec",
-			"size[2,1.75]field[0.25,0.5;2,1;deactivate;" .. F(S("Deactivate after:")) .. ";0" ..
-			"]button_exit[0,1;1,1;OK;" .. F(S("OK")) .. "]")
-		meta:set_int("deactivate", 0)
+		meta:set_string("formspec", "formspec_version[4]size[2.5,2.4]" ..
+			"field[0.25,0.4;2,0.8;deactivate;" .. F(S("Deactivate after:")) .. ";0" ..
+			"]button_exit[0.25,1.35;1,0.8;OK;" .. F(S("OK")) .. "]")
+		meta:set_float("deactivate", 0)
 	end,
 
 	on_receive_fields = function(pos, formname, fields, sender)
 		if fields.OK then
 			if minetest.is_protected(pos, sender:get_player_name()) then return end
-			local meta = minetest.get_meta(pos)
 			local deactivate = tonumber(fields.deactivate) or 0
-			if deactivate < 0 or deactivate > 600 then deactivate = 0 end
-			meta:set_int("deactivate", deactivate)
-			meta:set_string("formspec",
-				"size[2,1.75]field[0.25,0.5;2,1;deactivate;" .. F(S("Deactivate after:")) .. ";" .. deactivate ..
-				"]button_exit[0,1;1,1;OK;" .. F(S("OK")) .. "]")
+			if deactivate > -1 and deactivate < 601 then
+				local meta = minetest.get_meta(pos)
+				deactivate = basic_machines.twodigits_float(deactivate)
+				meta:set_string("formspec", "formspec_version[4]size[2.5,2.5]" ..
+					"field[0.25,0.5;2,0.8;deactivate;" .. F(S("Deactivate after:")) .. ";" .. deactivate ..
+					"]button_exit[0.25,1.45;1,0.8;OK;" .. F(S("OK")) .. "]")
+				meta:set_float("deactivate", deactivate)
+			end
 		end
 	end,
 
-	effector = {
-		action_on = function(pos, _)
-			local meta = minetest.get_meta(pos)
-			local count = tonumber(meta:get_string("infotext")) or 0
-			meta:set_string("infotext", count + 1) -- increase activate count
-		end,
+	effector = def.light_on_actions
+})
 
-		action_off = function(pos, _)
-			minetest.swap_node(pos, {name = "basic_machines:light_off"})
-		end
-	}
+
+-- LIGHT OFF
+def.groups = table.copy(def.groups)
+def.groups.not_in_creative_inventory = 1
+
+minetest.register_node("basic_machines:light_off", {
+	description = S("Light off"),
+	groups = def.groups,
+	tiles = {"basic_machines_light_off.png"},
+	paramtype2 = def.paramtype2,
+	palette = def.palette,
+	sounds = default.node_sound_wood_defaults(),
+
+	effector = def.light_off_action
 })
 
 if basic_machines.settings.register_crafts then

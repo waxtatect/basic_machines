@@ -211,12 +211,11 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			meta:set_string("infotext", S("Keypad operation: @1 cycles left", count))
 		end
 
+		local mode = meta:get_int("mode"); if mode == 0 then return end -- do nothing
 		local tpos = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
 		local node = minetest.get_node_or_nil(tpos); if not node then return end -- error
 		local def = minetest.registered_nodes[node.name]
 		if def and (def.effector or def.mesecons and def.mesecons.effector) then -- activate target
-			local mode = meta:get_int("mode")
-
 			if mode == 3 then -- keypad in toggle mode
 				local state = meta:get_int("state"); state = 1 - state; meta:set_int("state", state)
 				if state == 0 then mode = 2 else mode = 1 end
@@ -263,10 +262,9 @@ minetest.register_node("basic_machines:keypad", {
 		machines.mark_pos1(name, vector.add(pos, {x = x0, y = y0, z = z0})) -- mark pos1
 		minetest.show_formspec(name, "basic_machines:keypad_" .. minetest.pos_to_string(pos),
 			"formspec_version[4]size[6,5.3]no_prepend[]bgcolor[#888888BB;false]set_focus[text]" ..
-			"field[0.25,0.4;1,0.8;mode;" .. F(S("Mode")) .. ";" .. meta:get_int("mode") ..
-			"]field[1.5,0.4;1,0.8;iter;" .. F(S("Repeat")) .. ";" .. meta:get_int("iter") ..
-			"]field[2.75,0.4;3,0.8;pass;" .. F(S("Password")) .. ";" .. meta:get_string("pass") ..
-			"]label[0.25,1.5;" .. minetest.colorize("lawngreen", F(S("MODE: 1=OFF, 2=ON, 3=TOGGLE"))) ..
+			"field[0.25,0.5;1,0.8;mode;" .. F(S("Mode")) .. ";" .. meta:get_int("mode") ..
+			"]field[1.5,0.5;1,0.8;iter;" .. F(S("Repeat")) .. ";" .. meta:get_int("iter") ..
+			"]field[2.75,0.5;3,0.8;pass;" .. F(S("Password")) .. ";" .. meta:get_string("pass") ..
 			"]field[0.25,3;3.85,0.8;text;" .. F(S("Text")) .. ";" .. F(meta:get_string("text")) ..
 			"]button[4.1,3;0.5,0.8;sounds;♫]button_exit[4.75,3;1,0.8;OK;" .. F(S("OK")) ..
 			"]field[0.25,4.25;1,0.8;x0;" .. F(S("Target")) .. ";" .. x0 ..

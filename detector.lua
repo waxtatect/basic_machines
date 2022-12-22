@@ -47,7 +47,6 @@ minetest.register_node("basic_machines:detector", {
 		machines.mark_pos1(name, pos1_abs) -- mark pos1
 		machines.mark_pos2(name, vector_add(pos, pos2)) -- mark pos2
 
-		local op = detector_oplist[meta:get_string("op")] or 1
 		local mode_string = meta:get_string("mode")
 		local node_filter = meta:get_string("node")
 
@@ -71,27 +70,29 @@ minetest.register_node("basic_machines:detector", {
 				inv_list1 = inv_list1 .. F(S(k)) .. ","
 				if k == inv1m then inv1 = j end; j = j + 1
 			end
-			inventory_list = "label[0,5.1;" .. F(S("Inventory selection")) ..
-				"]dropdown[0,5.5;3,1;inv1;" .. inv_list1:gsub(",$", "") .. ";" .. inv1 .. "]"
+			inventory_list = "label[0.25,6.85;" .. F(S("Inventory selection")) ..
+				"]dropdown[0.25,7.05;3.5,0.8;inv1;" .. inv_list1:gsub(",$", "") .. ";" .. inv1 .. "]"
 		else
-			inventory_list = "label[0,5.1;" .. F(S("Inventory selection")) .. "]dropdown[0,5.5;3,1;inv1;;]"
+			inventory_list = "label[0.25,6.85;" .. F(S("Inventory selection")) .. "]dropdown[0.25,7.05;3.5,0.8;inv1;;]"
 		end
 
-		minetest.show_formspec(name, "basic_machines:detector_" .. minetest.pos_to_string(pos), "size[4,6.25]" ..
-			"field[0.25,0.5;1,1;x0;" .. F(S("Source1")) .. ";" .. pos1.x ..
-			"]field[1.25,0.5;1,1;y0;;" .. pos1.y .. "]field[2.25,0.5;1,1;z0;;" .. pos1.z ..
-			"]dropdown[3,0.25;1,1;op;" .. F(S("-")) .. "," .. F(S("AND")) .. "," .. F(S("OR")) .. ";" .. op ..
-			"]field[0.25,1.5;1,1;x1;" .. F(S("Source2")) .. ";" .. pos11.x ..
-			"]field[1.25,1.5;1,1;y1;;" .. pos11.y .. "]field[2.25,1.5;1,1;z1;;" .. pos11.z ..
-			"]field[0.25,2.5;1,1;x2;" .. F(S("Target")) .. ";" .. pos2.x ..
-			"]field[1.25,2.5;1,1;y2;;" .. pos2.y .. "]field[2.25,2.5;1,1;z2;;" .. pos2.z ..
-			"]field[3.25,2.5;1,1;r;" .. F(S("Radius")) .. ";" .. meta:get_int("r") ..
-			"]field[0.25,3.5;2,1;node;" .. F(S("Detection filter")) .. ";" .. F(node_filter) ..
-			"]field[2.25,3.5;2,1;NOT;" .. F(S("Filter out -2/-1/0/1/2/3/4")) .. ";" .. meta:get_int("NOT") ..
-			"]label[0,4.1;" .. minetest.colorize("lawngreen", F(S("MODE selection"))) .. "]" ..
-			"]dropdown[0,4.5;3,1;mode;" .. detector_modelist_translated .. ";" .. (detector_modelist[mode_string] or 1) ..
-			"]button[3,4.4;1,1;help;" .. F(S("help")) .. "]" ..
-			inventory_list .. "button_exit[3,5.4;1,1;OK;" .. F(S("OK")) .. "]")
+		minetest.show_formspec(name, "basic_machines:detector_" .. minetest.pos_to_string(pos),
+			"formspec_version[4]size[5.25,8.1]" ..
+			"field[0.25,0.5;1,0.8;x0;" .. F(S("Source1")) .. ";" .. pos1.x ..
+			"]field[1.5,0.5;1,0.8;y0;;" .. pos1.y .. "]field[2.75,0.5;1,0.8;z0;;" .. pos1.z ..
+			"]dropdown[4,0.5;1,0.8;op;" .. F(S("-")) .. "," .. F(S("AND")) .. "," .. F(S("OR")) .. ";" ..
+			(detector_oplist[meta:get_string("op")] or 1) ..
+			"]field[0.25,1.75;1,0.8;x1;" .. F(S("Source2")) .. ";" .. pos11.x ..
+			"]field[1.5,1.75;1,0.8;y1;;" .. pos11.y .. "]field[2.75,1.75;1,0.8;z1;;" .. pos11.z ..
+			"]field[0.25,3;1,0.8;x2;" .. F(S("Target")) .. ";" .. pos2.x ..
+			"]field[1.5,3;1,0.8;y2;;" .. pos2.y .. "]field[2.75,3;1,0.8;z2;;" .. pos2.z ..
+			"]field[4,3;1,0.8;r;" .. F(S("Radius")) .. ";" .. meta:get_int("r") ..
+			"]field[0.25,4.25;3.25,0.8;node;" .. F(S("Detection filter")) .. ";" .. F(node_filter) ..
+			"]field[3.75,4.25;1.27,0.8;NOT;" .. F(S("Filter out")) .. ";" .. meta:get_int("NOT") ..
+			"]label[0.25,5.6;" .. minetest.colorize("lawngreen", F(S("Mode selection"))) ..
+			"]dropdown[0.25,5.8;3.5,0.8;mode;" .. detector_modelist_translated .. ";" .. (detector_modelist[mode_string] or 1) ..
+			"]button[4,5.8;1,0.8;help;" .. F(S("help")) .. "]" ..
+			inventory_list .. "button_exit[4,7.05;1,0.8;OK;" .. F(S("OK")) .. "]")
 	end,
 
 	allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
@@ -128,20 +129,18 @@ minetest.register_node("basic_machines:detector", {
 				return
 			end
 
-			local pos1 = vector_add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
-
 			local mode = meta:get_string("mode")
+			local pos1 = vector_add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")}) -- source1
 			local node = meta:get_string("node") -- detection filter
-			local NOT = meta:get_int("NOT")
-
 			local detected_obj, trigger = nil, false
+			local NOT = meta:get_int("NOT")
 
 			if mode == "node" then
 				local tnode = minetest.get_node(pos1).name -- read node at source position
 				local r = meta:get_int("r")
 				detected_obj = tnode
 
-				if (node == "" and tnode ~= "air") or node == tnode then
+				if (node == "" and tnode ~= "air") or tnode == node then
 					trigger = true
 				elseif r > 0 and node ~= "" then
 					if minetest.find_node_near(pos1, r, {node}) then trigger = true end
@@ -151,14 +150,16 @@ minetest.register_node("basic_machines:detector", {
 
 				-- operation: AND, OR... look at other source position too
 				if op ~= "-" then
-					local pos11 = vector_add(pos, {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")})
+					local pos11 = vector_add(pos, {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")}) -- source2
 					tnode = minetest.get_node(pos11).name -- read node at source position
-					local trigger1 = false
+					local trigger1
 
-					if (node == "" and tnode ~= "air") or node == tnode then
+					if (node == "" and tnode ~= "air") or tnode == node then
 						trigger1 = true
-					elseif r > 0 and node ~= "" then
-						if minetest.find_node_near(pos1, r, {node}) then trigger1 = true end
+					elseif r > 0 and node ~= "" and minetest.find_node_near(pos1, r, {node}) then
+						trigger1 = true
+					else
+						trigger1 = false
 					end
 
 					if op == "AND" then
@@ -175,7 +176,7 @@ minetest.register_node("basic_machines:detector", {
 				if node == "" then -- if there is item report name and trigger
 					if inv:is_empty(inv1m) then
 						trigger = false
-					else -- non-empty
+					else -- nonempty
 						trigger = true
 						for i = 1, inv:get_size(inv1m) do -- find item to move in inventory
 							local stack = inv:get_stack(inv1m, i)
@@ -191,7 +192,7 @@ minetest.register_node("basic_machines:detector", {
 
 					-- operation: AND, OR... look at other source position too
 					if op ~= "-" then
-						local pos11 = vector_add(pos, {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")})
+						local pos11 = vector_add(pos, {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")}) -- source2
 						local trigger1 = minetest.get_meta(pos11):get_inventory():contains_item(inv1m, ItemStack(node))
 
 						if op == "AND" then
@@ -204,15 +205,18 @@ minetest.register_node("basic_machines:detector", {
 
 			elseif mode == "infotext" then
 				detected_obj = minetest.get_meta(pos1):get_string("infotext")
-				if node == "" or node == detected_obj or
-					node == minetest.get_translated_string("", detected_obj)
-				then
+				if detected_obj == node then
 					trigger = true
+				else
+					detected_obj = minetest.get_translated_string("", detected_obj)
+					if node == "" or detected_obj == node or F(detected_obj) == node then
+						trigger = true
+					end
 				end
 
 			elseif mode == "light" then
 				detected_obj = minetest.get_node_light(pos1) or 0
-				if detected_obj >= (tonumber(node) or 0) or node == "" then trigger = true end
+				if node == "" or detected_obj >= (tonumber(node) or 0) then trigger = true end
 
 			else -- players/objects
 				local player_near = false
@@ -257,7 +261,7 @@ minetest.register_node("basic_machines:detector", {
 			local nstate = trigger and 1 or 0 -- next detector output state
 			if nstate ~= state then meta:set_int("state", nstate) end -- update state if changed
 
-			local pos2 = vector_add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")})
+			local pos2 = vector_add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")}) -- target
 
 			node = minetest.get_node_or_nil(pos2); if not node then return end -- error
 			local def = minetest.registered_nodes[node.name]
@@ -274,11 +278,15 @@ minetest.register_node("basic_machines:detector", {
 							end
 						end
 						effector.action_on(pos2, param) -- run
+					else
+						meta:set_string("infotext", "")
 					end
 				else
 					if effector.action_off then
 						meta:set_string("infotext", S("Detector: off"))
 						effector.action_off(pos2, param) -- run
+					else
+						meta:set_string("infotext", "")
 					end
 				end
 			end
