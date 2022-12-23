@@ -285,7 +285,7 @@ minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 		meta:set_int("x0", x); meta:set_int("y0", y); meta:set_int("z0", z)
 		meta:set_string("infotext", S("Punch keypad to use it."))
 		punchset[name] = {state = 0, node = ""}
-		minetest.chat_send_player(name, S("KEYPAD: Target set with coordinates @1,@2,@3.", x, y, z))
+		minetest.chat_send_player(name, S("KEYPAD: Target set with coordinates @1, @2, @3.", x, y, z))
 
 
 	-- DETECTOR
@@ -423,7 +423,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 				-- notification
 				meta:set_string("infotext", S("Mover block." ..
-					" Set up with source coordinates @1,@2,@3 -> @4,@5,@6 and target coordinates @7,@8,@9." ..
+					" Set up with source coordinates @1, @2, @3 -> @4, @5, @6 and target coordinates @7, @8, @9." ..
 					" Put charged battery next to it and start it with keypad.", x0, y0, z0, x1, y1, z1, x2, y2, z2))
 			else -- MODE
 				local mmode = meta:get_string("mode")
@@ -549,7 +549,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 				if not_view and (posfi.xi ~= xi or posfi.yi ~= yi or posfi.z ~= zi) then
 					if not minetest.check_player_privs(name, "privs") and
-						(abs(posfi.x) > 2 * max_range or abs(posfi.y) > max_range or abs(posfi.z) > 2 * max_range)
+						(abs(posfi.x) > 2 * max_range or abs(posfi.y) > 2 * max_range or abs(posfi.z) > 2 * max_range)
 					then
 						minetest.chat_send_player(name, S("DISTRIBUTOR: All coordinates must be between @1 and @2.",
 							-2 * max_range, 2 * max_range)); return
@@ -702,32 +702,31 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			end
 
 			meta:set_int("mode", tonumber(fields.mode) or 2)
-			meta:set_int("iter", math.min(tonumber(fields.iter) or 1, 500))
-			meta:set_int("count", 0)
+			meta:set_int("iter", math.min(tonumber(fields.iter) or 1, 500)); meta:set_int("count", 0)
 
-			local pass = fields.pass or ""
+			local pass, pass_len = fields.pass or ""
 
-			if pass ~= "" and pass:len() <= 16 then -- don't replace password with hash which is longer - 27 chars
-				pass = minetest.get_password_hash(pos.x, pass .. pos.y); pass = minetest.get_password_hash(pos.y, pass .. pos.z)
-				meta:set_string("pass", pass)
+			if pass ~= "" and pass ~= meta:get_string("pass") then
+				pass_len = pass:len()
+				if pass_len <= 16 then -- don't replace password with hash which is longer - 27 chars
+					pass = minetest.get_password_hash(pos.x, pass .. pos.y); pass = minetest.get_password_hash(pos.y, pass .. pos.z)
+					meta:set_string("pass", pass)
+				else
+					minetest.chat_send_player(name, S("KEYPAD: Password too long."))
+				end
 			end
 
 			local text = fields.text or ""
 
 			meta:set_string("text", text)
-			if text:sub(1,1) == "!" then
-				minetest.log("action", ("[basic_machines] %s set up keypad for message display at %s,%s,%s"):format(name, pos.x, pos.y, pos.z))
-			end
 			meta:set_int("x0", x0); meta:set_int("y0", y0); meta:set_int("z0", z0)
 
-			if pass == "" then
+			if pass == "" or pass_len and pass_len > 16 then
 				meta:set_string("infotext", S("Punch keypad to use it."))
+			elseif text == "@" then
+				meta:set_string("infotext", S("Punch keyboard to use it."))
 			else
-				if text == "@" then
-					meta:set_string("infotext", S("Punch keyboard to use it."))
-				else
-					meta:set_string("infotext", S("Punch keypad to use it. Password protected."))
-				end
+				meta:set_string("infotext", S("Punch keypad to use it. Password protected."))
 			end
 
 		elseif fields.sounds then
@@ -801,22 +800,20 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			if meta:get_string("text") == "@" then -- keyboard mode
 				meta:set_string("input", pass)
 				basic_machines.use_keypad(pos, machines_TTL)
-				return
-			end
-
-			pass = minetest.get_password_hash(pos.x, pass .. pos.y); pass = minetest.get_password_hash(pos.y, pass .. pos.z)
-
-			if pass ~= meta:get_string("pass") then
-				minetest.chat_send_player(name, S("ACCESS DENIED. WRONG PASSWORD.")); return
-			end
-
-			minetest.chat_send_player(name, S("ACCESS GRANTED"))
-			local count = meta:get_int("count")
-
-			if count == 0 or count == meta:get_int("iter") then -- only accept new operation requests if idle
-				basic_machines.use_keypad(pos, machines_TTL)
 			else
-				basic_machines.use_keypad(pos, 1, true, S("Operation aborted by user. Punch to activate.")) -- reset
+				pass = minetest.get_password_hash(pos.x, pass .. pos.y); pass = minetest.get_password_hash(pos.y, pass .. pos.z)
+				if pass == meta:get_string("pass") then
+					minetest.chat_send_player(name, S("ACCESS GRANTED"))
+
+					local count = meta:get_int("count")
+					if count == 0 or count == meta:get_int("iter") then -- only accept new operation requests if idle
+						basic_machines.use_keypad(pos, machines_TTL)
+					else
+						basic_machines.use_keypad(pos, 1, true, S("Operation aborted by user. Punch to activate.")) -- reset
+					end
+				else
+					minetest.chat_send_player(name, S("ACCESS DENIED. WRONG PASSWORD."))
+				end
 			end
 		end
 

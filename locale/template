@@ -200,6 +200,7 @@ KEYPAD: Position is protected. Aborting.=
 KEYPAD: All coordinates must be between @1 and @2.=
 Punch keyboard to use it.=
 Punch keypad to use it. Password protected.=
+KEYPAD: Password too long.=
 (@1 sounds)=
 Sounds (@1):=
 Keypad help=
