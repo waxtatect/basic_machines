@@ -64,6 +64,8 @@ basic_machines = {
 		end
 		return table.concat(player_inv)
 	end,
+	-- autocrafter
+	change_autocrafter_recipe = function() end,
 	-- distributor
 	get_distributor_form = function() end,
 	-- enviro

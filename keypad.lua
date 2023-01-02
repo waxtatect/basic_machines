@@ -3,7 +3,6 @@ local machines_TTL = basic_machines.properties.machines_TTL
 local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
 local byte = string.byte
-local use_signs_lib = minetest.global_exists("signs_lib")
 local signs = { -- when activated with keypad these will be "punched" to update their text too
 	["basic_signs:sign_wall_glass"] = true,
 	["basic_signs:sign_wall_locked"] = true,
@@ -20,6 +19,8 @@ local signs = { -- when activated with keypad these will be "punched" to update 
 	["default:sign_wall_steel"] = true,
 	["default:sign_wall_wood"] = true
 }
+local use_signs_lib = minetest.global_exists("signs_lib")
+local use_unifieddyes = minetest.global_exists("unifieddyes")
 
 -- position, time to live (how many times can signal travel before vanishing to prevent infinite recursion),
 -- do we want to stop repeating
@@ -50,7 +51,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 		return
 	end
 
-	local iter = meta:get_int("iter")
+	local iter = meta:get_int("iter"); if iter == 0 then return end
 	local count = 0 -- counts repeats
 
 	if iter > 1 then
@@ -121,7 +122,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 
 		local tpos = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
 		local node = minetest.get_node_or_nil(tpos); if not node then return end -- error
-		local name, tmeta = node.name, minetest.get_meta(tpos)
+		local name = node.name
 
 		if name ~= "basic_machines:keypad" and not vector.equals(pos, tpos) then
 			if count < 2 then
@@ -132,6 +133,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 		end
 
 		if signs[name] then -- update text on signs with signs_lib
+			local tmeta = minetest.get_meta(tpos)
 			tmeta:set_string("infotext", text)
 			tmeta:set_string("text", text)
 			if use_signs_lib and signs_lib.update_sign then
@@ -141,20 +143,22 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 
 		-- target is keypad, special functions: @, % that output to target keypad text
 		elseif name == "basic_machines:keypad" then -- special modify of target keypad text and change its target
-			if bit == 64 then -- target keypad's text starts with @ (ascii code 64) -> character replacement
+			local tmeta = minetest.get_meta(tpos)
+
+			if bit == 64 then -- target keypad's text starts with '@' (ascii code 64) -> character replacement
 				text = text:sub(2); if text == "" then tmeta:set_string("text", ""); return end -- clear target keypad text
 				-- read words [j] from blocks above keypad:
 				local j = 0
 				local function replace()
 					j = j + 1; return minetest.get_meta({x = pos.x, y = pos.y + j, z = pos.z}):get_string("infotext")
 				end
-				text = text:gsub("@", replace) -- replace every @ in text with string on blocks above
+				text = text:gsub("@", replace) -- replace every '@' in text with string on blocks above
 
 				-- set target keypad's text
 				tmeta:set_string("text", text)
-			elseif bit == 37 then -- target keypad's text starts with % (ascii code 37) -> word extraction
+			elseif bit == 37 then -- target keypad's text starts with '%' (ascii code 37) -> word extraction
 				local ttext = minetest.get_meta({x = pos.x, y = pos.y + 1, z = pos.z}):get_string("infotext")
-				local i = tonumber(text:sub(2, 2)) or 1 -- read the number following the %
+				local i = tonumber(text:sub(2, 2)) or 1 -- read the number following the '%'
 				-- extract i - th word from text
 				local j = 0
 				for word in ttext:gmatch("%S+") do
@@ -169,14 +173,16 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			end
 
 		elseif name == "basic_machines:detector" then -- change filter on detector
-			if bit == 64 then -- if text starts with @ clear the filter
-				tmeta:set_string("node", "")
+			if bit == 64 then -- if text starts with '@' -> clear the filter
+				minetest.get_meta(tpos):set_string("node", "")
 			else
-				tmeta:set_string("node", text)
+				minetest.get_meta(tpos):set_string("node", text)
 			end
 
 		elseif name == "basic_machines:mover" then -- change filter on mover
-			if bit == 64 then -- if text starts with @ clear the filter
+			local tmeta = minetest.get_meta(tpos)
+
+			if bit == 64 then -- if text starts with '@' -> clear the filter
 				tmeta:set_string("prefer", "")
 				tmeta:get_inventory():set_list("filter", {})
 			else
@@ -196,12 +202,33 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 				local ti = tonumber(text:sub(1, i - 1)) or 1
 				local tm = tonumber(text:sub(i + 1)) or 1
 				if ti >= 1 and ti <= 16 and tm >= -2 and tm <= 2 then
-					tmeta:set_int("active" .. ti, tm)
+					minetest.get_meta(tpos):set_int("active" .. ti, tm)
 				end
 			end
 
+		elseif name == "basic_machines:autocrafter" then
+			local tmeta = minetest.get_meta(tpos)
+
+			if bit == 64 then -- if text starts with '@' -> clear the recipe
+				basic_machines.change_autocrafter_recipe(tpos, tmeta:get_inventory(), nil)
+			elseif minetest.registered_items[text] then
+				basic_machines.change_autocrafter_recipe(tpos, tmeta:get_inventory(), ItemStack(text))
+			else
+				tmeta:set_string("infotext", text:gsub("^ +$", ""))
+			end
+
+		elseif use_unifieddyes and name:find("basic_machines:light") then
+			if bit == 105 then -- text starts with 'i' -> set param2
+				local idx = tonumber(text:sub(2)) or 0
+				if idx ~= node.param2 and idx % 8 == 0 then -- colorwallmounted palette
+					node.param2 = idx; minetest.swap_node(tpos, node)
+				end
+			else
+				minetest.get_meta(tpos):set_string("infotext", text:gsub("^ +$", ""))
+			end
+
 		else
-			tmeta:set_string("infotext", text:gsub("^ +$", "")) -- else just set text
+			minetest.get_meta(tpos):set_string("infotext", text:gsub("^ +$", "")) -- else just set text
 		end
 
 	else

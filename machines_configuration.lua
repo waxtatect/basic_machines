@@ -364,6 +364,8 @@ local connectables = {
 	["basic_machines:mover"] = true
 }
 
+local use_unifieddyes = minetest.global_exists("unifieddyes")
+
 minetest.register_on_player_receive_fields(function(player, formname, fields)
 	local formname_sub, pos = check_fname(formname); if not formname_sub or pos == "" then return end
 	local name = player:get_player_name(); if name == "" then return end
@@ -777,12 +779,14 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				"\n\nTarget: Coordinates (x, y, z) relative to the keypad." ..
 				" (0, 0, 0) is keypad itself, (0, 1, 0) is one node above, (0, -1, 0) one node below." ..
 				" X coordinate axes goes from east to west, Y from down to up, Z from south to north.")) ..
-				F(S("\n\nSetup: Just punch (left click) keypad, then the target block will be activated.\n" ..
-				"To set text on other nodes (text shows when you look at node) just target the node and set nonempty text." ..
-				" Upon activation text will be set. When target node is another keypad, its \"text\" field will be set." ..
-				" When targets is mover/detector, its \"filter\" field will be set. To clear \"filter\" set text to \"@@\"." ..
-				" When target is distributor, you can change i-th target of distributor mode with \"i mode\"." ..
-				"\n\nKeyboard: To use keypad as keyboard for text input write \"@@\" in \"text\" field and set any password." ..
+				F(S("\n\nSetup: Right click or punch (left click) the keypad, then follow instructions." ..
+				"\n\nTo set text on other nodes (text shows when you look at node) just target the node and set nonempty text." ..
+				" Upon activation text will be set:\nWhen target node is keypad, its \"text\" field will be set.\n" ..
+				"When target is detector/mover, its \"filter\" field will be set. To clear \"filter\" set text to \"@@\".\n" ..
+				"When target is distributor, you can change i-th target of distributor mode with \"<i> <mode>\".\n" ..
+				"When target is autocrafter, the recipe will be set. To clear the recipe set text to \"@@\".")) ..
+				(use_unifieddyes and F(S("\nWhen target is light, you can change the index value (a multiple of 8) with \"i<index>\".")) or "") ..
+				F(S("\n\nKeyboard: To use keypad as keyboard for text input write \"@@\" in \"text\" field and set any password." ..
 				" Next time keypad is used it will work as text input device." ..
 				"\n\nDisplaying messages to nearby players (up to 5 blocks around keypad's target): Set text to \"!text\"." ..
 				" Upon activation player will see \"text\" in their chat." ..

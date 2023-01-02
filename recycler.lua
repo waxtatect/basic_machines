@@ -8,13 +8,17 @@ local F, S = basic_machines.F, basic_machines.S
 local machines_minstep = basic_machines.properties.machines_minstep
 local twodigits_float = basic_machines.twodigits_float
 local no_recycle_list = { -- prevent unrealistic recycling
-	["default:bronze_ingot"] = 1, ["default:gold_ingot"] = 1,
-	["default:copper_ingot"] = 1, ["default:steel_ingot"] = 1,
-	["dye:black"] = 1, ["dye:blue"] = 1, ["dye:brown"] = 1, ["dye:cyan"] = 1,
-	["dye:dark_green"] = 1, ["dye:dark_grey"] = 1, ["dye:green"] = 1,
-	["dye:grey"] = 1, ["dye:magenta"] = 1, ["dye:orange"] = 1,
-	["dye:pink"] = 1, ["dye:red"] = 1, ["dye:violet"] = 1,
-	["dye:white"] = 1, ["dye:yellow"] = 1
+	["default:bronze_ingot"] = 1, ["default:coal_lump"] = 1,
+	["default:copper_ingot"] = 1, ["default:diamond"] = 1,
+	["default:gold_ingot"] = 1, ["default:mese_crystal"] = 1,
+	["default:mese_crystal_fragment"] = 1, ["default:steel_ingot"] = 1,
+	["default:tin_ingot"] = 1,
+	["dye:black"] = 1, ["dye:blue"] = 1, ["dye:brown"] = 1,
+	["dye:cyan"] = 1, ["dye:dark_green"] = 1, ["dye:dark_grey"] = 1,
+	["dye:green"] = 1, ["dye:grey"] = 1, ["dye:magenta"] = 1,
+	["dye:orange"] = 1, ["dye:pink"] = 1, ["dye:red"] = 1,
+	["dye:violet"] = 1, ["dye:white"] = 1, ["dye:yellow"] = 1,
+	["moreores:mithril_ingot"] = 1, ["moreores:silver_ingot"] = 1
 }
 
 local function recycler_update_form(meta)
@@ -37,15 +41,18 @@ end
 local function recycler_process(pos)
 	local meta = minetest.get_meta(pos)
 
-	local inv = meta:get_inventory(); local msg
+	local inv = meta:get_inventory()
+	local stack, msg
 
 	-- FUEL CHECK
-	local fuel_req; local fuel = meta:get_float("fuel")
+	local fuel_req
+	local fuel = meta:get_float("fuel")
 
 	if meta:get_int("admin") == 1 then
 		fuel_req = 0
 	else
-		fuel_req = 1
+		stack = inv:get_stack("src", 1)
+		fuel_req = (stack:to_string():len() + 5) * 0.16
 
 		if fuel < fuel_req then -- we need new fuel
 			local fuellist = inv:get_list("fuel"); if not fuellist then return end
@@ -74,7 +81,7 @@ local function recycler_process(pos)
 	end
 
 	-- RECYCLING: check out inserted items
-	local stack = inv:get_stack("src", 1)
+	stack = stack or inv:get_stack("src", 1)
 	if stack:is_empty() then if msg then meta:set_string("infotext", msg) end; return end -- nothing to do
 	local src_item = stack:get_name()
 	-- take first word to determine what item was

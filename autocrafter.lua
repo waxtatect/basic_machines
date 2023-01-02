@@ -123,6 +123,8 @@ local function on_output_change(pos, inventory, stack)
 	after_recipe_change(pos, inventory)
 end
 
+basic_machines.change_autocrafter_recipe = on_output_change
+
 local function autocraft(inventory, craft)
 	if not craft then return end
 	local output_item = craft.output.item
