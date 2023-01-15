@@ -30,17 +30,18 @@ local energy_crystals = {
 	["basic_machines:power_rod"] = 100 * energy_multiplier
 }
 
-local function battery_recharge(pos, origin)
+local function battery_recharge(pos, energy, origin)
 	local meta = minetest.get_meta(pos)
-	local energy = meta:get_float("energy")
-	local capacity = meta:get_float("capacity")
 	local inv = meta:get_inventory()
 	local stack = inv:get_stack("fuel", 1)
+	local capacity
+	energy = energy or meta:get_float("energy")
 
 	local add_energy = energy_crystals[stack:get_name()]
 
 	if add_energy and add_energy > 0 then
 		if pos.y > space_start_eff then add_energy = 2 * add_energy end -- in space recharge is more efficient
+		capacity = meta:get_float("capacity")
 		if add_energy <= capacity then
 			stack:take_item(1); inv:set_stack("fuel", 1, stack)
 		else
@@ -53,6 +54,7 @@ local function battery_recharge(pos, origin)
 		if fueladd.time > 0 then
 			add_energy = fueladd.time / 40
 			local energy_new = energy + add_energy
+			capacity = meta:get_float("capacity")
 			if energy_new <= capacity then
 				inv:set_stack("fuel", 1, afterfuel.items[1])
 			else
@@ -67,9 +69,11 @@ local function battery_recharge(pos, origin)
 		if energy_new < 0 then energy_new = 0 end
 		if energy_new > capacity then energy_new = capacity end -- excess energy is wasted
 
-		meta:set_float("energy", energy_new)
-
 		if origin ~= "check_power" then
+			if origin ~= "recharge_furnace" then
+				meta:set_float("energy", energy_new)
+			end
+
 			if capacity > 0 then
 				local full_coef_new = math.floor(energy_new / capacity * 3) -- 0, 1, 2
 				local full_coef = math.floor(energy / capacity * 3)
@@ -105,6 +109,7 @@ local function battery_recharge(pos, origin)
 		minetest.swap_node(pos, {name = "basic_machines:battery_0"})
 		meta:set_string("infotext", S("Furnace needs at least 1 energy"))
 	else
+		capacity = capacity or meta:get_float("capacity")
 		meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy * 10) / 10, capacity))
 	end
 
@@ -126,19 +131,23 @@ basic_machines.check_power = function(pos, power_draw)
 	end
 
 	local energy = meta:get_float("energy")
+	local energy_recharge, energy_new
 
 	if power_draw > energy then
-		energy = battery_recharge(pos, "check_power") -- try recharge battery and continue operation immediately
+		energy_recharge = battery_recharge(pos, energy, "check_power") -- try recharge battery and continue operation immediately
+		energy_new = energy_recharge - power_draw
+	else
+		energy_new = energy - power_draw
 	end
 
-	local energy_new = energy - power_draw
-
 	if energy_new < 0 then
+		if energy_recharge and energy_recharge ~= energy then
+			meta:set_float("energy", energy_recharge)
+		end
 		meta:set_string("infotext", S("Used fuel provides too little power for current power draw @1", power_draw)); return 0
-	end -- recharge wasnt enough, needs to be repeated manually, return 0 power available
+	end -- recharge wasn't enough, needs to be repeated manually, return 0 power available
 
 	meta:set_float("energy", energy_new)
-
 	local capacity = meta:get_float("capacity")
 	if capacity > 0 then
 		local full_coef_new = math.floor(energy_new / capacity * 3) -- 0, 1, 2
@@ -149,7 +158,6 @@ basic_machines.check_power = function(pos, power_draw)
 			minetest.swap_node(pos, {name = "basic_machines:battery_" .. full_coef_new})
 		end
 	end
-
 	-- update energy display
 	meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy_new * 10) / 10, capacity))
 
@@ -173,7 +181,7 @@ local function battery_upgrade(meta, pos)
 	if pos.y > space_start_eff then count1, count2 = 2 * count1, 2 * count2 end -- space increases efficiency
 
 	local energy = 0
-	local capacity = 3 + 3 * count1 -- mese for capacity
+	local capacity = 3 + count1 * 3 -- mese for capacity
 	capacity = math.ceil(capacity * 10) / 10 -- adjust capacity
 	local maxpower = 1 + count2 * 2 -- old 99 upgrade -> 200 power
 
@@ -312,9 +320,8 @@ minetest.register_node("basic_machines:battery_0", {
 						fmeta:set_float("src_time", fmeta:get_float("src_time") + machines_timer * upgrade)
 					end
 
-					meta:set_float("energy", energy_new)
-
 					if energy_new > 0 then -- no need to recharge yet, will still work next time
+						meta:set_float("energy", energy_new)
 						local capacity = meta:get_float("capacity")
 						if capacity > 0 then
 							local full_coef_new = math.floor(energy_new / capacity * 3) -- 0, 1, 2
@@ -328,7 +335,10 @@ minetest.register_node("basic_machines:battery_0", {
 						-- update energy display
 						meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy_new * 10) / 10, capacity))
 					else
-						battery_recharge(pos, "recharge_furnace")
+						local energy_recharge = battery_recharge(pos, energy_new, "recharge_furnace")
+						if energy_recharge ~= energy_new then
+							meta:set_float("energy", energy_recharge)
+						end
 					end
 
 					return
@@ -337,7 +347,7 @@ minetest.register_node("basic_machines:battery_0", {
 
 			-- try to recharge by converting inserted fuel/power crystals into energy
 			if energy < meta:get_float("capacity") then -- not full, try to recharge
-				battery_recharge(pos)
+				battery_recharge(pos, energy)
 			end
 		end
 	}
