@@ -56,6 +56,7 @@ local mover = {
 	-- note: fuel cost is this multiplied by distance and divided by machine_operations..
 	hardness = {
 		["bedrock2:bedrock"] = 999999,
+		["bedrock:bedrock"] = 999999,
 		["default:acacia_tree"] = 2,
 		["default:bush_leaves"] = 0.1,
 		["default:cloud"] = 999999,
@@ -67,6 +68,8 @@ local mover = {
 		["default:stone"] = 4,
 		["default:tree"] = 2,
 		["gloopblocks:pumice_cooled"] = 2,
+		["itemframes:frame"] = 999999,
+		["itemframes:pedestal"] = 999999,
 		["painting:canvasnode"] = 999999,
 		["painting:pic"] = 999999,
 		["statue:pedestal"] = 999999,

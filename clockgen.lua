@@ -1,12 +1,11 @@
 local S = basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
-local machines_timer = basic_machines.properties.machines_timer
 
 minetest.register_abm({
 	label = "[basic_machines] Clock Generator",
 	nodenames = {"basic_machines:clockgen"},
 	neighbors = {},
-	interval = machines_timer,
+	interval = basic_machines.properties.machines_timer,
 	chance = 1,
 
 	action = function(pos, node, active_object_count, active_object_count_wider)
