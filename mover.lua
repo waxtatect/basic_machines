@@ -674,9 +674,10 @@ minetest.register_node("basic_machines:mover", {
 			local fuel = meta:get_float("fuel")
 
 			if upgrade == -1 then
+				node1 = minetest.get_node(pos1); node1_name = node1.name
+				if node1_name == "ignore" then return end -- nothing to move
 				if not object then
-					node1 = minetest.get_node(pos1); node1_name = node1.name
-					if node1_name == "air" or node1_name == "ignore" then return end -- nothing to move
+					if node1_name == "air" then return end -- nothing to move
 					if not inventory then
 						source_chest = mover.chests[node1_name] or false
 					end
@@ -697,7 +698,7 @@ minetest.register_node("basic_machines:mover", {
 					end
 				else
 					node1 = minetest.get_node(pos1); node1_name = node1.name
-					if node1_name == "air" or node1_name == "ignore" then return end -- nothing to move
+					if not object and node1_name == "air" or node1_name == "ignore" then return end -- nothing to move
 					if inventory then -- taking items from chests/inventory move
 						fuel_cost = mover.hardness[prefer] or 1
 					else
@@ -787,11 +788,10 @@ minetest.register_node("basic_machines:mover", {
 				end
 				local radius = math.min(vector.distance(pos1, vector_add(pos, {x = x1, y = y1, z = z1})), max_range) -- distance source1-source2
 				local elevator = meta:get_int("elevator"); if elevator == 1 and radius == 0 then radius = 1 end -- for compatibility
-				local teleport_any = false
+				local teleport_any
 
 				if mover.chests[minetest.get_node(pos2).name] and elevator == 0 then -- put objects in target chest
-					local inv = minetest.get_meta(pos2):get_inventory()
-					local mucca
+					local inv, mucca
 
 					for _, obj in ipairs(minetest.get_objects_inside_radius(pos1, radius)) do
 						if not obj:is_player() then
@@ -802,8 +802,11 @@ minetest.register_node("basic_machines:mover", {
 									if not lua_entity.protected then -- check if mob (mobs_redo) protected
 										-- put item in chest
 										local stack = ItemStack(lua_entity.itemstring)
-										if not stack:is_empty() and inv:room_for_item("main", stack) then
-											inv:add_item("main", stack); teleport_any = true
+										if not stack:is_empty() then
+											inv = inv or minetest.get_meta(pos2):get_inventory()
+											if inv:room_for_item("main", stack) then
+												inv:add_item("main", stack); teleport_any = true
+											end
 										end
 										obj:remove()
 									end
@@ -814,22 +817,25 @@ minetest.register_node("basic_machines:mover", {
 												((lua_entity.nametag and lua_entity.nametag ~= "") and lua_entity.nametag or "Cow")
 											meta:set_string("infotext", S("@1 already milked!", mucca:gsub(", Cow", "") ~= "" and
 												mucca:sub(3):gsub("Cow", S("Cow")) or S("Cows")))
-										elseif inv:contains_item("main", "bucket:bucket_empty") then
-											inv:remove_item("main", "bucket:bucket_empty")
-											if inv:room_for_item("main", "mobs:bucket_milk") then
-												inv:add_item("main", "mobs:bucket_milk")
-											else
-												minetest.add_item(obj:get_pos(), {name = "mobs:bucket_milk"})
+										else
+											inv = inv or minetest.get_meta(pos2):get_inventory()
+											if inv:contains_item("main", "bucket:bucket_empty") then
+												inv:remove_item("main", "bucket:bucket_empty")
+												if inv:room_for_item("main", "mobs:bucket_milk") then
+													inv:add_item("main", "mobs:bucket_milk")
+												else
+													minetest.add_item(obj:get_pos(), {name = "mobs:bucket_milk"})
+												end
+												lua_entity.gotten = true; teleport_any = true
 											end
-											lua_entity.gotten = true; teleport_any = true
 										end
 									end
 								end
 							end
 						end
 					end
-				else
-					local times, velocityv = tonumber(prefer) or 0, nil
+				else -- move objects to another location
+					local times, velocityv = tonumber(prefer) or 0
 					if times ~= 0 then
 						if times == 99 then
 							velocityv = {x = 0, y = 0, z = 0}
@@ -842,13 +848,12 @@ minetest.register_node("basic_machines:mover", {
 						end
 					end
 
-					-- move objects to another location
 					for _, obj in ipairs(minetest.get_objects_inside_radius(pos1, radius)) do
 						if obj:is_player() then
 							if not minetest.is_protected(obj:get_pos(), owner) and
 								(prefer == "" or obj:get_player_name() == prefer)
 							then -- move player only from owners land
-								obj:move_to(pos2, false); teleport_any = true
+								obj:set_pos(pos2); teleport_any = true
 							end
 						else
 							local lua_entity = obj:get_luaentity()
@@ -1087,8 +1092,8 @@ minetest.register_node("basic_machines:mover", {
 
 								for _, pos3 in ipairs(positions) do
 									minetest.set_node(pos3, {name = "air"})
+									check_for_falling(pos3)
 								end
-								check_for_falling(pos1)
 
 								local count, stack_max, stacks = #positions, ItemStack(node1_name):get_stack_max(), {}
 
@@ -1161,15 +1166,15 @@ minetest.register_node("basic_machines:mover", {
 										for _, item in ipairs(drops.items) do
 											if itemlists_dropped >= max_items then break end
 											if math.random(1, item.rarity or 1) == 1 then
-												local inherit_color, palette_index = item.inherit_color, nil
+												local inherit_color, palette_index = item.inherit_color
 												if inherit_color then
 													palette_index = minetest.strip_param2_color(node1.param2, def.paramtype2)
 												end
-												for _, add_item in ipairs(item.items) do -- pick all items from list
+												for _, drop_item in ipairs(item.items) do -- pick all items from list
 													if inherit_color and palette_index then
-														add_item = itemstring_to_stack(add_item, palette_index)
+														drop_item = itemstring_to_stack(drop_item, palette_index)
 													end
-													inv:add_item("main", add_item)
+													inv:add_item("main", drop_item)
 												end
 												itemlists_dropped = itemlists_dropped + 1
 											end

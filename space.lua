@@ -7,7 +7,7 @@ local use_player_monoids = minetest.global_exists("player_monoids")
 local use_basic_protect = minetest.global_exists("basic_protect")
 
 minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
-	if player:get_pos().y >= space_start then return end
+	if player:get_pos().y > space_start then return end
 	-- bring gravity closer to normal with each punch
 	if player:get_physics_override().gravity < 1 then
 		player:set_physics_override({gravity = 1})
@@ -34,15 +34,9 @@ local function toggle_visibility(player, b)
 	player:set_stars({visible = b})
 end
 
-local function adjust_enviro(player) -- adjust players physics/skybox
-	if not player then return end
-	local pos = player:get_pos()
-	local inspace = 0
-	local physics
-
-	if pos.y > space_start then -- is player in space or not ?
-		inspace = 1
-		physics = {speed = 1, jump = 0.5, gravity = 0.1} -- value set for extreme test space spawn
+local function adjust_enviro(inspace, player) -- adjust players physics/skybox
+	if inspace == 1 then -- is player in space or not ?
+		local physics = {speed = 1, jump = 0.5, gravity = 0.1} -- value set for extreme test space spawn
 		if use_player_monoids then
 			player_monoids.speed:add_change(player, physics.speed,
 				"basic_machines:physics")
@@ -58,7 +52,7 @@ local function adjust_enviro(player) -- adjust players physics/skybox
 		player:set_sky({base_color = 0x000000, type = sky["type"], textures = sky["tex"], clouds = false})
 		toggle_visibility(player, false)
 	else
-		physics = {speed = 1, jump = 1, gravity = 1}
+		local physics = {speed = 1, jump = 1, gravity = 1}
 		if use_player_monoids then
 			player_monoids.speed:add_change(player, physics.speed,
 				"basic_machines:physics")
@@ -101,7 +95,7 @@ minetest.register_globalstep(function(dtime)
 	for _, player in ipairs(minetest.get_connected_players()) do
 		local pos = player:get_pos()
 		local name = player:get_player_name()
-		local inspace = 0
+		local inspace
 
 		if pos.y > space_start then
 			inspace = 1
@@ -116,11 +110,13 @@ minetest.register_globalstep(function(dtime)
 				minetest.log("action", "Exclusion zone alert: " .. name .. " at " .. pos_to_string(pos))
 				player:set_pos(spawn_pos)
 			end
+		else
+			inspace = 0
 		end
 
 		-- only adjust player environment ONLY if change occurred (earth->space or space->earth!)
 		if inspace ~= space[name] then
-			space[name] = adjust_enviro(player)
+			space[name] = adjust_enviro(inspace, player)
 		end
 
 		if space_effects and inspace == 1 then -- special space code

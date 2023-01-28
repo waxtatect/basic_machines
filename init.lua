@@ -46,7 +46,7 @@ basic_machines = {
 		generator_upgrade		= 0,		-- upgrade available in addition to the current limit (50)
 		-- space
 		space_start_eff			= 1500,		-- space efficiency height
-		space_start				= 1100,		-- space height
+		space_start				= 1100,		-- space height, set to false to disable
 		space_textures			= "",		-- skybox space textures replacement with up to 6 texture names separated by commas
 		exclusion_height		= 6666,		-- above, without "include" priv, player is teleported to a random location
 		space_effects			= false,	-- enable damage mechanism
@@ -155,7 +155,9 @@ dofile(MP .. "control_doors.lua")			-- if you want open/close doors/trapdoors wi
 											-- also walk through trapdoors, steel doors/trapdoors are made impervious to dig through,
 											-- removal by repeated punches
 dofile(MP .. "control_lights.lua")			-- adds ability to toggle light for other light blocks
-dofile(MP .. "space.lua")					-- change global physics
+if basic_machines.settings.space_start then
+	dofile(MP .. "space.lua")				-- change global physics (skybox, gravity, damage mechanism...)
+end
 
 local S = basic_machines.S
 

@@ -29,7 +29,7 @@ function minetest.is_protected(pos, digger)
 	return is_protected
 end
 
-minetest.register_on_chat_message(function(name, message)
+local function distributor(name, message)
 	local player = minetest.get_player_by_name(name); if not player then return end
 	local pos, r = player:get_pos(), 20
 	local p = {x = round(pos.x / r + 0.5) * r, y = round(pos.y / r + 0.5) * r + 1, z = round(pos.z / r + 0.5) * r}
@@ -47,4 +47,10 @@ minetest.register_on_chat_message(function(name, message)
 			end
 		end
 	end
-end)
+end
+
+if minetest.global_exists("beerchat") then
+	beerchat.register_on_chat_message(distributor)
+else
+	minetest.register_on_chat_message(distributor)
+end
