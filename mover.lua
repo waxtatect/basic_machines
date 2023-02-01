@@ -148,10 +148,9 @@ local mover = {
 		["xdecor:f_item"] = true
 	},
 
-	-- set up nodes for plant with reverse on and filter set (for example seeds -> plant): [nodename] = plant_name
-	plants_table = {
-		["farming:seed_cotton"] = "farming:cotton_1", ["farming:seed_wheat"] = "farming:wheat_1" -- minetest_game farming mod
-	}
+	-- set up nodes for plant with reverse on and filter set
+	-- for example seeds -> plant, [nodename] = plant_name OR [nodename] = true
+	plants_table = {}
 }
 
 -- cool_trees
@@ -172,15 +171,20 @@ for _, cool_tree in ipairs(cool_trees) do
 end
 --
 
-local use_x_farming = minetest.global_exists("x_farming")
-if minetest.global_exists("farming") and (farming.mod == "redo" or use_x_farming) then
+if minetest.global_exists("farming") then
+	local use_x_farming = minetest.global_exists("x_farming")
 	for name, plant in pairs(farming.registered_plants or {}) do
 		if farming.mod == "redo" then
 			mover.plants_table[plant.seed] = plant.crop .. "_1"
-		elseif use_x_farming then
-			local seed = "x_farming:seed_" .. name
+		else
+			local seed = "farming:seed_" .. name
 			if minetest.registered_nodes[seed] then
-				mover.plants_table[seed] = "x_farming:" .. name .. "_1"
+				mover.plants_table[seed] = true
+			elseif use_x_farming then
+				seed = "x_farming:seed_" .. name
+				if minetest.registered_nodes[seed] then
+					mover.plants_table[seed] = true
+				end
 			end
 		end
 	end
@@ -596,11 +600,13 @@ minetest.register_node("basic_machines:mover", {
 				return
 			end
 
+
+			-- VARIABLES
 			local mode = meta:get_string("mode")
 			local object = mode == "object"
 			local mreverse = meta:get_int("reverse")
-			local transport
 			local owner = meta:get_string("owner")
+			local transport, inventory, prefer, source_chest, msg
 
 
 			-- POSITIONS
@@ -647,6 +653,7 @@ minetest.register_node("basic_machines:mover", {
 				if transport and mreverse < 2 then
 					pos2 = vector_add(pos1, {x = x2 - x0, y = y2 - y0, z = z2 - z0}) -- translation from pos1
 				else
+					inventory = mode == "inventory"
 					pos2 = vector_add(pos, {x = x2, y = y2, z = z2})
 				end
 
@@ -663,9 +670,10 @@ minetest.register_node("basic_machines:mover", {
 				meta:set_string("infotext", S("Mover block. Protection fail.")); return
 			end
 
-			local inventory = mode == "inventory"
-			local prefer = meta:get_string("prefer")
-			local node1, node1_name, source_chest, msg
+
+			-- NODE CHECK
+			local node1 = minetest.get_node(pos1); local node1_name = node1.name
+			if not object and node1_name == "air" or node1_name == "ignore" then return end -- nothing to move
 
 
 			-- FUEL
@@ -674,17 +682,8 @@ minetest.register_node("basic_machines:mover", {
 			local fuel = meta:get_float("fuel")
 
 			if upgrade == -1 then
-				node1 = minetest.get_node(pos1); node1_name = node1.name
-				if node1_name == "ignore" then return end -- nothing to move
-				if not object then
-					if node1_name == "air" then return end -- nothing to move
-					if not inventory then
-						source_chest = mover.chests[node1_name] or false
-					end
-				end
 				fuel_cost = 0 -- free operations for admin
-			else
-				-- FUEL COST: calculate
+			else -- calculate fuel cost
 				if object and meta:get_int("elevator") == 1 then -- check if elevator mode
 					local requirement = math.floor((abs(pos2.x - pos.x) + abs(pos2.y - pos.y) + abs(pos2.z - pos.z)) / 100) + 1
 					if (upgrade - 1) >= requirement and (meta:get_int("upgradetype") == 2 or
@@ -697,13 +696,13 @@ minetest.register_node("basic_machines:mover", {
 							requirement)); return
 					end
 				else
-					node1 = minetest.get_node(pos1); node1_name = node1.name
-					if not object and node1_name == "air" or node1_name == "ignore" then return end -- nothing to move
 					if inventory then -- taking items from chests/inventory move
+						prefer = meta:get_string("prefer")
 						fuel_cost = mover.hardness[prefer] or 1
 					else
 						source_chest = mover.chests[node1_name] or false
 						if source_chest and node1_name ~= "default:chest" then
+							prefer = meta:get_string("prefer")
 							fuel_cost = mover.hardness[prefer] or 1
 						else
 							local hardness = mover.hardness[node1_name]
@@ -737,8 +736,7 @@ minetest.register_node("basic_machines:mover", {
 					end
 				end
 
-				-- FUEL OPERATIONS
-				if fuel < fuel_cost then -- needs fuel to operate, find nearby battery
+				if fuel < fuel_cost then -- fuel operations: needs fuel to operate, find nearby battery
 					local power_draw = fuel_cost; local supply
 					if power_draw < 1 then power_draw = 1 end -- at least 10 one block operations with 1 refuel
 					if power_draw == 1 then
@@ -789,6 +787,7 @@ minetest.register_node("basic_machines:mover", {
 				local radius = math.min(vector.distance(pos1, vector_add(pos, {x = x1, y = y1, z = z1})), max_range) -- distance source1-source2
 				local elevator = meta:get_int("elevator"); if elevator == 1 and radius == 0 then radius = 1 end -- for compatibility
 				local teleport_any
+				prefer = prefer or meta:get_string("prefer")
 
 				if mover.chests[minetest.get_node(pos2).name] and elevator == 0 then -- put objects in target chest
 					local inv, mucca
@@ -912,6 +911,7 @@ minetest.register_node("basic_machines:mover", {
 					end
 				end
 
+				prefer = prefer or meta:get_string("prefer")
 				local stack, inv1
 
 				if prefer ~= "" then
@@ -963,11 +963,13 @@ minetest.register_node("basic_machines:mover", {
 
 			-- NORMAL, DIG, DROP, TRANSPORT MODES
 			else
-				local bonemeal
+				prefer = prefer or meta:get_string("prefer")
+				source_chest = source_chest or (mover.chests[node1_name] or false)
+				local drop, bonemeal, seed_planting = mode == "drop"
 
 				if prefer ~= "" then -- filter check
 					if source_chest then
-						bonemeal = mover.bonemeal_table[prefer]
+						if mreverse == 1 and drop then bonemeal = mover.bonemeal_table[prefer] end
 					else
 						if prefer ~= node1_name then -- only take preferred node
 							if msg then meta:set_string("infotext", msg) end; return
@@ -997,23 +999,26 @@ minetest.register_node("basic_machines:mover", {
 					if msg then meta:set_string("infotext", msg) end; return
 				end
 
-				local drop, dig = mode == "drop", mode == "dig"
+				local dig = mode == "dig"
 
 				-- filtering
 				if prefer ~= "" then -- preferred node set
-					local plant, normal = mover.plants_table[prefer], mode == "normal"; local def
+					local normal, def = mode == "normal"
 
-					if drop or mreverse == 1 and plant or
-						normal and target_chest
-					then
-						node1.name, node1_name = prefer, prefer
+					if drop or normal and target_chest then
+						node1.name = prefer
 					elseif normal or dig or transport then
-						def = minetest.registered_nodes[prefer]
-						if def then
-							node1.name, node1_name = prefer, prefer
-						else
-							minetest.chat_send_player(owner, S("MOVER: Filter defined with unknown node (@1) at @2, @3, @4.",
-								prefer, pos.x, pos.y, pos.z)); return
+						if source_chest and mreverse == 1 and (normal or dig) then
+							seed_planting = mover.plants_table[prefer]
+						end
+						if not seed_planting then
+							def = minetest.registered_nodes[prefer]
+							if def then
+								node1.name = prefer
+							else
+								minetest.chat_send_player(owner, S("MOVER: Filter defined with unknown node (@1) at @2, @3, @4.",
+									prefer, pos.x, pos.y, pos.z)); return
+							end
 						end
 					else
 						minetest.chat_send_player(owner, S("MOVER: Wrong filter (@1) at @2, @3, @4.",
@@ -1036,12 +1041,25 @@ minetest.register_node("basic_machines:mover", {
 						if inv:contains_item("main", stack, match_meta) then
 							if mreverse == 1 and not match_meta then
 								if normal or dig then
-									if plant then -- planting mode: check if transform seed -> plant is needed
-										def = minetest.registered_nodes[plant]
-										if def then
-											node1 = {name = plant, param1 = nil,
-												param2 = def.place_param2}
-											node1_name = plant
+									if seed_planting then -- planting mode: check if transform seed -> plant is needed
+										local def_plant = minetest.registered_nodes[seed_planting]
+										if def_plant then -- farming redo mod
+											if prefer == "farming:beans" then
+												if inv:contains_item("main", "farming:beanpole") then
+													inv:remove_item("main", "farming:beanpole")
+												else
+													if msg then meta:set_string("infotext", msg) end; return
+												end
+											elseif prefer == "farming:grapes" then
+												if inv:contains_item("main", "farming:trellis") then
+													inv:remove_item("main", "farming:trellis")
+												else
+													if msg then meta:set_string("infotext", msg) end; return
+												end
+											end
+											node1 = {name = seed_planting, param2 = def_plant.place_param2 or 1}
+										elseif seed_planting == true then -- minetest_game farming mod
+											node1 = {name = prefer, param2 = 1}
 										else
 											if msg then meta:set_string("infotext", msg) end; return
 										end
@@ -1069,6 +1087,7 @@ minetest.register_node("basic_machines:mover", {
 							if msg then meta:set_string("infotext", msg) end; return
 						end
 					end
+					node1_name = node1.name
 				end
 
 				local not_special = true -- mode for special items: trees, liquids using bucket, mese crystals ore
@@ -1221,6 +1240,13 @@ minetest.register_node("basic_machines:mover", {
 							minetest.add_item(pos2, item_to_stack(node1)) -- drops it
 						else
 							minetest.set_node(pos2, node1)
+							if seed_planting then
+								if farming.handle_growth then -- farming redo mod
+									farming.handle_growth(pos2, node1)
+								elseif farming.grow_plant then -- minetest_game farming mod
+									farming.grow_plant(pos2)
+								end
+							end
 						end
 					end
 
