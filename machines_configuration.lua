@@ -2,6 +2,7 @@ local F, S = basic_machines.F, basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local max_range = basic_machines.properties.max_range
 local mover_upgrade_max = basic_machines.properties.mover_upgrade_max
+local mover_no_large_stacks = basic_machines.settings.mover_no_large_stacks
 local sounds, punchset, keypad_soundlist, sound_selected = {}, {}, nil, {}
 
 minetest.register_on_mods_loaded(function()
@@ -431,14 +432,13 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				local mmode = meta:get_string("mode")
 				local mode = strip_translator_sequence(fields.mode, mmode)
 				local prefer = fields.prefer or ""
-				local mreverse = meta:get_int("reverse")
 
 				-- mode
 				if mode ~= mmode then
-					-- input validation
-					if basic_machines.check_mover_filter(mode, prefer, mreverse) or
-						basic_machines.check_target_chest(mode, pos, meta)
-					then
+					if basic_machines.check_mover_filter(mode, pos, meta, prefer) then -- input validation
+						if mover_no_large_stacks and basic_machines.check_mover_target(mode, pos, meta) then
+							prefer = basic_machines.clamp_item_count(prefer)
+						end
 						meta:set_string("mode", mode)
 					else
 						minetest.chat_send_player(name, S("MOVER: Wrong filter - must be name of existing minetest block"))
@@ -447,10 +447,10 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 				-- filter
 				if prefer ~= meta:get_string("prefer") then
-					-- input validation
-					if basic_machines.check_mover_filter(mode, prefer, mreverse) or
-						basic_machines.check_target_chest(mode, pos, meta)
-					then
+					if basic_machines.check_mover_filter(mode, pos, meta, prefer) then -- input validation
+						if mover_no_large_stacks and basic_machines.check_mover_target(mode, pos, meta) then
+							prefer = basic_machines.clamp_item_count(prefer)
+						end
 						meta:set_string("prefer", prefer)
 						meta:get_inventory():set_list("filter", {})
 					else
@@ -515,11 +515,21 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		elseif fields.mode then
 			if fields.quit or minetest.is_protected(pos, name) then return end
 
-			local mode = strip_translator_sequence(fields.mode, meta:get_string("mode"))
-			-- input validation
-			if basic_machines.check_mover_filter(mode, meta:get_string("prefer"), meta:get_int("reverse")) or
-				basic_machines.check_target_chest(mode, pos, meta)
-			then
+			local mmode = meta:get_string("mode")
+			local mode = strip_translator_sequence(fields.mode, mmode)
+			if mode == mmode then return end
+
+			local prefer = fields.prefer or ""
+			if basic_machines.check_mover_filter(mode, pos, meta, prefer) then -- input validation
+				if mover_no_large_stacks and basic_machines.check_mover_target(mode, pos, meta) then
+					prefer = basic_machines.clamp_item_count(prefer)
+				end
+
+				if prefer ~= meta:get_string("prefer") then
+					meta:set_string("prefer", prefer)
+					meta:get_inventory():set_list("filter", {})
+				end
+
 				meta:set_string("mode", mode)
 
 				minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),

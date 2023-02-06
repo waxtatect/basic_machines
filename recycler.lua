@@ -73,10 +73,14 @@ local function recycler_process(pos)
 
 			if add_fuel > 0 then
 				fuel = fuel + add_fuel; meta:set_float("fuel", fuel)
-				msg = S("Added fuel furnace burn time @1, fuel status @2", add_fuel, twodigits_float(fuel))
 			end
 
-			if fuel < fuel_req then return end
+			if fuel < fuel_req then
+				meta:set_string("infotext",
+					S("Need at least @1 fuel to complete operation", twodigits_float(fuel_req - fuel))); return
+			else
+				msg = S("Added fuel furnace burn time @1, fuel status @2", add_fuel, twodigits_float(fuel))
+			end
 		end
 	end
 

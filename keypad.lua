@@ -2,6 +2,7 @@ local F, S = basic_machines.F, basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
+local mover_no_large_stacks = basic_machines.settings.mover_no_large_stacks
 local byte = string.byte
 local signs = { -- when activated with keypad these will be "punched" to update their text too
 	["basic_signs:sign_wall_glass"] = true,
@@ -124,7 +125,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 		local node = minetest.get_node_or_nil(tpos); if not node then return end -- error
 		local name = node.name
 
-		if name ~= "basic_machines:keypad" and not vector.equals(pos, tpos) then
+		if name ~= "basic_machines:keypad" and not vector.equals(tpos, pos) then
 			if count < 2 then
 				meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
 			else
@@ -188,9 +189,10 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			else
 				local mode = tmeta:get_string("mode")
 				-- mover input validation
-				if basic_machines.check_mover_filter(mode, text, tmeta:get_int("reverse")) or
-					basic_machines.check_target_chest(mode, tpos, tmeta)
-				then
+				if basic_machines.check_mover_filter(mode, tpos, tmeta, text) then
+					if mover_no_large_stacks and basic_machines.check_mover_target(mode, tpos, tmeta) then
+						text = basic_machines.clamp_item_count(text)
+					end
 					tmeta:set_string("prefer", text)
 					tmeta:get_inventory():set_list("filter", {})
 				end

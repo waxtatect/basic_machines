@@ -41,6 +41,8 @@ basic_machines = {
 		grinder_dusts_legacy	= false,	-- legacy dust mode: dust_33 (smelt) -> dust_66 (smelt) -> ingot
 		grinder_extractors_type	= 1,		-- recipe priority if optional mod present, 1: farming_redo, 2: x_farming
 		-- mover
+		mover_add_removed_items	= false,	-- always add the removed items in normal mode with target chest
+		mover_no_large_stacks	= false,	-- limit the stack count to its max in normal, drop and inventory mode
 		mover_max_temp			= 176,		-- overheat above this temperature, minimum 1
 		-- technic_power
 		generator_upgrade		= 0,		-- upgrade available in addition to the current limit (50)
@@ -64,6 +66,7 @@ basic_machines = {
 		end
 		return table.concat(player_inv)
 	end,
+--[[ interfaces
 	-- autocrafter
 	change_autocrafter_recipe = function() end,
 	-- distributor
@@ -76,14 +79,16 @@ basic_machines = {
 	-- keypad
 	use_keypad = function() end,
 	-- mover
+	check_mover_target = nil, -- function used with mover_no_large_stacks setting
+	clamp_item_count = nil, -- function used with mover_no_large_stacks setting
 	check_mover_filter = function() end,
-	check_target_chest = function() end,
 	find_and_connect_battery = function() end,
 	get_mover = function() end,
 	get_mover_form = function() end,
 	set_mover = function() end,
 	-- technic_power
 	check_power = function() end
+--]]
 }
 
 -- read settings from configuration file

@@ -9,6 +9,8 @@ local machines_minstep = basic_machines.properties.machines_minstep
 local machines_operations = basic_machines.properties.machines_operations
 local machines_timer = basic_machines.properties.machines_timer
 local max_range = basic_machines.properties.max_range
+local mover_add_removed_items = basic_machines.settings.mover_add_removed_items
+local mover_no_large_stacks = basic_machines.settings.mover_no_large_stacks
 local mover_max_temp = math.max(1, basic_machines.settings.mover_max_temp)
 local twodigits_float = basic_machines.twodigits_float
 local vector_add = vector.add
@@ -138,6 +140,7 @@ local mover = {
 		[""] = true,
 		["3d_armor_stand:armor_entity"] = true,
 		["__builtin:item"] = true,
+		["itemframes:item"] = true,
 		["machines:posA"] = true,
 		["machines:posN"] = true,
 		["painting:paintent"] = true,
@@ -149,7 +152,7 @@ local mover = {
 	},
 
 	-- set up nodes for plant with reverse on and filter set
-	-- for example seeds -> plant, [nodename] = plant_name OR [nodename] = true
+	-- for example seed -> plant, [nodename] = plant_name OR [nodename] = true
 	plants_table = {}
 }
 
@@ -210,24 +213,42 @@ basic_machines.set_mover = function(setting, def)
 	end
 end
 
--- anal retentive change in minetest 5.0.0 to minetest 5.1.0 (#7011) changing unknown node warning into crash
--- forcing many checks with all possible combinations + adding many new crashes combinations
-basic_machines.check_mover_filter = function(mode, filter, mreverse) -- mover input validation, is it correct node
-	if filter == "" then return true end -- allow clearing filter
-	if mode == "normal" or mode == "dig" or mode == "transport" then
-		if mreverse == 1 and mover.plants_table[filter] then return true end -- allow farming
-		if not minetest.registered_nodes[filter] then
-			return false
+if mover_no_large_stacks then
+	basic_machines.check_mover_target = function(mode, pos, meta)
+		if mode == "normal" then
+			local pos2 = vector_add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")})
+			if mover.chests[minetest.get_node(pos2).name] then return true end
+		elseif mode == "drop" then -- any target
+			return true
 		end
+		return false
 	end
-	return true
+
+	basic_machines.clamp_item_count = function(item)
+		local itemstring = type(item) == "string"
+		local stack = itemstring and ItemStack(item) or item
+		local stack_max = stack:get_stack_max()
+		if stack:get_count() > stack_max then stack:set_count(stack_max) end
+		return itemstring and stack:to_string() or stack
+	end
 end
 
-basic_machines.check_target_chest = function(mode, pos, meta)
-	if mode == "normal" and meta:get_int("reverse") == 0 then
-		local pos2 = vector_add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")})
-		if mover.chests[minetest.get_node(pos2).name] then
+-- anal retentive change in minetest 5.0.0 to minetest 5.1.0 (#7011) changing unknown node warning into crash
+-- forcing many checks with all possible combinations + adding many new crashes combinations
+basic_machines.check_mover_filter = function(mode, pos, meta, filter) -- mover input validation, is it correct node
+	filter = filter or meta:get_string("prefer")
+	if filter == "" then return true end -- allow clearing filter
+	if mode == "object" or mode == "inventory" or mode == "drop" then
+		return true
+	else
+		local normal = mode == "normal"
+		if (normal or mode == "dig") and meta:get_int("reverse") == 1 and mover.plants_table[filter] then -- allow farming
 			return true
+		elseif minetest.registered_nodes[filter] then -- normal, dig and transport mode
+			return true
+		elseif normal then -- allow chest transfer
+			local pos2 = vector_add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")})
+			if mover.chests[minetest.get_node(pos2).name] then return true end
 		end
 	end
 	return false
@@ -239,6 +260,18 @@ local function itemstring_to_stack(itemstring, palette_index)
 		stack:get_meta():set_int("palette_index", palette_index)
 	end
 	return stack
+end
+
+local function set_infotext(meta, msg)
+	if msg then meta:set_string("infotext", msg) end
+end
+
+local function get_palette_index(inventory)
+	local palette_index
+	if inventory:get_count() > 0 then
+		palette_index = tonumber(inventory:get_meta():get("palette_index"))
+	end
+	return palette_index
 end
 
 local function create_virtual_player(name)
@@ -271,8 +304,8 @@ local mover_modes = {
 	["object"] = {id = 4 , desc = F(S("Make TELEPORTER/ELEVATOR:\n This will move any object inside a sphere (with center source1 and radius defined by distance between source1/source2) to target position\n" ..
 		" For ELEVATOR, teleport origin/destination need to be placed exactly in same coordinate line with mover, and you need to upgrade with 1 diamond block for every 100 height difference"))},
 	["inventory"] = {id = 5, desc = F(S("This will move items from inventory of any block at source position to any inventory of block at target position"))},
-	["transport"] = {id = 6, desc = F(S("This will move all blocks at source area to new area starting at target position\n" ..
-		"This mode preserves all inventories and other metadata"))}
+	["transport"] = {id = 6, desc = F(S("This will move all blocks at source area to new area starting at target position\nThis mode preserves all inventories and other metadata\n" ..
+		"Make chest items transport: define the filter with the needed type of chest"))}
 }
 local mover_modelist_translated = -- translations of mover_modes keys
 	table.concat({F(S("normal")), F(S("dig")), F(S("drop")), F(S("object")), F(S("inventory")), F(S("transport"))}, ",")
@@ -475,7 +508,7 @@ minetest.register_node("basic_machines:mover", {
 			local inv = meta:get_inventory()
 			local inv_stack = inv:get_stack("filter", 1)
 			local inv_palette_index = tonumber(inv_stack:get_meta():get("palette_index"))
-			local item = stack:to_table()
+			local item = stack:to_table(); if not item then return 0 end
 			local palette_index = tonumber(stack:get_meta():get("palette_index"))
 
 			if inv_stack:get_name() == item.name and inv_palette_index == palette_index then
@@ -485,13 +518,13 @@ minetest.register_node("basic_machines:mover", {
 			local mode = meta:get_string("mode")
 			local prefer = item.name .. (item.count > 1 and (" " .. math.min(item.count, 65535)) or "")
 
-			-- input validation
-			if basic_machines.check_mover_filter(mode, prefer, meta:get_int("reverse")) or
-				basic_machines.check_target_chest(mode, pos, meta)
-			then
+			if basic_machines.check_mover_filter(mode, pos, meta, prefer) then -- input validation
+				if mover_no_large_stacks and basic_machines.check_mover_target(mode, pos, meta) then
+					prefer = basic_machines.clamp_item_count(prefer)
+				end
 				meta:set_string("prefer", prefer)
 				local filter_stack = itemstring_to_stack(prefer, palette_index)
-				inv:set_stack("filter", 1, filter_stack) -- inv:add_item("filter", filter_stack)
+				inv:set_stack("filter", 1, filter_stack)
 			else
 				minetest.chat_send_player(name, S("MOVER: Wrong filter - must be name of existing minetest block")); return 0
 			end
@@ -532,18 +565,17 @@ minetest.register_node("basic_machines:mover", {
 		if listname == "filter" then
 			local inv = meta:get_inventory()
 			local inv_stack = inv:get_stack("filter", 1)
-			local item = stack:to_table()
-			item.count = inv_stack:get_count() - item.count
+			local count = inv_stack:get_count() - stack:get_count()
 
-			if item.count < 1 then
+			if count < 1 then
 				meta:set_string("prefer", "")
 				inv:set_stack("filter", 1, ItemStack(""))
 				-- inv:set_list("filter", {}) -- using saved map, mover with prefer previously set, it crashes the game... but why
 			else
-				local prefer = item.name .. (item.count > 1 and (" " .. item.count) or "")
+				local prefer = stack:get_name() .. (count > 1 and (" " .. count) or "")
 				meta:set_string("prefer", prefer)
 				local filter_stack = itemstring_to_stack(prefer, tonumber(inv_stack:get_meta():get("palette_index")))
-				inv:set_stack("filter", 1, filter_stack) -- inv:add_item("filter", filter_stack)
+				inv:set_stack("filter", 1, filter_stack)
 			end
 			minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
 				basic_machines.get_mover_form(pos, name))
@@ -785,32 +817,31 @@ minetest.register_node("basic_machines:mover", {
 					x1, y1, z1 = meta:get_int("x1"), meta:get_int("y1"), meta:get_int("z1") -- source2
 				end
 				local radius = math.min(vector.distance(pos1, vector_add(pos, {x = x1, y = y1, z = z1})), max_range) -- distance source1-source2
+				local node2_name = minetest.get_node(pos2).name
 				local elevator = meta:get_int("elevator"); if elevator == 1 and radius == 0 then radius = 1 end -- for compatibility
 				local teleport_any
 				prefer = prefer or meta:get_string("prefer")
 
-				if mover.chests[minetest.get_node(pos2).name] and elevator == 0 then -- put objects in target chest
+				if mover.chests[node2_name] and elevator == 0 then -- put objects in target chest
 					local inv, mucca
 
 					for _, obj in ipairs(minetest.get_objects_inside_radius(pos1, radius)) do
 						if not obj:is_player() then
 							local lua_entity = obj:get_luaentity()
 							local detected_obj = lua_entity and (lua_entity.itemstring or lua_entity.name) or ""
-							if not mover.no_teleport_table[detected_obj] and lua_entity then -- object on no teleport list
-								if prefer == "" or prefer == detected_obj then
-									if not lua_entity.protected then -- check if mob (mobs_redo) protected
-										-- put item in chest
-										local stack = ItemStack(lua_entity.itemstring)
-										if not stack:is_empty() then
+							local stack = ItemStack(detected_obj); local detected_obj_name = stack:get_name()
+							if not mover.no_teleport_table[detected_obj_name] then -- forbid to take an object on no teleport list
+								if prefer == "" or prefer == detected_obj_name or prefer == detected_obj then
+									if not stack:is_empty() and minetest.registered_items[detected_obj_name] then -- put item in chest
+										if lua_entity and not lua_entity.tamed then -- check if mob (mobs_redo) tamed
 											inv = inv or minetest.get_meta(pos2):get_inventory()
 											if inv:room_for_item("main", stack) then
-												inv:add_item("main", stack); teleport_any = true
+												obj:remove(); inv:add_item("main", stack); teleport_any = true
 											end
 										end
-										obj:remove()
 									end
-								elseif prefer == "bucket:bucket_empty" and lua_entity.name == "mobs_animal:cow" then
-									if not lua_entity.child then
+								elseif prefer == "bucket:bucket_empty" and detected_obj_name == "mobs_animal:cow" then
+									if lua_entity and not lua_entity.child then
 										if lua_entity.gotten then -- already milked
 											mucca = (mucca or "") .. ", " ..
 												((lua_entity.nametag and lua_entity.nametag ~= "") and lua_entity.nametag or "Cow")
@@ -833,7 +864,7 @@ minetest.register_node("basic_machines:mover", {
 							end
 						end
 					end
-				else -- move objects to another location
+				elseif node2_name ~= "ignore" then -- move objects to another location
 					local times, velocityv = tonumber(prefer) or 0
 					if times ~= 0 then
 						if times == 99 then
@@ -850,15 +881,15 @@ minetest.register_node("basic_machines:mover", {
 					for _, obj in ipairs(minetest.get_objects_inside_radius(pos1, radius)) do
 						if obj:is_player() then
 							if not minetest.is_protected(obj:get_pos(), owner) and
-								(prefer == "" or obj:get_player_name() == prefer)
+								(prefer == "" or prefer == obj:get_player_name())
 							then -- move player only from owners land
 								obj:set_pos(pos2); teleport_any = true
 							end
 						else
 							local lua_entity = obj:get_luaentity()
 							local detected_obj = lua_entity and (lua_entity.itemstring or lua_entity.name) or ""
-							if not mover.no_teleport_table[detected_obj] and lua_entity then -- object on no teleport list
-								if times > 0 then -- interaction with objects like carts
+							if not mover.no_teleport_table[detected_obj] then -- forbid to take an object on no teleport list
+								if times > 0 and lua_entity then -- interaction with objects like carts
 									local name = lua_entity.name
 									if times == 99 then
 										obj:set_acceleration(velocityv)
@@ -888,8 +919,8 @@ minetest.register_node("basic_machines:mover", {
 					fuel = fuel - fuel_cost; meta:set_float("fuel", fuel)
 					meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
 					minetest.sound_play("basic_machines_tng_transporter1", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
-				elseif msg then
-					meta:set_string("infotext", msg)
+				else
+					set_infotext(meta, msg)
 				end
 
 
@@ -903,47 +934,75 @@ minetest.register_node("basic_machines:mover", {
 					invName1, invName2 = meta:get_string("inv1"), meta:get_string("inv2")
 				end
 
-				-- forbidden nodes to take from in inventory mode - to prevent abuses:
 				local limit_inventory = mover.limit_inventory_table[node1_name]
 				if limit_inventory then
-					if limit_inventory == true or limit_inventory[invName1] then -- forbidden to take from this inventory
-						if msg then meta:set_string("infotext", msg) end; return
+					if limit_inventory == true or limit_inventory[invName1] then -- forbid to take from this inventory or list
+						set_infotext(meta, msg); return
 					end
 				end
 
 				prefer = prefer or meta:get_string("prefer")
-				local stack, inv1
+				local stack, inv1, item_found
 
-				if prefer ~= "" then
-					stack = ItemStack(prefer)
-				else -- just pick one item from chest to transfer
+				if prefer ~= "" then -- pick preferred item to transfer
+					if upgrade == -1 then -- free item for admin
+						stack = ItemStack(prefer)
+
+						local palette_index = get_palette_index(meta:get_inventory():get_stack("filter", 1))
+						if palette_index then
+							stack:get_meta():set_int("palette_index", palette_index)
+						end
+					else
+						inv1 = minetest.get_meta(pos1):get_inventory()
+
+						if inv1:is_empty(invName1) then -- nothing to move
+							set_infotext(meta, msg); return
+						end
+
+						if mover_no_large_stacks then
+							stack = basic_machines.clamp_item_count(ItemStack(prefer))
+						else
+							stack = ItemStack(prefer)
+						end
+
+						if inv1:contains_item(invName1, stack) then
+							item_found = true
+						end
+					end
+				else -- just pick one item to transfer
 					inv1 = minetest.get_meta(pos1):get_inventory()
+
 					if inv1:is_empty(invName1) then -- nothing to move
-						if msg then meta:set_string("infotext", msg) end; return
+						set_infotext(meta, msg); return
 					end
-					local i, found = 1, false
-					while i <= inv1:get_size(invName1) do -- find item to move in inventory
+
+					local i = 1
+					while i <= inv1:get_size(invName1) do -- find item to move
 						stack = inv1:get_stack(invName1, i)
-						if stack:is_empty() then i = i + 1 else found = true; break end
+						if stack:is_empty() then i = i + 1 else item_found = true; break end
 					end
-					if not found then if msg then meta:set_string("infotext", msg) end; return end
 				end
 
-				-- can we move the items to target inventory ?
-				local inv2 = minetest.get_meta(pos2):get_inventory()
-				if inv2:room_for_item(invName2, stack) then
-					inv1 = inv1 or minetest.get_meta(pos1):get_inventory()
-					-- add item to target inventory and remove item from source inventory
-					if inv1:contains_item(invName1, stack) then
-						inv2:add_item(invName2, stack)
-						inv1:remove_item(invName1, stack)
-					elseif upgrade == -1 and minetest.registered_items[stack:get_name()] then -- admin is owner.. just add stuff
-						inv2:add_item(invName2, stack)
+				-- can we move the item to target inventory ?
+				if item_found then
+					local inv2 = minetest.get_meta(pos2):get_inventory()
+					if inv2:room_for_item(invName2, stack) then
+						inv2:add_item(invName2, inv1:remove_item(invName1, stack))
 					else
-						if msg then meta:set_string("infotext", msg) end; return -- item not found in chest
+						set_infotext(meta, msg); return
+					end
+				elseif upgrade == -1 and minetest.registered_items[stack:get_name()] then -- just add stuff
+					local inv2, stack_set = minetest.get_meta(pos2):get_inventory()
+					for i = 1, inv2:get_size(invName2) do -- try to find an empty stack to add the new stack
+						if inv2:get_stack(invName2, i):is_empty() then
+							inv2:set_stack(invName2, i, stack); stack_set = true; break
+						end
+					end
+					if not stack_set then
+						set_infotext(meta, msg); return
 					end
 				else
-					if msg then meta:set_string("infotext", msg) end; return
+					set_infotext(meta, msg); return
 				end
 
 				local count = meta:get_int("activation_count")
@@ -961,139 +1020,231 @@ minetest.register_node("basic_machines:mover", {
 				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
 
 
-			-- NORMAL, DIG, DROP, TRANSPORT MODES
-			else
+			-- TRANSPORT MODE
+			elseif transport then
 				prefer = prefer or meta:get_string("prefer")
-				source_chest = source_chest or (mover.chests[node1_name] or false)
-				local drop, bonemeal, seed_planting = mode == "drop"
 
+
+				-- checks
 				if prefer ~= "" then -- filter check
-					if source_chest then
-						if mreverse == 1 and drop then bonemeal = mover.bonemeal_table[prefer] end
-					else
-						if prefer ~= node1_name then -- only take preferred node
-							if msg then meta:set_string("infotext", msg) end; return
-						else
-							local inv_stack = meta:get_inventory():get_stack("filter", 1)
-							if inv_stack:get_count() > 0 then
-								local inv_palette_index = tonumber(inv_stack:get_meta():get("palette_index"))
-								if inv_palette_index then
-									local def = inv_stack:get_definition()
-									local palette_index = minetest.strip_param2_color(node1.param2, def and def.paramtype2)
-									if inv_palette_index ~= palette_index then
-										if msg then meta:set_string("infotext", msg) end; return
-									end
-								end
+					if prefer ~= node1_name then -- only take preferred node
+						set_infotext(meta, msg); return
+					else -- only take preferred node with palette_index if defined
+						local inv_stack = meta:get_inventory():get_stack("filter", 1)
+						local inv_palette_index = get_palette_index(inv_stack)
+						if inv_palette_index then
+							local def = inv_stack:get_definition()
+							local palette_index = minetest.strip_param2_color(node1.param2, def and def.paramtype2)
+							if inv_palette_index ~= palette_index then
+								set_infotext(meta, msg); return
 							end
 						end
 					end
-				elseif source_chest then -- prefer == "", doesn't know what to take out of chest/inventory
-					if msg then meta:set_string("infotext", msg) end; return
+				end
+
+				source_chest = source_chest or (mover.chests[node1_name] or false)
+				local node2_name = minetest.get_node(pos2).name
+				local target_chest = mover.chests[node2_name] or false
+
+				if source_chest and target_chest then
+					if prefer == "" then
+						set_infotext(meta, msg); return
+					end
+				elseif node2_name ~= "air" then
+					set_infotext(meta, msg); return
+				end
+
+
+				-- handle filter
+				if prefer ~= "" then
+					-- check to prevent crash (see basic_machines.check_mover_filter)
+					if not minetest.registered_nodes[prefer] then
+						minetest.chat_send_player(owner, S("MOVER: Filter defined with unknown node (@1) at @2, @3, @4.",
+							prefer, pos.x, pos.y, pos.z)); set_infotext(meta, msg); return
+					end
+
+					if source_chest and target_chest then -- transport all chest items from source to target
+						local inv2 = minetest.get_meta(pos2):get_inventory()
+						if inv2:is_empty("main") then
+							local inv1 = minetest.get_meta(pos1):get_inventory()
+							if inv1:is_empty("main") then set_infotext(meta, msg); return end
+							inv2:set_list("main", inv1:get_list("main"))
+							inv1:set_list("main", {})
+						else
+							set_infotext(meta, msg); return
+						end
+					end
+				end
+
+
+				-- transport nodes parallel as defined by source1 and target, clone with complete metadata
+				if not target_chest then
+					local meta1 = minetest.get_meta(pos1):to_table()
+					minetest.set_node(pos2, node1)
+					if meta1 then minetest.get_meta(pos2):from_table(meta1) end
+					minetest.set_node(pos1, {name = "air"})
+				end
+
+
+				-- activation count and fuel cost
+				local count = meta:get_int("activation_count")
+				if count < 16 then
+					minetest.sound_play("basic_machines_transporter", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
+				end
+
+				if t0 > tn then
+					meta:set_int("activation_count", count + 1)
+				elseif count > 0 then
+					meta:set_int("activation_count", 0)
+				end
+
+				fuel = fuel - fuel_cost; meta:set_float("fuel", fuel)
+				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
+
+
+			-- NORMAL, DIG, DROP MODES
+			else
+				prefer = prefer or meta:get_string("prefer")
+				source_chest = source_chest or (mover.chests[node1_name] or false)
+				local normal, dig, drop = mode == "normal", mode == "dig", mode == "drop"
+				local seed_planting, bonemeal
+
+
+				-- checks
+				if prefer ~= "" then -- filter check
+					if source_chest then
+						if mreverse == 1 then
+							if normal or dig then
+								seed_planting = mover.plants_table[prefer]
+							elseif drop then
+								bonemeal = mover.bonemeal_table[prefer]
+							end
+						end
+					elseif prefer ~= node1_name then -- only take preferred node
+						set_infotext(meta, msg); return
+					else -- only take preferred node with palette_index if defined
+						local inv_stack = meta:get_inventory():get_stack("filter", 1)
+						local inv_palette_index = get_palette_index(inv_stack)
+						if inv_palette_index then
+							local def = inv_stack:get_definition()
+							local palette_index = minetest.strip_param2_color(node1.param2, def and def.paramtype2)
+							if inv_palette_index ~= palette_index then
+								set_infotext(meta, msg); return
+							end
+						end
+					end
+				elseif source_chest then -- prefer == "", doesn't know what to take out of chest
+					set_infotext(meta, msg); return
 				end
 
 				local node2_name = minetest.get_node(pos2).name
 				local target_chest = mover.chests[node2_name] or false
 
-				-- do nothing if target non-empty and not chest and not bonemeal or transport mode and target chest
-				if not target_chest and node2_name ~= "air" and not bonemeal or transport and target_chest then
-					if msg then meta:set_string("infotext", msg) end; return
+				if target_chest then
+					if drop then
+						set_infotext(meta, msg); return
+					end
+				elseif node2_name ~= "air" and not bonemeal then
+					set_infotext(meta, msg); return
 				end
 
-				local dig = mode == "dig"
+				local removed_items
 
-				-- filtering
-				if prefer ~= "" then -- preferred node set
-					local normal, def = mode == "normal"
 
-					if drop or normal and target_chest then
-						node1.name = prefer
-					elseif normal or dig or transport then
-						if source_chest and mreverse == 1 and (normal or dig) then
-							seed_planting = mover.plants_table[prefer]
-						end
-						if not seed_planting then
+				-- handle filter
+				if prefer ~= "" then
+					local def
+
+					-- set preferred node and checks to prevent crash (see basic_machines.check_mover_filter)
+					if normal or dig then
+						if seed_planting then -- allow farming
+							local def_plant = minetest.registered_nodes[seed_planting]
+							if def_plant then -- farming redo mod, check if transform seed -> plant is needed
+								node1 = {name = seed_planting, param2 = def_plant.place_param2 or 1}
+							elseif seed_planting == true then -- minetest_game farming mod
+								node1 = {name = prefer, param2 = 1}
+							else
+								set_infotext(meta, msg); return
+							end
+						elseif normal and target_chest then -- allow chest transfer in normal mode
+							node1.name = prefer
+						else
 							def = minetest.registered_nodes[prefer]
 							if def then
-								node1.name = prefer
+								if target_chest then -- dig mode
+									node1.name, node1_name = prefer, prefer
+								end
 							else
 								minetest.chat_send_player(owner, S("MOVER: Filter defined with unknown node (@1) at @2, @3, @4.",
-									prefer, pos.x, pos.y, pos.z)); return
+									prefer, pos.x, pos.y, pos.z)); set_infotext(meta, msg); return
 							end
 						end
+					elseif drop then
+						node1.name = prefer
 					else
 						minetest.chat_send_player(owner, S("MOVER: Wrong filter (@1) at @2, @3, @4.",
-							prefer, pos.x, pos.y, pos.z)); return
+							prefer, pos.x, pos.y, pos.z)); set_infotext(meta, msg); return
 					end
 
-					if source_chest and not transport then -- take stuff from chest
-						local inv_stack = meta:get_inventory():get_stack("filter", 1)
-						local stack, match_meta = ItemStack(prefer), false
+					if source_chest then -- take stuff from chest (filter needed)
 						local inv = minetest.get_meta(pos1):get_inventory()
-
-						if inv_stack:get_count() > 0 then
-							local palette_index = tonumber(inv_stack:get_meta():get("palette_index"))
-							if palette_index then
-								stack:get_meta():set_int("palette_index", palette_index)
-								match_meta = true; node1.param1, node1.param2 = nil, palette_index
-							end
-						end
-
-						if inv:contains_item("main", stack, match_meta) then
-							if mreverse == 1 and not match_meta then
-								if normal or dig then
-									if seed_planting then -- planting mode: check if transform seed -> plant is needed
-										local def_plant = minetest.registered_nodes[seed_planting]
-										if def_plant then -- farming redo mod
-											if prefer == "farming:beans" then
-												if inv:contains_item("main", "farming:beanpole") then
-													inv:remove_item("main", "farming:beanpole")
-												else
-													if msg then meta:set_string("infotext", msg) end; return
-												end
-											elseif prefer == "farming:grapes" then
-												if inv:contains_item("main", "farming:trellis") then
-													inv:remove_item("main", "farming:trellis")
-												else
-													if msg then meta:set_string("infotext", msg) end; return
-												end
-											end
-											node1 = {name = seed_planting, param2 = def_plant.place_param2 or 1}
-										elseif seed_planting == true then -- minetest_game farming mod
-											node1 = {name = prefer, param2 = 1}
+						local stack = ItemStack(prefer)
+						if inv:contains_item("main", stack) then
+							local palette_index
+							if seed_planting then -- planting mode
+								if farming.mod == "redo" then -- check for beanpole and trellis
+									if prefer == "farming:beans" then
+										if inv:contains_item("main", "farming:beanpole") then
+											inv:remove_item("main", "farming:beanpole")
 										else
-											if msg then meta:set_string("infotext", msg) end; return
+											set_infotext(meta, msg); return
 										end
-									elseif def and def.paramtype2 ~= "facedir" then
-										node1.param2 = nil
-									end
-								elseif drop and bonemeal then -- bonemeal check
-									local on_use = (minetest.registered_items[prefer] or {}).on_use
-									if on_use then
-										vplayer[owner] = vplayer[owner] or create_virtual_player(owner)
-										local itemstack = on_use(ItemStack(prefer .. " 2"),
-											vplayer[owner], {type = "node",	under = pos2,
-											above = {x = pos2.x, y = pos2.y + 1, z = pos2.z}})
-										bonemeal = itemstack and itemstack:get_count() == 1 or
-											basic_machines.creative(owner)
-									else
-										if msg then meta:set_string("infotext", msg) end; return
+									elseif prefer == "farming:grapes" then
+										if inv:contains_item("main", "farming:trellis") then
+											inv:remove_item("main", "farming:trellis")
+										else
+											set_infotext(meta, msg); return
+										end
 									end
 								end
-							elseif not match_meta then
-								node1.param1, node1.param2 = nil, nil
+							elseif bonemeal then -- use bonemeal
+								local on_use = (minetest.registered_items[prefer] or {}).on_use
+								if on_use then
+									vplayer[owner] = vplayer[owner] or create_virtual_player(owner)
+									local itemstack = on_use(ItemStack(prefer .. " 2"),
+										vplayer[owner], {type = "node",	under = pos2,
+										above = {x = pos2.x, y = pos2.y + 1, z = pos2.z}})
+									bonemeal = itemstack and itemstack:get_count() == 1 or
+										basic_machines.creative(owner)
+								else
+									set_infotext(meta, msg); return
+								end
+							else
+								palette_index = get_palette_index(meta:get_inventory():get_stack("filter", 1))
+								if not palette_index and (mreverse ~= 1 or def and def.paramtype2 ~= "facedir") then
+									node1.param2 = 0
+								end
 							end
-							inv:remove_item("main", stack)
+							if palette_index or drop and (stack:to_table() or {}).metadata == "" or
+								mover_add_removed_items and normal and target_chest
+							then
+								removed_items = inv:remove_item("main", stack)
+							else
+								inv:remove_item("main", stack)
+							end
+						elseif drop and prefer == node1_name and inv:is_empty("main") then -- remove chest only if empty
+							minetest.set_node(pos1, {name = "air"})
 						else
-							if msg then meta:set_string("infotext", msg) end; return
+							set_infotext(meta, msg); return
 						end
 					end
-					node1_name = node1.name
 				end
 
-				local not_special = true -- mode for special items: trees, liquids using bucket, mese crystals ore
+				local node_drops = true -- handle nodes or items (dig mode): trees, liquids using bucket, mese crystals ore
 
-				if target_chest and not transport then -- if target chest put in chest
-					local inv = minetest.get_meta(pos2):get_inventory()
+
+				-- handle target chest
+				if target_chest then -- if target chest put in chest
 					if dig then
 						if not source_chest then
 							local dig_up = mover.dig_up_table[node1_name] -- digs up node as a tree
@@ -1124,9 +1275,9 @@ minetest.register_node("basic_machines:mover", {
 									stacks[1] = count
 								end
 
-								not_special = false
+								node_drops = false
 
-								local i = 1
+								local i, inv = 1, minetest.get_meta(pos2):get_inventory()
 								repeat
 									local item = node1_name .. " " .. stacks[i]
 									if inv:room_for_item("main", item) then
@@ -1141,9 +1292,10 @@ minetest.register_node("basic_machines:mover", {
 								local harvest_node1 = mover.harvest_table[node1_name]
 
 								if liquiddef and node1_name == liquiddef.source and liquiddef.itemname then
-									local itemname = liquiddef.itemname
+									local inv = minetest.get_meta(pos2):get_inventory()
 									if inv:contains_item("main", "bucket:bucket_empty") then
-										not_special = false; inv:remove_item("main", "bucket:bucket_empty")
+										local itemname = liquiddef.itemname
+										node_drops = false; inv:remove_item("main", "bucket:bucket_empty")
 										if inv:room_for_item("main", itemname) then
 											inv:add_item("main", itemname)
 											-- force_renew requires a source neighbour (borrowed from bucket mod)
@@ -1160,21 +1312,25 @@ minetest.register_node("basic_machines:mover", {
 									end
 								elseif harvest_node1 then -- do we harvest the node ?
 									local item = harvest_node1[2]
-									if item and inv:room_for_item("main", item) then
-										not_special = false
-										inv:add_item("main", item)
-										minetest.set_node(pos1, {name = harvest_node1[1]})
+									if item then
+										node_drops = false; minetest.swap_node(pos1, {name = harvest_node1[1]})
+										local inv = minetest.get_meta(pos2):get_inventory()
+										if inv:room_for_item("main", item) then
+											inv:add_item("main", item)
+										else
+											minetest.add_item(pos1, item)
+										end
 									else
-										if msg then meta:set_string("infotext", msg) end; return
+										set_infotext(meta, msg); return
 									end
 								end
 							end
 						end
 
-						if not_special then -- minetest drop code emulation, alternative: minetest.get_node_drops
+						if node_drops then -- minetest drop code emulation, alternative: minetest.get_node_drops
 							local def = minetest.registered_items[node1_name]
 							if def then -- put in chest
-								local drops = def.drop
+								local drops, inv = def.drop, minetest.get_meta(pos2):get_inventory()
 								if drops then -- drop handling
 									if drops.items then -- handle drops better, emulation of drop code
 										local max_items = drops.max_items or 0 -- item lists to drop
@@ -1206,11 +1362,37 @@ minetest.register_node("basic_machines:mover", {
 								end
 							end
 						end
-					else -- if not dig just put it in
-						inv:add_item("main", item_to_stack(node1))
+					else -- if not dig (normal mode) just put it in
+						local inv = minetest.get_meta(pos2):get_inventory()
+						inv:add_item("main", removed_items or item_to_stack(node1))
 					end
 				end
 
+
+				-- set and/or remove item or node
+				if not target_chest and not bonemeal then -- drop item or set node
+					if drop then -- drop node instead of placing it
+						minetest.add_item(pos2, removed_items or item_to_stack(node1)) -- drop it
+					else
+						if removed_items then node1.param2 = removed_items:get_meta():get_int("palette_index") end -- limited colored node support due to remove_item
+						minetest.set_node(pos2, node1)
+						if seed_planting then
+							if farming.handle_growth then -- farming redo mod
+								farming.handle_growth(pos2, node1)
+							elseif farming.grow_plant then -- minetest_game farming mod
+								farming.grow_plant(pos2)
+							end
+						end
+					end
+				end
+
+				if not source_chest and node_drops then -- remove node dug
+					minetest.set_node(pos1, {name = "air"})
+					if dig then check_for_falling(pos1) end -- pre 5.0.0 nodeupdate(pos1)
+				end
+
+
+				-- activation count and fuel cost
 				local count = meta:get_int("activation_count")
 				if count < 16 then
 					minetest.sound_play("basic_machines_transporter", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
@@ -1228,33 +1410,6 @@ minetest.register_node("basic_machines:mover", {
 
 				fuel = fuel - fuel_cost; meta:set_float("fuel", fuel)
 				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
-
-				if transport then -- transport nodes parallel as defined by source1 and target, clone with complete metadata
-					local meta1 = minetest.get_meta(pos1):to_table()
-					minetest.set_node(pos2, node1); minetest.get_meta(pos2):from_table(meta1)
-					minetest.set_node(pos1, {name = "air"}); minetest.get_meta(pos1):from_table(nil)
-				else
-					-- REMOVE NODE DUG
-					if not target_chest and not bonemeal then
-						if drop then -- drops node instead of placing it
-							minetest.add_item(pos2, item_to_stack(node1)) -- drops it
-						else
-							minetest.set_node(pos2, node1)
-							if seed_planting then
-								if farming.handle_growth then -- farming redo mod
-									farming.handle_growth(pos2, node1)
-								elseif farming.grow_plant then -- minetest_game farming mod
-									farming.grow_plant(pos2)
-								end
-							end
-						end
-					end
-
-					if not source_chest and not_special then
-						minetest.set_node(pos1, {name = "air"})
-						if dig then check_for_falling(pos1) end -- pre 5.0.0 nodeupdate(pos1)
-					end
-				end
 			end
 		end,
 
