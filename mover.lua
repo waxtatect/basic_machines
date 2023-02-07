@@ -218,7 +218,7 @@ if mover_no_large_stacks then
 		if mode == "normal" then
 			local pos2 = vector_add(pos, {x = meta:get_int("x2"), y = meta:get_int("y2"), z = meta:get_int("z2")})
 			if mover.chests[minetest.get_node(pos2).name] then return true end
-		elseif mode == "drop" then -- any target
+		elseif mode == "drop" or mode == "inventory" then -- any target
 			return true
 		end
 		return false
@@ -732,7 +732,7 @@ minetest.register_node("basic_machines:mover", {
 						prefer = meta:get_string("prefer")
 						fuel_cost = mover.hardness[prefer] or 1
 					else
-						source_chest = mover.chests[node1_name] or false
+						source_chest = mover.chests[node1_name]
 						if source_chest and node1_name ~= "default:chest" then
 							prefer = meta:get_string("prefer")
 							fuel_cost = mover.hardness[prefer] or 1
@@ -959,11 +959,7 @@ minetest.register_node("basic_machines:mover", {
 							set_infotext(meta, msg); return
 						end
 
-						if mover_no_large_stacks then
-							stack = basic_machines.clamp_item_count(ItemStack(prefer))
-						else
-							stack = ItemStack(prefer)
-						end
+						stack = ItemStack(prefer)
 
 						if inv1:contains_item(invName1, stack) then
 							item_found = true
@@ -1029,6 +1025,9 @@ minetest.register_node("basic_machines:mover", {
 				if prefer ~= "" then -- filter check
 					if prefer ~= node1_name then -- only take preferred node
 						set_infotext(meta, msg); return
+					elseif not minetest.registered_nodes[prefer] then -- (see basic_machines.check_mover_filter)
+						minetest.chat_send_player(owner, S("MOVER: Filter defined with unknown node (@1) at @2, @3, @4.",
+							prefer, pos.x, pos.y, pos.z)); set_infotext(meta, msg); return
 					else -- only take preferred node with palette_index if defined
 						local inv_stack = meta:get_inventory():get_stack("filter", 1)
 						local inv_palette_index = get_palette_index(inv_stack)
@@ -1042,28 +1041,13 @@ minetest.register_node("basic_machines:mover", {
 					end
 				end
 
-				source_chest = source_chest or (mover.chests[node1_name] or false)
+				source_chest = source_chest or mover.chests[node1_name]
 				local node2_name = minetest.get_node(pos2).name
-				local target_chest = mover.chests[node2_name] or false
-
-				if source_chest and target_chest then
-					if prefer == "" then
-						set_infotext(meta, msg); return
-					end
-				elseif node2_name ~= "air" then
-					set_infotext(meta, msg); return
-				end
 
 
-				-- handle filter
-				if prefer ~= "" then
-					-- check to prevent crash (see basic_machines.check_mover_filter)
-					if not minetest.registered_nodes[prefer] then
-						minetest.chat_send_player(owner, S("MOVER: Filter defined with unknown node (@1) at @2, @3, @4.",
-							prefer, pos.x, pos.y, pos.z)); set_infotext(meta, msg); return
-					end
-
-					if source_chest and target_chest then -- transport all chest items from source to target
+				-- transport stuff
+				if source_chest and mover.chests[node2_name] then -- transport all chest items from source to target
+					if prefer == node2_name then -- transport only with same chest type
 						local inv2 = minetest.get_meta(pos2):get_inventory()
 						if inv2:is_empty("main") then
 							local inv1 = minetest.get_meta(pos1):get_inventory()
@@ -1073,12 +1057,12 @@ minetest.register_node("basic_machines:mover", {
 						else
 							set_infotext(meta, msg); return
 						end
+					else
+						set_infotext(meta, msg); return
 					end
-				end
-
-
-				-- transport nodes parallel as defined by source1 and target, clone with complete metadata
-				if not target_chest then
+				elseif node2_name ~= "air" then
+					set_infotext(meta, msg); return
+				else -- transport nodes parallel as defined by source1 and target, clone with complete metadata
 					local meta1 = minetest.get_meta(pos1):to_table()
 					minetest.set_node(pos2, node1)
 					if meta1 then minetest.get_meta(pos2):from_table(meta1) end
@@ -1105,7 +1089,7 @@ minetest.register_node("basic_machines:mover", {
 			-- NORMAL, DIG, DROP MODES
 			else
 				prefer = prefer or meta:get_string("prefer")
-				source_chest = source_chest or (mover.chests[node1_name] or false)
+				source_chest = source_chest or mover.chests[node1_name]
 				local normal, dig, drop = mode == "normal", mode == "dig", mode == "drop"
 				local seed_planting, bonemeal
 
@@ -1138,7 +1122,7 @@ minetest.register_node("basic_machines:mover", {
 				end
 
 				local node2_name = minetest.get_node(pos2).name
-				local target_chest = mover.chests[node2_name] or false
+				local target_chest = mover.chests[node2_name]
 
 				if target_chest then
 					if drop then
@@ -1148,31 +1132,30 @@ minetest.register_node("basic_machines:mover", {
 					set_infotext(meta, msg); return
 				end
 
-				local removed_items
+				local node_def, removed_items
 
 
 				-- handle filter
 				if prefer ~= "" then
-					local def
-
 					-- set preferred node and checks to prevent crash (see basic_machines.check_mover_filter)
 					if normal or dig then
 						if seed_planting then -- allow farming
-							local def_plant = minetest.registered_nodes[seed_planting]
-							if def_plant then -- farming redo mod, check if transform seed -> plant is needed
-								node1 = {name = seed_planting, param2 = def_plant.place_param2 or 1}
+							local plant_def = minetest.registered_nodes[seed_planting]
+							if plant_def then -- farming redo mod, check if transform seed -> plant is needed
+								node1 = {name = seed_planting, param2 = plant_def.place_param2 or 1}
 							elseif seed_planting == true then -- minetest_game farming mod
 								node1 = {name = prefer, param2 = 1}
 							else
 								set_infotext(meta, msg); return
 							end
 						elseif normal and target_chest then -- allow chest transfer in normal mode
-							node1.name = prefer
+							if source_chest then node1.name = prefer end
 						else
-							def = minetest.registered_nodes[prefer]
-							if def then
-								if target_chest then -- dig mode
-									node1.name, node1_name = prefer, prefer
+							node_def = minetest.registered_nodes[prefer]
+							if node_def then
+								if source_chest then
+									node1.name = prefer
+									if dig then node1_name = prefer end
 								end
 							else
 								minetest.chat_send_player(owner, S("MOVER: Filter defined with unknown node (@1) at @2, @3, @4.",
@@ -1180,7 +1163,7 @@ minetest.register_node("basic_machines:mover", {
 							end
 						end
 					elseif drop then
-						node1.name = prefer
+						if source_chest then node1.name = prefer end
 					else
 						minetest.chat_send_player(owner, S("MOVER: Wrong filter (@1) at @2, @3, @4.",
 							prefer, pos.x, pos.y, pos.z)); set_infotext(meta, msg); return
@@ -1221,7 +1204,7 @@ minetest.register_node("basic_machines:mover", {
 								end
 							else
 								palette_index = get_palette_index(meta:get_inventory():get_stack("filter", 1))
-								if not palette_index and (mreverse ~= 1 or def and def.paramtype2 ~= "facedir") then
+								if not palette_index and (mreverse ~= 1 or node_def and node_def.paramtype2 ~= "facedir") then
 									node1.param2 = 0
 								end
 							end
@@ -1374,8 +1357,43 @@ minetest.register_node("basic_machines:mover", {
 					if drop then -- drop node instead of placing it
 						minetest.add_item(pos2, removed_items or item_to_stack(node1)) -- drop it
 					else
-						if removed_items then node1.param2 = removed_items:get_meta():get_int("palette_index") end -- limited colored node support due to remove_item
-						minetest.set_node(pos2, node1)
+						if removed_items then -- limited colored node support due to remove_item
+							node1.param2 = removed_items:get_meta():get_int("palette_index")
+						end
+
+						if dig then
+							if seed_planting then
+								minetest.set_node(pos2, node1)
+							else -- try to place the block as the owner would
+								local placer, is_placed = minetest.get_player_by_name(owner)
+								if placer then -- only if owner online
+									node_def = node_def or minetest.registered_nodes[node1_name]
+									local on_place = (node_def or {}).on_place
+									if on_place then
+										local _, placed_pos = on_place(removed_items or item_to_stack(node1),
+											placer, {type = "node",	under = pos2,
+											above = {x = pos2.x, y = pos2.y + 1, z = pos2.z}})
+										if placed_pos then
+											local placed_node = minetest.get_node_or_nil(placed_pos)
+											if placed_node and node1_name == placed_node.name then
+												local node1_param2 = node1.param2
+												if node1_param2 ~= placed_node.param2 then
+													placed_node.param2 = node1_param2
+													minetest.swap_node(placed_pos, placed_node)
+												end
+											end
+											is_placed = true
+										end
+									end
+								end
+								if not is_placed then -- place as in normal mode
+									minetest.set_node(pos2, node1)
+								end
+							end
+						else -- normal mode
+							minetest.set_node(pos2, node1)
+						end
+
 						if seed_planting then
 							if farming.handle_growth then -- farming redo mod
 								farming.handle_growth(pos2, node1)
