@@ -3,7 +3,7 @@ local machines_TTL = basic_machines.properties.machines_TTL
 local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
 local mover_no_large_stacks = basic_machines.settings.mover_no_large_stacks
-local byte = string.byte
+local string_byte = string.byte
 local signs = { -- when activated with keypad these will be "punched" to update their text too
 	["basic_signs:sign_wall_glass"] = true,
 	["basic_signs:sign_wall_locked"] = true,
@@ -86,20 +86,22 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			meta:set_string("input", "") -- clear input again
 		end
 
-		local bit = byte(text)
+		local bit = string_byte(text)
 
 		if bit == 36 then -- text starts with $, play sound
 			local text_sub = text:sub(2)
 			if text_sub ~= "" then
-				if iter > 1 then meta:set_int("count", iter); count = 0 end -- play sound only once
-				meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
+				if iter > 1 then meta:set_int("count", iter) end -- play sound only once
 				local i = text_sub:find(" ")
-				if not i then
-					minetest.sound_play(text_sub, {pos = pos, gain = 1, max_hear_distance = 16}, true)
-				else
+				if i then
 					local pitch = tonumber(text_sub:sub(i + 1)) or 1
 					if pitch < 0.01 or pitch > 10 then pitch = 1 end
-					minetest.sound_play(text_sub:sub(1, i - 1), {pos = pos, gain = 1, max_hear_distance = 16, pitch = pitch}, true)
+					local sound_name = text_sub:sub(1, i - 1)
+					meta:set_string("infotext", S("Playing sound: '@1', pitch: @2", (sound_name:gsub("_", " ")), pitch))
+					minetest.sound_play(sound_name, {pos = pos, gain = 1, max_hear_distance = 16, pitch = pitch}, true)
+				else
+					meta:set_string("infotext", S("Playing sound: '@1'", (text_sub:gsub("_", " "))))
+					minetest.sound_play(text_sub, {pos = pos, gain = 1, max_hear_distance = 16}, true)
 				end
 				return
 			end
@@ -109,11 +111,11 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			if text_sub ~= "" then
 				if iter > 1 then meta:set_int("count", iter); count = 0 end -- send text only once
 				meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
-				local sqrt = math.sqrt
+				local math_sqrt = math.sqrt
 				local tpos = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
 				for _, player in ipairs(minetest.get_connected_players()) do
 					local pos1 = player:get_pos()
-					if sqrt((pos1.x - tpos.x)^2 + (pos1.y - tpos.y)^2 + (pos1.z - tpos.z)^2) <= 5 then
+					if math_sqrt((pos1.x - tpos.x)^2 + (pos1.y - tpos.y)^2 + (pos1.z - tpos.z)^2) <= 5 then
 						minetest.chat_send_player(player:get_player_name(), text_sub)
 					end
 				end
@@ -125,7 +127,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 		local node = minetest.get_node_or_nil(tpos); if not node then return end -- error
 		local name = node.name
 
-		if name ~= "basic_machines:keypad" and not vector.equals(tpos, pos) then
+		if name ~= "basic_machines:keypad" or not vector.equals(tpos, pos) then
 			if count < 2 then
 				meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
 			else
@@ -277,8 +279,9 @@ minetest.register_node("basic_machines:keypad", {
 			" Set any password and text \"@@\" to work as keyboard."))
 		meta:set_string("owner", placer:get_player_name())
 
-		meta:set_int("mode", 2); meta:set_string("pass", "") -- mode, pasword of operation
-		meta:set_int("iter", 1); meta:set_int("count", 0) -- current repeat count
+		meta:set_int("mode", 2); meta:set_string("pass", "") -- mode, password
+		meta:set_int("iter", 1); meta:set_int("count", 0) -- repeat, current repeat count
+		meta:set_string("text", "")
 		meta:set_int("x0", 0); meta:set_int("y0", 0); meta:set_int("z0", 0) -- target
 		meta:set_int("input", 0); meta:set_int("state", 0)
 		meta:set_int("t", 0); meta:set_int("T", 0)

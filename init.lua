@@ -79,12 +79,18 @@ basic_machines = {
 	-- keypad
 	use_keypad = function() end,
 	-- mover
-	check_mover_target = nil, -- function used with mover_no_large_stacks setting
-	clamp_item_count = nil, -- function used with mover_no_large_stacks setting
+	add_mover_mode = function() end,
 	check_mover_filter = function() end,
+	check_mover_target = nil, -- function used with mover_no_large_stacks setting
+	check_palette_index = function() end,
+	clamp_item_count = nil, -- function used with mover_no_large_stacks setting
 	find_and_connect_battery = function() end,
+	get_distance = function() end,
 	get_mover = function() end,
 	get_mover_form = function() end,
+	get_palette_index = function() end,
+	itemstring_to_stack = function() end,
+	node_to_stack = function() end,
 	set_mover = function() end,
 	-- technic_power
 	check_power = function() end

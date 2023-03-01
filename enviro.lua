@@ -194,6 +194,15 @@ Sky:		-, surface, cave or space
 		action_on = function(pos, _)
 			local meta = minetest.get_meta(pos)
 
+			if meta:get_int("admin") ~= 1 then -- fuel needed for nonadmin
+				local inv, stack = meta:get_inventory(), ItemStack("default:diamond")
+				if inv:contains_item("fuel", stack) then
+					inv:remove_item("fuel", stack)
+				else
+					meta:set_string("infotext", S("Error. Insert diamond in fuel inventory.")); return
+				end
+			end
+
 			local radius, gravity, skybox = meta:get_int("radius"), meta:get_float("gravity"), meta:get_string("skybox")
 			if meta:contains("r") then -- for compatibility
 				local meta_new = meta:to_table(); meta:from_table(nil); local fields = meta_new.fields
@@ -207,8 +216,6 @@ Sky:		-, surface, cave or space
 			end
 
 			if radius <= 0 then return end
-			local inv, stack = meta:get_inventory(), ItemStack("default:diamond")
-			local admin = meta:get_int("admin")
 			local physics = {
 				speed = meta:get_float("speed"),
 				jump = meta:get_float("jump"),
@@ -216,18 +223,9 @@ Sky:		-, surface, cave or space
 				sneak = meta:get_int("sneak")
 			}
 
-			if inv:contains_item("fuel", stack) and admin ~= 1 then
-				meta:set_string("infotext", S("SETTINGS Speed=@1 Jump=@2 Gravity=@3 Sneak=@4 Sky=@5",
-					format_num(physics.speed, "%.2f"), format_num(physics.jump, "%.2f"),
-					format_num(physics.gravity, "%.2f"), physics.sneak, S(skybox)))
-				inv:remove_item("fuel", stack)
-			elseif admin == 1 then
-				meta:set_string("infotext", S("ADMIN - SETTINGS Speed=@1 Jump=@2 Gravity=@3 Sneak=@4 Sky=@5",
-					format_num(physics.speed, "%.2f"), format_num(physics.jump, "%.2f"),
-					format_num(physics.gravity, "%.2f"), physics.sneak, S(skybox)))
-			else
-				meta:set_string("infotext", S("Error. Insert diamond in fuel inventory.")); return
-			end
+			meta:set_string("infotext", S("Settings: Speed=@1 Jump=@2 Gravity=@3 Sneak=@4 Sky=@5",
+				format_num(physics.speed, "%.2f"), format_num(physics.jump, "%.2f"),
+				format_num(physics.gravity, "%.2f"), physics.sneak, S(skybox)))
 
 			local pos0 = vector.add(pos,
 				{x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
@@ -260,8 +258,8 @@ Sky:		-, surface, cave or space
 
 			-- attempt to set acceleration to balls, if any around
 			for _, obj in ipairs(minetest.get_objects_inside_radius(pos0, radius)) do
-				local luaent = obj:get_luaentity()
-				if luaent and luaent.name == "basic_machines:ball" then
+				local lua_entity = obj:get_luaentity()
+				if lua_entity and lua_entity.name == "basic_machines:ball" then
 					obj:set_acceleration({x = 0, y = -physics.gravity, z = 0})
 				end
 			end

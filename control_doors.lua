@@ -14,13 +14,13 @@ local function door_signal_overwrite(name)
 			effector = {
 				action_on = function(pos, _)
 					-- create virtual player
-					local clicker = {}
-					function clicker:get_wielded_item() return ItemStack("") end
-					-- method needed for mods that check this: like denaid areas mod
-					function clicker:is_player() return true end
-					-- define method get_player_name() returning owner name so that we can call on_rightclick function in door
-					function clicker:get_player_name() return minetest.get_meta(pos):get_string("owner") end
-
+					local clicker = {
+						get_wielded_item = function() return ItemStack("") end,
+						-- method needed for mods that check this: like denaid areas mod
+						is_player = function() return true end,
+						-- define method get_player_name() returning owner name so that we can call on_rightclick function in door
+						get_player_name = function() return minetest.get_meta(pos):get_string("owner") end
+					}
 					door_on_rightclick(pos, nil, clicker, ItemStack(""), {})
 					-- more direct approach ?, need to set param2 then too
 					-- minetest.swap_node(pos, {name = "protector:trapdoor", param1 = node.param1, param2 = node.param2})

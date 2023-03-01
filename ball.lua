@@ -525,7 +525,7 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 
 			local obj = minetest.add_entity(pos, "basic_machines:ball")
 			if obj then
-				local luaent = obj:get_luaentity(); luaent._origin, luaent._owner = pos, owner
+				local lua_entity = obj:get_luaentity(); lua_entity._origin, lua_entity._owner = pos, owner
 
 				-- x, y , z
 				local x0, y0, z0 = meta:get_float("x0"), meta:get_float("y0"), meta:get_float("z0") -- direction of velocity
@@ -538,34 +538,34 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 					v = v / speed
 					obj:set_velocity(vector.divide(velocity, v))
 				end
-				luaent._speed = speed
+				lua_entity._speed = speed
 
 				-- energy
 				local energy = meta:get_int("energy") -- if positive activates, negative deactivates, 0 does nothing
 				local colorize = energy < 0 and "^[colorize:blue:120" or ""
-				luaent._energy = energy
+				lua_entity._energy = energy
 
 				-- bounce
-				luaent._bounce = meta:get_int("bounce") -- if nonzero bounces when hit obstacle, 0 gets absorbed
+				lua_entity._bounce = meta:get_int("bounce") -- if nonzero bounces when hit obstacle, 0 gets absorbed
 
 				-- gravity
 				obj:set_acceleration({x = 0, y = -meta:get_float("gravity"), z = 0})
 
 				-- punchable
 				-- if 0 not punchable, if 1 can be punched by players in protection, if 2 can be punched by anyone
-				luaent._punchable = meta:get_int("punchable")
+				lua_entity._punchable = meta:get_int("punchable")
 
 				-- hp
 				obj:set_hp(meta:get_float("hp"))
 
 				-- hurt
 				local hurt = meta:get_float("hurt")
-				if hurt > 0 then luaent._is_arrow = true end -- tell advanced mob protection this is an arrow
-				luaent._hurt = hurt
+				if hurt > 0 then lua_entity._is_arrow = true end -- tell advanced mob protection this is an arrow
+				lua_entity._hurt = hurt
 
 				-- lifetime
 				if meta:get_int("admin") == 1 then
-					luaent._lifetime = meta:get_int("lifetime")
+					lua_entity._lifetime = meta:get_int("lifetime")
 				end
 
 				-- solid
@@ -629,7 +629,7 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 
 			local obj = minetest.add_entity(pos, "basic_machines:ball")
 			if obj then
-				local luaent = obj:get_luaentity(); luaent._origin, luaent._owner = pos, owner
+				local lua_entity = obj:get_luaentity(); lua_entity._origin, lua_entity._owner = pos, owner
 
 				-- x, y , z
 				local x0, y0, z0 = meta:get_float("x0"), meta:get_float("y0"), meta:get_float("z0") -- direction of velocity
@@ -642,7 +642,7 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 					v = v / speed
 					obj:set_velocity(vector.divide(velocity, v))
 				end
-				luaent._speed = speed
+				lua_entity._speed = speed
 
 				-- energy
 				obj:get_luaentity()._energy = -1
@@ -652,7 +652,7 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 
 				-- lifetime
 				if meta:get_int("admin") == 1 then
-					luaent._lifetime = meta:get_int("lifetime")
+					lua_entity._lifetime = meta:get_int("lifetime")
 				end
 
 				local visual = meta:get_string("visual")
@@ -705,23 +705,23 @@ minetest.register_tool("basic_machines:ball_spell", {
 
 		local obj = minetest.add_entity(pos, "basic_machines:ball")
 		if obj then
-			local luaent = obj:get_luaentity(); luaent._origin, luaent._owner = pos, owner
+			local lua_entity = obj:get_luaentity(); lua_entity._origin, lua_entity._owner = pos, owner
 
 			-- speed
 			local speed = tonumber(meta["speed"]) or ball_default.speed
 			speed = privs and speed or math.min(math.max(speed, -10), 10)
 			obj:set_velocity(vector.multiply(user:get_look_dir(), speed))
-			luaent._speed = speed
+			lua_entity._speed = speed
 
 			-- energy
 			-- if positive activates, negative deactivates, 0 does nothing
 			local energy = tonumber(meta["energy"]) or ball_default.energy
 			local colorize = energy < 0 and "^[colorize:blue:120" or ""
-			luaent._energy = energy
+			lua_entity._energy = energy
 
 			-- bounce
 			-- if nonzero bounces when hit obstacle, 0 gets absorbed
-			luaent._bounce = tonumber(meta["bounce"]) or ball_default.bounce
+			lua_entity._bounce = tonumber(meta["bounce"]) or ball_default.bounce
 
 			-- gravity
 			local gravity = tonumber(meta["gravity"]) or ball_default.gravity
@@ -730,7 +730,7 @@ minetest.register_tool("basic_machines:ball_spell", {
 
 			-- punchable
 			-- if 0 not punchable, if 1 can be punched by players in protection, if 2 can be punched by anyone
-			luaent._punchable = tonumber(meta["punchable"]) or ball_default.punchable
+			lua_entity._punchable = tonumber(meta["punchable"]) or ball_default.punchable
 
 			-- hp
 			obj:set_hp(tonumber(meta["hp"]) or ball_default.hp)
@@ -738,12 +738,12 @@ minetest.register_tool("basic_machines:ball_spell", {
 			-- hurt
 			local hurt = tonumber(meta["hurt"]) or ball_default.hurt
 			hurt = privs and hurt or math.min(hurt, max_damage)
-			if hurt > 0 then luaent._is_arrow = true end -- tell advanced mob protection this is an arrow
-			luaent._hurt = hurt
+			if hurt > 0 then lua_entity._is_arrow = true end -- tell advanced mob protection this is an arrow
+			lua_entity._hurt = hurt
 
 			-- lifetime
 			if privs then
-				luaent._lifetime = tonumber(meta["lifetime"]) or ball_default.lifetime
+				lua_entity._lifetime = tonumber(meta["lifetime"]) or ball_default.lifetime
 			end
 
 			-- texture

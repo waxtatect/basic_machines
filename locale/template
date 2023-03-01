@@ -88,8 +88,7 @@ Sneak=
 Sky=
 Right click to set it. Activate by signal.=
 Environment changer help=
-SETTINGS Speed@=@1 Jump@=@2 Gravity@=@3 Sneak@=@4 Sky@=@5=
-ADMIN - SETTINGS Speed@=@1 Jump@=@2 Gravity@=@3 Sneak@=@4 Sky@=@5=
+Settings: Speed@=@1 Jump@=@2 Gravity@=@3 Sneak@=@4 Sky@=@5=
 Error. Insert diamond in fuel inventory.=
 Values:@n@nTarget:		Center position of the area to apply environment effects@n			x: [-@1, @2], y: [-@3, @4], z: [-@5, @6]@nRadius:		[0,   @7]@nSpeed:		[0,   1.2]@nJump:		[0,   2]@nGravity:	[0.1, 40]@nSneak:		[0,   1]@nSky:		-, surface, cave or space@n=
 Environment Changer=
@@ -137,6 +136,8 @@ src=
 upgrade=
 Protection fail. Reset.=
 KEYPAD: Resetting. Punch again after @1s to activate.=
+Playing sound: '@1'=
+Playing sound: '@1', pitch: @2
 Keypad operation: @1 cycle left=
 Keypad operation: @1 cycles left=
 Keypad. Right click to set it up or punch it. Set any password and text "@@" to work as keyboard.=
@@ -174,6 +175,7 @@ DISTRIBUTOR: Punch closer to distributor. Aborting.=
 DISTRIBUTOR: Target set.=
 KEYPAD: Punched position is protected. Aborting.=
 KEYPAD: Punch closer to keypad. Resetting.=
+Punch keypad to play sound.=
 Punch keypad to use it.=
 KEYPAD: Target set with coordinates @1, @2, @3.=
 DETECTOR: Punch closer to detector. Aborting.=
@@ -194,7 +196,7 @@ DISTRIBUTOR: All coordinates must be between @1 and @2.=
 DISTRIBUTOR: Connected @1 targets.=
 Distributor help=
 Target: Coordinates (x, y, z) relative to the distributor.@n@nMode: -2@=only OFF, -1@=NOT input, 0/1@=input, 2@=only ON, output signal of the target.@n@nDelay: Adds delay to activations, in seconds. A negative delay activation is randomized with probability -delay/1000.=
-@n@nSetup: To select a target for activation, click "Set" button then click the target.@nYou can add more targets with "Add" button. To see where the target is click "Show" button next to it.@n4 numbers in each row represent (from left to right): first 3 numbers are target coordinates (x, y, z), last number (Mode) controls how signal is passed to target.@nFor example, to only pass OFF signal use -2, to only pass ON use 2, -1 negates the signal, 1 passes original signal, 0 blocks signal.@n"view" button toggles view of target names, in names view there is "scan" button which automatically scans for valid targets in a box defined by first and second target.@n@nAdvanced:@nYou can use the distributor as an event handler - it listens to events like interact attempts and chat around the distributor.@nYou need to place the distributor at a position (x, y, z), with coordinates of the form (20*i, 20*j+1, 20*k) for some integers i, j, k.@nRight click holding a distributor in the hand to show a suitable position.@nThen you need to configure first row of numbers in the distributor:@nBy putting 0 as Mode it will start to listen. First number x @= 0/1 controls if node listens to failed interact attempts around it, second number y @= -1/0/1 controls listening to chat (-1 additionally mutes chat)=
+@n@nSetup: To select a target for activation, click "Set" button then click the target.@nYou can add more targets with "Add" button. To see where the target is click "Show" button next to it.@n4 numbers in each row represent (from left to right): first 3 numbers are target coordinates (x, y, z), last number (Mode) controls how signal is passed to target.@nFor example, to only pass OFF signal use -2, to only pass ON signal use 2, -1 negates the signal, 1 passes original signal, 0 blocks signal.@n"view" button toggles view of target names, in names view there is "scan" button which automatically scans for valid targets in a box defined by first and second target.@n@nAdvanced:@nYou can use the distributor as an event handler - it listens to events like interact attempts and chat around the distributor.@nYou need to place the distributor at a position (x, y, z), with coordinates of the form (20*i, 20*j+1, 20*k) for some integers i, j, k.@nRight click holding a distributor in the hand to show a suitable position.@nThen you need to configure first row of numbers in the distributor:@nBy putting 0 as Mode it will start to listen. First number x @= 0/1 controls if node listens to failed interact attempts around it, second number y @= -1/0/1 controls listening to chat (-1 additionally mutes chat)=
 DISTRIBUTOR: Punch the position to set target @1.=
 KEYPAD: Position is protected. Aborting.=
 KEYPAD: All coordinates must be between @1 and @2.=
@@ -219,8 +221,8 @@ Setup: Right click or punch and follow chat instructions. With a detector you ca
 MOVER: Wrong filter - must be name of existing minetest block=
 Mesecon Adapter: place machine to be activated on top=
 Mesecon Adapter=
-This will move blocks as they are - without change=
-This will transform blocks as if player dug them=
+This will move blocks as they are - without change@nUpgrade with movers to process additional blocks=
+This will transform blocks as if player dug them@nUpgrade with movers to process additional blocks=
 This will take block/item out of chest (you need to set filter) and will drop it=
 Make TELEPORTER/ELEVATOR:@n This will move any object inside a sphere (with center source1 and radius defined by distance between source1/source2) to target position@n For ELEVATOR, teleport origin/destination need to be placed exactly in same coordinate line with mover, and you need to upgrade with 1 diamond block for every 100 height difference=
 This will move items from inventory of any block at source position to any inventory of block at target position=
@@ -252,9 +254,6 @@ MOVER: Elevator error. Need at least @1 diamond block(s) in upgrade (1 for every
 Can not find nearby battery to connect to!=
 Mover block. Energy @1, needed energy @2. Put nonempty battery next to mover.=
 Mover block refueled. Fuel status @1.=
-@1 already milked!=
-Cow=
-Cows=
 Mover block. Temperature: @1, Fuel: @2.=
 MOVER: Filter defined with unknown node (@1) at @2, @3, @4.=
 MOVER: Wrong filter (@1) at @2, @3, @4.=

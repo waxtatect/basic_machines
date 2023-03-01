@@ -7,28 +7,23 @@ local power_stackmax = basic_machines.settings.power_stackmax
 local space_start_eff = basic_machines.settings.space_start_eff
 
 -- BATTERY
-local function battery_update_form(meta)
-	meta:set_string("formspec", "formspec_version[4]size[10.25,8.35]" ..
-		"style_type[list;spacing=0.25,0.15]" ..
-		"label[0.25,0.3;" .. F(S("Fuel")) .. "]list[context;fuel;0.25,0.5;1,1]" ..
-		"box[2,0.5;2.35,1.1;#222222]" ..
-		"label[2.15,0.8;" .. F(S("Power: @1", meta:get_float("maxpower"))) ..
-		"]label[2.15,1.3;" .. F(S("Capacity: @1", meta:get_float("capacity"))) ..
-		"]image_button[5.6,0.85;1.55,0.35;basic_machines_wool_black.png;help;" .. F(S("help")) ..
-		"]label[7.75,0.3;" .. F(S("Upgrade")) .. "]list[context;upgrade;7.75,0.5;2,2]" ..
-		basic_machines.get_form_player_inventory(0.25, 3.4, 8, 4, 0.25) ..
-		"listring[context;upgrade]" ..
-		"listring[current_player;main]" ..
-		"listring[context;fuel]" ..
-		"listring[current_player;main]")
-end
-
--- [power crystal name] = energy provided
-local energy_crystals = {
+local energy_crystals = { -- [power crystal name] = energy provided
 	["basic_machines:power_cell"] = 1 * energy_multiplier,
 	["basic_machines:power_block"] = 11 * energy_multiplier,
 	["basic_machines:power_rod"] = 100 * energy_multiplier
 }
+
+local function swap_battery(energy_new, energy, capacity, pos)
+	if capacity > 0 then
+		local full_coef_new = math.floor(energy_new / capacity * 3) -- 0, 1, 2
+		local full_coef = math.floor(energy / capacity * 3)
+
+		if full_coef_new > 2 then full_coef_new = 2 end
+		if full_coef_new ~= full_coef then -- graphic energy level display
+			minetest.swap_node(pos, {name = "basic_machines:battery_" .. full_coef_new})
+		end
+	end
+end
 
 local function battery_recharge(pos, energy, origin)
 	local meta = minetest.get_meta(pos)
@@ -74,15 +69,7 @@ local function battery_recharge(pos, energy, origin)
 				meta:set_float("energy", energy_new)
 			end
 
-			if capacity > 0 then
-				local full_coef_new = math.floor(energy_new / capacity * 3) -- 0, 1, 2
-				local full_coef = math.floor(energy / capacity * 3)
-
-				if full_coef_new > 2 then full_coef_new = 2 end
-				if full_coef_new ~= full_coef then -- graphic energy level display
-					minetest.swap_node(pos, {name = "basic_machines:battery_" .. full_coef_new})
-				end
-			end
+			swap_battery(energy_new, energy, capacity, pos)
 
 			if origin == "recharge_furnace" and energy_new < 1 then
 				meta:set_string("infotext", S("Furnace needs at least 1 energy"))
@@ -144,24 +131,33 @@ basic_machines.check_power = function(pos, power_draw)
 		if energy_recharge and energy_recharge ~= energy then
 			meta:set_float("energy", energy_recharge)
 		end
-		meta:set_string("infotext", S("Used fuel provides too little power for current power draw @1", power_draw)); return 0
+		meta:set_string("infotext", S("Used fuel provides too little power for current power draw @1",
+			basic_machines.twodigits_float(power_draw))); return 0
 	end -- recharge wasn't enough, needs to be repeated manually, return 0 power available
 
 	meta:set_float("energy", energy_new)
 	local capacity = meta:get_float("capacity")
-	if capacity > 0 then
-		local full_coef_new = math.floor(energy_new / capacity * 3) -- 0, 1, 2
-		local full_coef = math.floor(energy / capacity * 3)
-
-		if full_coef_new > 2 then full_coef_new = 2 end
-		if full_coef_new ~= full_coef then -- graphic energy level display
-			minetest.swap_node(pos, {name = "basic_machines:battery_" .. full_coef_new})
-		end
-	end
+	swap_battery(energy_new, energy, capacity, pos)
 	-- update energy display
 	meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy_new * 10) / 10, capacity))
 
 	return power_draw
+end
+
+local function battery_update_form(meta)
+	meta:set_string("formspec", "formspec_version[4]size[10.25,8.35]" ..
+		"style_type[list;spacing=0.25,0.15]" ..
+		"label[0.25,0.3;" .. F(S("Fuel")) .. "]list[context;fuel;0.25,0.5;1,1]" ..
+		"box[2,0.5;2.35,1.1;#222222]" ..
+		"label[2.15,0.8;" .. F(S("Power: @1", meta:get_float("maxpower"))) ..
+		"]label[2.15,1.3;" .. F(S("Capacity: @1", meta:get_float("capacity"))) ..
+		"]image_button[5.6,0.85;1.55,0.35;basic_machines_wool_black.png;help;" .. F(S("help")) ..
+		"]label[7.75,0.3;" .. F(S("Upgrade")) .. "]list[context;upgrade;7.75,0.5;2,2]" ..
+		basic_machines.get_form_player_inventory(0.25, 3.4, 8, 4, 0.25) ..
+		"listring[context;upgrade]" ..
+		"listring[current_player;main]" ..
+		"listring[context;fuel]" ..
+		"listring[current_player;main]")
 end
 
 local function battery_upgrade(meta, pos)
@@ -323,15 +319,7 @@ minetest.register_node("basic_machines:battery_0", {
 					if energy_new > 0 then -- no need to recharge yet, will still work next time
 						meta:set_float("energy", energy_new)
 						local capacity = meta:get_float("capacity")
-						if capacity > 0 then
-							local full_coef_new = math.floor(energy_new / capacity * 3) -- 0, 1, 2
-							local full_coef = math.floor(energy / capacity * 3)
-
-							if full_coef_new > 2 then full_coef_new = 2 end
-							if full_coef_new ~= full_coef then -- graphic energy level display
-								minetest.swap_node(pos, {name = "basic_machines:battery_" .. full_coef_new})
-							end
-						end
+						swap_battery(energy_new, energy, capacity, pos)
 						-- update energy display
 						meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy_new * 10) / 10, capacity))
 					else
@@ -444,6 +432,15 @@ minetest.register_abm({
 	end
 })
 
+local function generator_near_found(pos, name) -- check to prevent too many generators being placed at one place
+	if minetest.find_node_near(pos, 15, {"basic_machines:generator"}) then
+		minetest.set_node(pos, {name = "air"})
+		minetest.add_item(pos, "basic_machines:generator")
+		minetest.chat_send_player(name, S("Generator: Interference from nearby generator detected"))
+		return true
+	end
+end
+
 local function generator_upgrade(meta)
 	local inv = meta:get_inventory()
 	local count = 0
@@ -454,15 +451,6 @@ local function generator_upgrade(meta)
 		end
 	end
 	meta:set_int("upgrade", count)
-end
-
-local function generator_near_found(pos, name) -- check to prevent too many generators being placed at one place
-	if minetest.find_node_near(pos, 15, {"basic_machines:generator"}) then
-		minetest.set_node(pos, {name = "air"})
-		minetest.add_item(pos, "basic_machines:generator")
-		minetest.chat_send_player(name, S("Generator: Interference from nearby generator detected"))
-		return true
-	end
 end
 
 minetest.register_node("basic_machines:generator", {

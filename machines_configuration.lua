@@ -131,13 +131,14 @@ minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
 	-- MOVER
 	if punchset_desc == "MOVER" then
 		local meta = minetest.get_meta(self_pos)
+		local upgradetype = meta:get_int("upgradetype")
 		local privs = minetest.check_player_privs(name, "privs")
 		local range
 
-		if meta:get_int("upgradetype") == 1 or
+		if upgradetype == 1 or upgradetype == 3 or
 			meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:mese" -- for compatibility
 		then
-			range = meta:get_int("upgrade") * max_range
+			range = math.min(mover_upgrade_max + 1, meta:get_int("upgrade")) * max_range
 		else
 			range = max_range
 		end
@@ -464,7 +465,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				if fpos then
 					minetest.chat_send_player(name, S("MOVER: Battery found - displaying mark 1"))
 					machines.mark_pos1(name, fpos) -- display battery
-				elseif meta:get_int("upgrade") > -1 then
+				elseif meta:get_int("upgrade") ~= -1 then
 					minetest.chat_send_player(name, S("MOVER: Please put battery nearby"))
 				end
 			end
@@ -473,7 +474,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			meta:set_int("seltab", tonumber(fields.tabs) or 1)
 
 			minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
-				basic_machines.get_mover_form(pos, name))
+				basic_machines.get_mover_form(pos))
 
 		elseif fields.now then -- mark current position
 			local markerN = machines.mark_posN(meta:get_string("owner"), pos)
@@ -533,7 +534,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				meta:set_string("mode", mode)
 
 				minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
-					basic_machines.get_mover_form(pos, name))
+					basic_machines.get_mover_form(pos))
 			else
 				minetest.chat_send_player(name, S("MOVER: Wrong filter - must be name of existing minetest block"))
 			end
@@ -636,7 +637,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				F(S("\n\nSetup: To select a target for activation, click \"Set\" button then click the target.\n" ..
 				"You can add more targets with \"Add\" button. To see where the target is click \"Show\" button next to it.\n" ..
 				"4 numbers in each row represent (from left to right): first 3 numbers are target coordinates (x, y, z), last number (Mode) controls how signal is passed to target.\n" ..
-				"For example, to only pass OFF signal use -2, to only pass ON use 2, -1 negates the signal, 1 passes original signal, 0 blocks signal.\n" ..
+				"For example, to only pass OFF signal use -2, to only pass ON signal use 2, -1 negates the signal, 1 passes original signal, 0 blocks signal.\n" ..
 				"\"view\" button toggles view of target names, in names view there is \"scan\" button which automatically scans for valid targets in a box defined by first and second target."..
 				"\n\nAdvanced:\nYou can use the distributor as an event handler - it listens to events like interact attempts and chat around the distributor.\n" ..
 				"You need to place the distributor at a position (x, y, z), with coordinates of the form (20*i, 20*j+1, 20*k) for some integers i, j, k.\n" ..
@@ -716,15 +717,18 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			meta:set_int("mode", tonumber(fields.mode) or 2)
 			meta:set_int("iter", math.min(tonumber(fields.iter) or 1, 500)); meta:set_int("count", 0)
 
-			local pass, pass_len = fields.pass or ""
+			local pass = fields.pass or ""
 
-			if pass ~= "" and pass ~= meta:get_string("pass") then
-				pass_len = pass:len()
-				if pass_len <= 16 then -- don't replace password with hash which is longer - 27 chars
-					pass = minetest.get_password_hash(pos.x, pass .. pos.y); pass = minetest.get_password_hash(pos.y, pass .. pos.z)
-					meta:set_string("pass", pass)
-				else
-					minetest.chat_send_player(name, S("KEYPAD: Password too long."))
+			if pass ~= "" then
+				local mpass = meta:get_string("pass")
+				if pass ~= mpass then
+					if pass:len() <= 16 then -- don't replace password with hash which is longer - 27 chars
+						pass = minetest.get_password_hash(pos.x, pass .. pos.y); pass = minetest.get_password_hash(pos.y, pass .. pos.z)
+						meta:set_string("pass", pass)
+					else
+						pass = mpass
+						minetest.chat_send_player(name, S("KEYPAD: Password too long."))
+					end
 				end
 			end
 
@@ -733,8 +737,12 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			meta:set_string("text", text)
 			meta:set_int("x0", x0); meta:set_int("y0", y0); meta:set_int("z0", z0)
 
-			if pass == "" or pass_len and pass_len > 16 then
-				meta:set_string("infotext", S("Punch keypad to use it."))
+			if pass == "" then
+				if (text):byte() == 36 then -- text starts with $, play sound
+					meta:set_string("infotext", S("Punch keypad to play sound."))
+				else
+					meta:set_string("infotext", S("Punch keypad to use it."))
+				end
 			elseif text == "@" then
 				meta:set_string("infotext", S("Punch keyboard to use it."))
 			else
@@ -845,6 +853,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 					local sound_text = "$" .. sound_name
 					if sound_text ~= meta:get_string("text"):split(" ")[1] then
 						meta:set_string("text", sound_text)
+						meta:set_string("infotext", S("Punch keypad to play sound."))
 					end
 				end
 			end
