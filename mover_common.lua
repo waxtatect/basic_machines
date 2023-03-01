@@ -47,12 +47,11 @@ basic_machines.check_mover_filter = function(mode, pos, meta, filter) -- mover i
 	return false
 end
 
-basic_machines.find_and_connect_battery = function(pos)
+basic_machines.find_and_connect_battery = function(pos, meta)
 	for i = 0, 2 do
 		local positions = minetest.find_nodes_in_area( -- find battery
 			vector.subtract(pos, 1), vector_add(pos, 1), "basic_machines:battery_" .. i)
 		if #positions > 0 then
-			local meta = minetest.get_meta(pos)
 			local fpos = positions[1] -- pick first battery found
 			meta:set_int("batx", fpos.x); meta:set_int("baty", fpos.y); meta:set_int("batz", fpos.z)
 			return fpos

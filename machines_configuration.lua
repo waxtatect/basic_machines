@@ -461,7 +461,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 				if meta:get_float("fuel") < 0 then meta:set_float("fuel", 0) end -- reset block
 
-				local fpos = basic_machines.find_and_connect_battery(pos)
+				local fpos = basic_machines.find_and_connect_battery(pos, meta)
 				if fpos then
 					minetest.chat_send_player(name, S("MOVER: Battery found - displaying mark 1"))
 					machines.mark_pos1(name, fpos) -- display battery

@@ -343,18 +343,20 @@ local function grinder_process(pos)
 			end
 		else
 			inv:set_stack("fuel", 1, afterfuel.items[1])
-			add_fuel = add_fuel * 0.1 / 4 -- thats 1 for coal
+			add_fuel = add_fuel * 0.1 / 4 -- that's 1 for coal
 		end
 
 		if add_fuel > 0 then
-			fuel = fuel + add_fuel; meta:set_float("fuel", fuel)
+			fuel = fuel + add_fuel
 		end
 
 		if fuel < fuel_req then
+			meta:set_float("fuel", fuel)
 			meta:set_string("infotext",
 				S("Need at least @1 fuel to complete operation", twodigits_float(fuel_req - fuel))); return
 		else
-			msg = S("Added fuel furnace burn time @1, fuel status @2", add_fuel, twodigits_float(fuel))
+			msg = S("Added fuel furnace burn time @1, fuel status @2",
+				twodigits_float(add_fuel), twodigits_float(fuel))
 		end
 	end
 
@@ -365,8 +367,8 @@ local function grinder_process(pos)
 	end
 	if inv:room_for_item("dst", addstack) then
 		inv:add_item("dst", addstack)
-	else
-		if msg then meta:set_string("infotext", msg) end; return
+	elseif msg then
+		meta:set_float("fuel", fuel); meta:set_string("infotext", msg); return
 	end
 
 	-- take 'steps' items from src inventory for each activation

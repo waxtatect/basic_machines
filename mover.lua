@@ -323,7 +323,7 @@ minetest.register_node("basic_machines:mover", {
 		meta:set_int("seltab", 1) -- 0: undefined, 1: mode tab, 2: positions tab
 		meta:set_int("t", 0); meta:set_int("T", 0); meta:set_int("activation_count", 0)
 
-		basic_machines.find_and_connect_battery(pos) -- try to find battery early
+		basic_machines.find_and_connect_battery(pos, meta) -- try to find battery early
 		if minetest.check_player_privs(name, "privs") then
 			meta:set_int("upgrade", -1) -- means operations will be for free
 		end
@@ -716,23 +716,18 @@ minetest.register_node("basic_machines:mover", {
 							{x = meta:get_int("batx"), y = meta:get_int("baty"), z = meta:get_int("batz")}, power_draw)
 					end
 
-					local found_fuel
-
-					if supply > 0 then
-						found_fuel = supply
+					if supply > 0 then -- fuel found
+						fuel = fuel + supply
 					elseif supply < 0 then -- no battery at target location, try to find it!
-						if not basic_machines.find_and_connect_battery(pos) then
+						if not basic_machines.find_and_connect_battery(pos, meta) then
 							meta:set_string("infotext", S("Can not find nearby battery to connect to!"))
 							minetest.sound_play("default_cool_lava", {pos = pos, gain = 1, max_hear_distance = 8}, true)
 							return
 						end
 					end
 
-					if found_fuel then
-						fuel = fuel + found_fuel; meta:set_float("fuel", fuel)
-					end
-
 					if fuel < fuel_cost then
+						meta:set_float("fuel", fuel)
 						meta:set_string("infotext", S("Mover block. Energy @1, needed energy @2. Put nonempty battery next to mover.",
 							twodigits_float(fuel), twodigits_float(fuel_cost))); return
 					else
@@ -751,13 +746,16 @@ minetest.register_node("basic_machines:mover", {
 					meta:set_int("activation_count", 0)
 				end
 
-				fuel = fuel - (new_fuel_cost or fuel_cost); meta:set_float("fuel", fuel) -- fuel cost
+				if upgrade ~= -1 then
+					fuel = fuel - (new_fuel_cost or fuel_cost); meta:set_float("fuel", fuel) -- fuel cost
+				end
 				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
 			elseif fuel_cost > 2 then
 				fuel = fuel - fuel_cost * 0.01; meta:set_float("fuel", fuel) -- 1% fuel cost if no task done
 				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
-			else
-				if msg then meta:set_string("infotext", msg) end
+			elseif msg then -- mover refueled
+				meta:set_float("fuel", fuel)
+				meta:set_string("infotext", msg)
 			end
 		end,
 

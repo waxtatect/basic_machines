@@ -65,7 +65,7 @@ local function battery_recharge(pos, energy, origin)
 		if energy_new > capacity then energy_new = capacity end -- excess energy is wasted
 
 		if origin ~= "check_power" then
-			if origin ~= "recharge_furnace" then
+			if origin == nil then
 				meta:set_float("energy", energy_new)
 			end
 
@@ -95,7 +95,7 @@ local function battery_recharge(pos, energy, origin)
 	elseif origin == "recharge_furnace" and energy < 1 then
 		minetest.swap_node(pos, {name = "basic_machines:battery_0"})
 		meta:set_string("infotext", S("Furnace needs at least 1 energy"))
-	else
+	elseif origin ~= "check_power" then
 		capacity = capacity or meta:get_float("capacity")
 		meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy * 10) / 10, capacity))
 	end
@@ -333,9 +333,11 @@ minetest.register_node("basic_machines:battery_0", {
 				end
 			end
 
-			-- try to recharge by converting inserted fuel/power crystals into energy
-			if energy < meta:get_float("capacity") then -- not full, try to recharge
-				battery_recharge(pos, energy)
+			local capacity = meta:get_float("capacity")
+			if energy < capacity then -- not full, try to recharge
+				battery_recharge(pos, energy) -- try to recharge by converting inserted fuel/power crystals into energy
+			else -- update energy display
+				meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy * 10) / 10, capacity))
 			end
 		end
 	}
