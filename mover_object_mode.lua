@@ -14,9 +14,17 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 	end
 
 	local radius = math.min(vector.distance(pos1, vector_add(pos, {x = x1, y = y1, z = z1})), max_range) -- distance source1-source2
-	local node2_name = minetest.get_node(pos2).name
 	local elevator = meta:get_int("elevator"); if elevator == 1 and radius == 0 then radius = 1 end -- for compatibility
 	local teleport_any, no_sound
+
+	local node2 = minetest.get_node_or_nil(pos2)
+	local node2_name
+	if node2 then
+		node2_name = node2.name
+	else
+		minetest.load_area(pos2)
+		node2_name = minetest.get_node(pos2).name
+	end
 
 	-- object move
 	if mover_chests[node2_name] and elevator == 0 then -- put objects in target chest
