@@ -436,7 +436,9 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 				-- mode
 				if mode ~= mmode then
-					if basic_machines.check_mover_filter(mode, pos, meta, prefer) then -- input validation
+					if prefer:len() > 4896 then
+						minetest.chat_send_player(name, S("MOVER: Filter too long."))
+					elseif basic_machines.check_mover_filter(mode, pos, meta, prefer) then -- input validation
 						if mover_no_large_stacks and basic_machines.check_mover_target(mode, pos, meta) then
 							prefer = basic_machines.clamp_item_count(prefer)
 						end
@@ -448,7 +450,9 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 				-- filter
 				if prefer ~= meta:get_string("prefer") then
-					if basic_machines.check_mover_filter(mode, pos, meta, prefer) then -- input validation
+					if prefer:len() > 4896 then
+						minetest.chat_send_player(name, S("MOVER: Filter too long."))
+					elseif basic_machines.check_mover_filter(mode, pos, meta, prefer) then -- input validation
 						if mover_no_large_stacks and basic_machines.check_mover_target(mode, pos, meta) then
 							prefer = basic_machines.clamp_item_count(prefer)
 						end
@@ -521,7 +525,9 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			if mode == mmode then return end
 
 			local prefer = fields.prefer or ""
-			if basic_machines.check_mover_filter(mode, pos, meta, prefer) then -- input validation
+			if prefer:len() > 4896 then
+				minetest.chat_send_player(name, S("MOVER: Filter too long."))
+			elseif basic_machines.check_mover_filter(mode, pos, meta, prefer) then -- input validation
 				if mover_no_large_stacks and basic_machines.check_mover_target(mode, pos, meta) then
 					prefer = basic_machines.clamp_item_count(prefer)
 				end
@@ -722,19 +728,24 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			if pass ~= "" then
 				local mpass = meta:get_string("pass")
 				if pass ~= mpass then
-					if pass:len() <= 16 then -- don't replace password with hash which is longer - 27 chars
-						pass = minetest.get_password_hash(pos.x, pass .. pos.y); pass = minetest.get_password_hash(pos.y, pass .. pos.z)
-						meta:set_string("pass", pass)
-					else
+					if pass:len() > 16 then -- don't replace password with hash which is longer - 27 chars
 						pass = mpass
 						minetest.chat_send_player(name, S("KEYPAD: Password too long."))
+					else
+						pass = minetest.get_password_hash(pos.x, pass .. pos.y); pass = minetest.get_password_hash(pos.y, pass .. pos.z)
+						meta:set_string("pass", pass)
 					end
 				end
 			end
 
 			local text = fields.text or ""
 
-			meta:set_string("text", text)
+			if text:len() > 4896 then
+				text = meta:get_string("text")
+				minetest.chat_send_player(name, S("KEYPAD: Text too long."))
+			else
+				meta:set_string("text", text)
+			end
 			meta:set_int("x0", x0); meta:set_int("y0", y0); meta:set_int("z0", z0)
 
 			if pass == "" then
@@ -894,7 +905,12 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 			meta:set_string("op", strip_translator_sequence(fields.op, ""))
 			meta:set_int("r", math.min((tonumber(fields.r) or 1), max_range))
-			meta:set_string("node", fields.node or "")
+			local filter = fields.node or ""
+			if filter:len() > 4896 then
+				minetest.chat_send_player(name, S("DETECTOR: Detection filter too long."))
+			else
+				meta:set_string("node", filter)
+			end
 			meta:set_int("NOT", tonumber(fields.NOT) or 0)
 			meta:set_string("mode", strip_translator_sequence(fields.mode, ""))
 			meta:set_string("inv1", strip_translator_sequence(fields.inv1, ""))

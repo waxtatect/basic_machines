@@ -4,24 +4,21 @@ local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
 local mover_no_large_stacks = basic_machines.settings.mover_no_large_stacks
 local string_byte = string.byte
-local signs = { -- when activated with keypad these will be "punched" to update their text too
-	["basic_signs:sign_wall_glass"] = true,
-	["basic_signs:sign_wall_locked"] = true,
-	["basic_signs:sign_wall_obsidian_glass"] = true,
-	["basic_signs:sign_wall_plastic"] = true,
-	["basic_signs:sign_wall_steel_blue"] = true,
-	["basic_signs:sign_wall_steel_brown"] = true,
-	["basic_signs:sign_wall_steel_green"] = true,
-	["basic_signs:sign_wall_steel_orange"] = true,
-	["basic_signs:sign_wall_steel_red"] = true,
-	["basic_signs:sign_wall_steel_white_black"] = true,
-	["basic_signs:sign_wall_steel_white_red"] = true,
-	["basic_signs:sign_wall_steel_yellow"] = true,
-	["default:sign_wall_steel"] = true,
-	["default:sign_wall_wood"] = true
-}
+local signs -- when activated with keypad their text will be updated
 local use_signs_lib = minetest.global_exists("signs_lib")
 local use_unifieddyes = minetest.global_exists("unifieddyes")
+
+if use_signs_lib then
+	signs = {}
+	for _, sign_name in ipairs(signs_lib.lbm_restore_nodes or {}) do
+		signs[sign_name] = true
+	end
+else -- minetest_game default mod
+	signs = {
+		["default:sign_wall_steel"] = true,
+		["default:sign_wall_wood"] = true
+	}
+end
 
 -- position, time to live (how many times can signal travel before vanishing to prevent infinite recursion),
 -- do we want to stop repeating
@@ -29,14 +26,20 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 	if ttl < 1 then return end
 
 	local meta = minetest.get_meta(pos)
+	local msg
 
+	-- temperature
 	local t0, t1 = meta:get_int("t"), minetest.get_gametime()
 	local T = meta:get_int("T") -- temperature
 
 	if t0 > t1 - machines_minstep then -- activated before natural time
 		T = T + 1
 	elseif T > 0 then
-		if t1 - t0 > machines_timer then T = 0 else T = T - 1 end
+		if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
+			T = 0; msg = ""
+		else
+			T = T - 1
+		end
 	end
 	meta:set_int("t", t1); meta:set_int("T", T)
 
@@ -46,13 +49,18 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 		return
 	end
 
-	if minetest.is_protected(pos, meta:get_string("owner")) then
+	-- protection check
+	local owner = meta:get_string("owner")
+
+	if minetest.is_protected(pos, owner) then
 		meta:set_int("count", 0)
 		meta:set_string("infotext", S("Protection fail. Reset."))
 		return
 	end
 
-	local iter = meta:get_int("iter"); if iter == 0 then return end
+	-- repeating activation
+	local iter = meta:get_int("iter")
+	if iter == 0 then if msg then meta:set_string("infotext", msg) end; return end
 	local count = 0 -- counts repeats
 
 	if iter > 1 then
@@ -79,11 +87,12 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 		end
 	end
 
+	-- set text on target
 	local text = meta:get_string("text")
-	if text ~= "" then -- TEXT MODE; set text on target
+	if text ~= "" then
 		if text == "@" and meta:get_string("pass") ~= "" then -- keyboard mode, set text from input
 			text = meta:get_string("input")
-			meta:set_string("input", "") -- clear input again
+			meta:set_string("input", "") -- clear input
 		end
 
 		local bit = string_byte(text)
@@ -135,40 +144,53 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			end
 		end
 
-		if signs[name] then -- update text on signs with signs_lib
-			local tmeta = minetest.get_meta(tpos)
-			tmeta:set_string("infotext", text)
-			tmeta:set_string("text", text)
-			if use_signs_lib and signs_lib.update_sign then
-				local on_punch = (minetest.registered_nodes[name] or {}).on_punch
-				if on_punch then on_punch(tpos, node, nil) end
+		if signs[name] then -- update text on signs
+			if use_signs_lib then -- with signs_lib
+				if signs_lib.update_sign then
+					signs_lib.update_sign(tpos, {text = text})
+				else
+					return
+				end
+			else -- minetest_game default mod
+				if text:len() > 512 then
+					minetest.chat_send_player(owner, S("KEYPAD: Text too long.")); return
+				else
+					local tmeta = minetest.get_meta(tpos)
+					tmeta:set_string("infotext", S('"@1"', text))
+					tmeta:set_string("text", text)
+				end
 			end
 
-		-- target is keypad, special functions: @, % that output to target keypad text
-		elseif name == "basic_machines:keypad" then -- special modify of target keypad text and change its target
+		-- target is keypad, special functions: @, % that output to target keypad's text
+		elseif name == "basic_machines:keypad" then -- special modify of target keypad's text and change its target
 			local tmeta = minetest.get_meta(tpos)
-
 			if bit == 64 then -- target keypad's text starts with '@' (ascii code 64) -> character replacement
-				text = text:sub(2); if text == "" then tmeta:set_string("text", ""); return end -- clear target keypad text
+				text = text:sub(2)
+				if text == "" then -- clear target keypad's text
+					tmeta:set_string("text", ""); return
+				end
+
 				-- read words [j] from blocks above keypad:
 				local j = 0
-				local function replace()
+				text = text:gsub("@", function() -- replace every '@' in text with string on blocks above
 					j = j + 1; return minetest.get_meta({x = pos.x, y = pos.y + j, z = pos.z}):get_string("infotext")
-				end
-				text = text:gsub("@", replace) -- replace every '@' in text with string on blocks above
+				end, 16) -- up to 16 replacements
 
-				-- set target keypad's text
-				tmeta:set_string("text", text)
+				if text:len() > 4896 then
+					minetest.chat_send_player(owner, S("KEYPAD: Text too long.")); return
+				else -- set target keypad's text
+					tmeta:set_string("text", text)
+				end
 			elseif bit == 37 then -- target keypad's text starts with '%' (ascii code 37) -> word extraction
 				local ttext = minetest.get_meta({x = pos.x, y = pos.y + 1, z = pos.z}):get_string("infotext")
 				local i = tonumber(text:sub(2, 2)) or 1 -- read the number following the '%'
-				-- extract i - th word from text
+				-- extract i-th word from text
 				local j = 0
 				for word in ttext:gmatch("%S+") do
 					j = j + 1; if j == i then text = word; break end
 				end
 
-				-- set target keypad's target's text
+				-- set target keypad's text
 				tmeta:set_string("text", text)
 			else
 				-- just set text...
@@ -184,7 +206,6 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 
 		elseif name == "basic_machines:mover" then -- change filter on mover
 			local tmeta = minetest.get_meta(tpos)
-
 			if bit == 64 then -- if text starts with '@' -> clear the filter
 				tmeta:set_string("prefer", "")
 				tmeta:get_inventory():set_list("filter", {})
@@ -212,7 +233,6 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 
 		elseif name == "basic_machines:autocrafter" then
 			local tmeta = minetest.get_meta(tpos)
-
 			if bit == 64 then -- if text starts with '@' -> clear the recipe
 				basic_machines.change_autocrafter_recipe(tpos, tmeta:get_inventory(), nil)
 			elseif minetest.registered_items[text] then
@@ -232,9 +252,10 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			end
 
 		else
-			minetest.get_meta(tpos):set_string("infotext", text:gsub("^ +$", "")) -- else just set text
+			minetest.get_meta(tpos):set_string("infotext", text:gsub("^ +$", "")) -- just set text
 		end
 
+	-- target activation
 	else
 		if count < 2 then
 			meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))

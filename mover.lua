@@ -62,6 +62,8 @@ local mover = {
 		["default:pine_tree"] = 2,
 		["default:stone"] = 4,
 		["default:tree"] = 2,
+		["gloopblocks:basalt_cooled"] = 3,
+		["gloopblocks:obsidian_cooled"] = 20,
 		["gloopblocks:pumice_cooled"] = 2,
 		["itemframes:frame"] = 999999,
 		["itemframes:pedestal"] = 999999,
@@ -480,6 +482,7 @@ minetest.register_node("basic_machines:mover", {
 			local meta = minetest.get_meta(pos)
 			local upgradetype = meta:get_int("upgradetype")
 			local third_upgradetype = upgradetype == 3
+			local msg
 
 			-- temperature
 			local t0, t1 = meta:get_int("t"), minetest.get_gametime()
@@ -493,7 +496,7 @@ minetest.register_node("basic_machines:mover", {
 				T = T + 1
 			elseif T > mover_max_temp or third_upgradetype and T > 0 then
 				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
-					T = 0; meta:set_string("infotext", "")
+					T = 0; msg = ""
 				else
 					T = T - 1
 				end
@@ -512,7 +515,7 @@ minetest.register_node("basic_machines:mover", {
 			local mreverse = meta:get_int("reverse")
 			local mode_third_upgradetype = third_upgradetype and (mode == "normal" or mode == "dig")
 			local owner = meta:get_string("owner")
-			local upgrade, prefer, source_chest, msg
+			local upgrade, prefer, source_chest
 
 			-- positions
 			local pos1 -- where to take from
