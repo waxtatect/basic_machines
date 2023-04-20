@@ -8,7 +8,7 @@ minetest.register_abm({
 	interval = basic_machines.properties.machines_timer,
 	chance = 1,
 
-	action = function(pos, node, active_object_count, active_object_count_wider)
+	action = function(pos)
 		if basic_machines.properties.no_clock then return end
 		local meta = minetest.get_meta(pos)
 		-- owner online or machines privilege
@@ -53,7 +53,7 @@ minetest.register_node("basic_machines:clockgen", {
 
 	can_dig = function(pos, player)
 		local owner = minetest.get_meta(pos):get_string("owner")
-		return owner == player:get_player_name() or owner == ""
+		return player and owner == player:get_player_name() or owner == ""
 	end
 })
 

@@ -55,7 +55,7 @@ minetest.register_node("basic_machines:distributor", {
 	tiles = {"basic_machines_distributor.png"},
 	sounds = default.node_sound_wood_defaults(),
 
-	on_secondary_use = function(itemstack, user, pointed_thing)
+	on_secondary_use = function(_, user)
 		if user then
 			local round = math.floor
 			local pos, r, name = user:get_pos(), 20, user:get_player_name()
@@ -86,10 +86,10 @@ minetest.register_node("basic_machines:distributor", {
 	end,
 
 	can_dig = function(pos, player)
-		return minetest.get_meta(pos):get_string("owner") == player:get_player_name()
+		return player and minetest.get_meta(pos):get_string("owner") == player:get_player_name() or false
 	end,
 
-	on_rightclick = function(pos, node, player, itemstack, pointed_thing)
+	on_rightclick = function(pos, _, player)
 		minetest.show_formspec(player:get_player_name(),
 			"basic_machines:distributor_" .. minetest.pos_to_string(pos),
 			basic_machines.get_distributor_form(pos))
@@ -107,7 +107,7 @@ minetest.register_node("basic_machines:distributor", {
 			if t0 > t1 - machines_minstep then -- activated before natural time
 				T = T + 1
 			elseif T > 0 then
-				if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
+				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
 					T = 0; meta:set_string("infotext", "")
 				else
 					T = T - 1
@@ -171,7 +171,7 @@ minetest.register_node("basic_machines:distributor", {
 			if t0 > t1 - machines_minstep then -- activated before natural time
 				T = T + 1
 			elseif T > 0 then
-				if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
+				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
 					T = 0; meta:set_string("infotext", "")
 				else
 					T = T - 1

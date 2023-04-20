@@ -74,7 +74,7 @@ minetest.register_node("basic_machines:light_on", {
 	palette = def.palette,
 	sounds = default.node_sound_wood_defaults(),
 
-	after_place_node = function(pos, placer)
+	after_place_node = function(pos)
 		local meta = minetest.get_meta(pos)
 		meta:set_string("formspec", "formspec_version[4]size[2.5,2.4]" ..
 			"field[0.25,0.4;2,0.8;deactivate;" .. F(S("Deactivate after:")) .. ";0" ..
@@ -82,7 +82,7 @@ minetest.register_node("basic_machines:light_on", {
 		meta:set_float("deactivate", 0)
 	end,
 
-	on_receive_fields = function(pos, formname, fields, sender)
+	on_receive_fields = function(pos, _, fields, sender)
 		if fields.OK then
 			if minetest.is_protected(pos, sender:get_player_name()) then return end
 			local deactivate = tonumber(fields.deactivate) or 0

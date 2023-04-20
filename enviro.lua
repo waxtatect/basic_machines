@@ -112,11 +112,15 @@ minetest.register_node("basic_machines:enviro", {
 	end,
 
 	can_dig = function(pos, player) -- don't dig if fuel is inside, cause it will be destroyed
-		local meta = minetest.get_meta(pos)
-		return meta:get_inventory():is_empty("fuel") and meta:get_string("owner") == player:get_player_name()
+		if player then
+			local meta = minetest.get_meta(pos)
+			return meta:get_inventory():is_empty("fuel") and meta:get_string("owner") == player:get_player_name()
+		else
+			return false
+		end
 	end,
 
-	on_receive_fields = function(pos, formname, fields, sender)
+	on_receive_fields = function(pos, _, fields, sender)
 		local name = sender:get_player_name()
 		if fields.OK then
 			if minetest.is_protected(pos, name) then return end
@@ -180,12 +184,12 @@ Sky:		-, surface, cave or space
 		end
 	end,
 
-	allow_metadata_inventory_put = function(pos, listname, index, stack, player)
+	allow_metadata_inventory_put = function(pos, _, _, stack, player)
 		if minetest.is_protected(pos, player:get_player_name()) then return 0 end
 		return stack:get_count()
 	end,
 
-	allow_metadata_inventory_take = function(pos, listname, index, stack, player)
+	allow_metadata_inventory_take = function(pos, _, _, stack, player)
 		if minetest.is_protected(pos, player:get_player_name()) then return 0 end
 		return stack:get_count()
 	end,

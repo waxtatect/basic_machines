@@ -32,10 +32,10 @@ minetest.register_node("basic_machines:detector", {
 	end,
 
 	can_dig = function(pos, player)
-		return minetest.get_meta(pos):get_string("owner") == player:get_player_name()
+		return player and minetest.get_meta(pos):get_string("owner") == player:get_player_name() or false
 	end,
 
-	on_rightclick = function(pos, node, player, itemstack, pointed_thing)
+	on_rightclick = function(pos, _, player)
 		local meta, name = minetest.get_meta(pos), player:get_player_name()
 
 		local pos1 = {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")}
@@ -93,18 +93,6 @@ minetest.register_node("basic_machines:detector", {
 			"]dropdown[0.25,5.8;3.5,0.8;mode;" .. detector_modelist_translated .. ";" .. (detector_modelist[mode_string] or 1) ..
 			"]button[4,5.8;1,0.8;help;" .. F(S("help")) .. "]" ..
 			inventory_list .. "button_exit[4,7.05;1,0.8;OK;" .. F(S("OK")) .. "]")
-	end,
-
-	allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
-		return 0
-	end,
-
-	allow_metadata_inventory_put = function(pos, listname, index, stack, player)
-		return 0
-	end,
-
-	allow_metadata_inventory_take = function(pos, listname, index, stack, player)
-		return 0
 	end,
 
 	effector = {

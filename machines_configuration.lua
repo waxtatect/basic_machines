@@ -74,7 +74,7 @@ end
 
 local abs = math.abs
 
-minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
+minetest.register_on_punchnode(function(pos, node, puncher)
 	local name = puncher:get_player_name()
 	local punch_state = punchset[name].state
 	local punchset_desc = punchable_nodes[node.name]

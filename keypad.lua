@@ -308,7 +308,7 @@ minetest.register_node("basic_machines:keypad", {
 		meta:set_int("t", 0); meta:set_int("T", 0)
 	end,
 
-	on_rightclick = function(pos, node, player, itemstack, pointed_thing)
+	on_rightclick = function(pos, _, player)
 		local meta, name = minetest.get_meta(pos), player:get_player_name()
 		local x0, y0, z0 = meta:get_int("x0"), meta:get_int("y0"), meta:get_int("z0")
 

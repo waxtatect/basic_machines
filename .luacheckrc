@@ -1,5 +1,3 @@
-unused_args = false
-
 globals = {
 	"basic_machines"
 }

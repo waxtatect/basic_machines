@@ -413,15 +413,19 @@ minetest.register_node("basic_machines:grinder", {
 	end,
 
 	can_dig = function(pos, player)
-		local meta = minetest.get_meta(pos)
-		local inv = meta:get_inventory()
+		if player then
+			local meta = minetest.get_meta(pos)
+			local inv = meta:get_inventory()
 
-		return meta:get_string("owner") == player:get_player_name() and
-			inv:is_empty("upgrade") and inv:is_empty("src") and -- all inv must be empty to be dug
-			inv:is_empty("dst") and inv:is_empty("fuel")
+			return meta:get_string("owner") == player:get_player_name() and
+				inv:is_empty("upgrade") and inv:is_empty("src") and -- all inv must be empty to be dug
+				inv:is_empty("dst") and inv:is_empty("fuel")
+		else
+			return false
+		end
 	end,
 
-	on_receive_fields = function(pos, formname, fields, sender)
+	on_receive_fields = function(pos, _, fields, sender)
 		if fields.quit then return end
 
 		if fields.OK then
@@ -439,21 +443,21 @@ minetest.register_node("basic_machines:grinder", {
 		end
 	end,
 
-	allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
+	allow_metadata_inventory_move = function()
 		return 0
 	end,
 
-	allow_metadata_inventory_put = function(pos, listname, index, stack, player)
+	allow_metadata_inventory_put = function(pos, _, _, stack, player)
 		if minetest.is_protected(pos, player:get_player_name()) then return 0 end
 		return stack:get_count()
 	end,
 
-	allow_metadata_inventory_take = function(pos, listname, index, stack, player)
+	allow_metadata_inventory_take = function(pos, _, _, stack, player)
 		if minetest.is_protected(pos, player:get_player_name()) then return 0 end
 		return stack:get_count()
 	end,
 
-	on_metadata_inventory_put = function(pos, listname, index, stack, player)
+	on_metadata_inventory_put = function(pos, listname)
 		if listname == "src" then
 			grinder_process(pos)
 		elseif listname == "upgrade" then
@@ -463,7 +467,7 @@ minetest.register_node("basic_machines:grinder", {
 		end
 	end,
 
-	on_metadata_inventory_take = function(pos, listname, index, stack, player)
+	on_metadata_inventory_take = function(pos, listname)
 		if listname == "upgrade" then
 			local meta = minetest.get_meta(pos)
 			grinder_upgrade(meta)

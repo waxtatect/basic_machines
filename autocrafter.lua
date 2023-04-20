@@ -182,11 +182,15 @@ minetest.register_node("basic_machines:autocrafter", {
 	end,
 
 	can_dig = function(pos, player)
-		local meta = minetest.get_meta(pos)
-		local inv = meta:get_inventory()
+		if player then
+			local meta = minetest.get_meta(pos)
+			local inv = meta:get_inventory()
 
-		return meta:get_string("owner") == player:get_player_name() and
-			inv:is_empty("src") and inv:is_empty("dst")
+			return meta:get_string("owner") == player:get_player_name() and
+				inv:is_empty("src") and inv:is_empty("dst")
+		else
+			return false
+		end
 	end,
 
 	allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)

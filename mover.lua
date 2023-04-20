@@ -350,11 +350,15 @@ minetest.register_node("basic_machines:mover", {
 	end,
 
 	can_dig = function(pos, player) -- don't dig if upgrades inside, cause they will be destroyed
-		local meta = minetest.get_meta(pos)
-		return meta:get_inventory():is_empty("upgrade") and meta:get_string("owner") == player:get_player_name()
+		if player then
+			local meta = minetest.get_meta(pos)
+			return meta:get_inventory():is_empty("upgrade") and meta:get_string("owner") == player:get_player_name()
+		else
+			return false
+		end
 	end,
 
-	on_rightclick = function(pos, node, player, itemstack, pointed_thing)
+	on_rightclick = function(pos, _, player)
 		local name, meta = player:get_player_name(), minetest.get_meta(pos)
 
 		machines.mark_pos1(name, vector_add(pos,
@@ -368,11 +372,11 @@ minetest.register_node("basic_machines:mover", {
 			basic_machines.get_mover_form(pos))
 	end,
 
-	allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
+	allow_metadata_inventory_move = function()
 		return 0 -- no internal inventory moves!
 	end,
 
-	allow_metadata_inventory_put = function(pos, listname, index, stack, player)
+	allow_metadata_inventory_put = function(pos, listname, _, stack, player)
 		local name = player:get_player_name()
 		if minetest.is_protected(pos, name) then return 0 end
 		local meta = minetest.get_meta(pos)
@@ -432,7 +436,7 @@ minetest.register_node("basic_machines:mover", {
 		return 0
 	end,
 
-	allow_metadata_inventory_take = function(pos, listname, index, stack, player)
+	allow_metadata_inventory_take = function(pos, listname, _, stack, player)
 		local name = player:get_player_name()
 		if minetest.is_protected(pos, name) then return 0 end
 		local meta = minetest.get_meta(pos)

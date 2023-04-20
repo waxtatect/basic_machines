@@ -136,11 +136,11 @@ end
 local function make_it_nondiggable_but_removable(name, dropname, door)
 	minetest.override_item(name, {
 		diggable = false,
-		on_punch = function(pos, node, puncher, pointed_thing) -- remove node if owner repeatedly punches it 3x
-			local pname = puncher:get_player_name()
+		on_punch = function(pos, _, puncher) -- remove node if owner repeatedly punches it 3x
+			local player_name = puncher:get_player_name()
 			local meta = minetest.get_meta(pos)
 			-- can be dug by owner or if unprotected
-			if pname == meta:get_string("owner") or not minetest.is_protected(pos, pname) then
+			if player_name == meta:get_string("owner") or not minetest.is_protected(pos, player_name) then
 				local t0, t = meta:get_int("punchtime"), minetest.get_gametime()
 				local count = meta:get_int("punchcount")
 
@@ -148,7 +148,7 @@ local function make_it_nondiggable_but_removable(name, dropname, door)
 				meta:set_int("punchtime", t); meta:set_int("punchcount", count)
 
 				if count == 1 then
-					minetest.chat_send_player(pname, S("@1: Punch me one more time to remove me", door))
+					minetest.chat_send_player(player_name, S("@1: Punch me one more time to remove me", door))
 				elseif count == 2 then -- remove steel door and drop it
 					minetest.set_node(pos, {name = "air"})
 					minetest.add_item(pos, ItemStack(dropname))

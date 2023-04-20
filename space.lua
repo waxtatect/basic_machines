@@ -6,11 +6,14 @@ local space_start_eff = basic_machines.settings.space_start_eff
 local use_player_monoids = minetest.global_exists("player_monoids")
 local use_basic_protect = minetest.global_exists("basic_protect")
 
-minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
-	if player:get_pos().y > space_start then return end
-	-- bring gravity closer to normal with each punch
-	if player:get_physics_override().gravity < 1 then
-		player:set_physics_override({gravity = 1})
+minetest.register_on_punchplayer(function(player, hitter, _, tool_capabilities, dir)
+	if player:get_pos().y > space_start and hitter:is_player() then
+		if vector.length(player:get_velocity()) > 0 then
+			player:add_velocity(vector.multiply(dir, 5)) -- push player a little
+		end
+		if tool_capabilities and ((tool_capabilities.damage_groups or {}).fleshy or 0) == 1 then
+			return true
+		end
 	end
 end)
 
@@ -158,7 +161,7 @@ minetest.register_node("basic_machines:air", {
 	buildable_to = true,
 	drop = "",
 
-	after_place_node = function(pos, placer, itemstack, pointed_thing)
+	after_place_node = function(pos)
 		local r = 3
 		for i = -r, r do
 			for j = -r, r do
@@ -179,7 +182,7 @@ minetest.register_abm({
 	neighbors = {"air"},
 	interval = 10,
 	chance = 1,
-	action = function(pos, node, active_object_count, active_object_count_wider)
+	action = function(pos)
 		minetest.set_node(pos, {name = "air"})
 	end
 })

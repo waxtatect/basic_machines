@@ -11,7 +11,7 @@ local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
 local max_balls = math.max(0, basic_machines.settings.max_balls)
 local max_range = basic_machines.properties.max_range
-local max_damage = minetest.PLAYER_MAX_HP_DEFAULT / 2 -- player health 20
+local max_damage = minetest.PLAYER_MAX_HP_DEFAULT / 4 -- player health 20
 -- to be used with bounce setting 2 in ball spawner:
 -- 1: bounce in x direction, 2: bounce in z direction, otherwise it bounces in y direction
 local bounce_materials = {
@@ -37,15 +37,8 @@ local ball_default = {
 local scale_factor = 100
 local ballcount = {}
 local abs = math.abs
+local elasticity = 0.9 -- speed gets multiplied by this when bouncing
 local use_boneworld = minetest.global_exists("boneworld")
-
-local function round(x)
-	if x < 0 then
-		return -math.floor(-x + 0.5)
-	else
-		return math.floor(x + 0.5)
-	end
-end
 
 minetest.register_entity("basic_machines:ball", {
 	initial_properties = {
@@ -61,23 +54,22 @@ minetest.register_entity("basic_machines:ball", {
 		static_save = false
 	},
 
+	_in_air = false,
 	_origin = {
 		x = ball_default.x0,
 		y = ball_default.y0,
 		z = ball_default.z0
 	},
 	_owner = "",
-	_elasticity = 0.9,						-- speed gets multiplied by this after bounce
-	_is_arrow = false,						-- advanced mob protection
 	_timer = 0,
 
 	_speed = ball_default.speed,			-- velocity when punched
 	_energy = ball_default.energy,			-- if negative it will deactivate stuff, positive will activate, 0 wont do anything
 	_bounce = ball_default.bounce,			-- 0: absorbs in block, 1: proper bounce=lag buggy, to do: line of sight bounce
-	_gravity = ball_default.gravity,
 	_punchable = ball_default.punchable,	-- can be punched by players in protection
 	_hurt = ball_default.hurt,				-- how much damage it does to target entity, if 0 damage disabled
 	_lifetime = ball_default.lifetime,		-- how long it exists before disappearing
+	_solid = ball_default.solid,			-- wether physical or not
 
 	on_deactivate = function(self)
 		ballcount[self._owner] = (ballcount[self._owner] or 1) - 1
@@ -91,121 +83,76 @@ minetest.register_entity("basic_machines:ball", {
 
 		local pos = self.object:get_pos()
 		local origin = self._origin
-
 		local dist = math.max(abs(pos.x - origin.x), abs(pos.y - origin.y), abs(pos.z - origin.z))
+
 		if dist > 50 then -- maximal distance when balls disappear, remove if it goes too far
 			self.object:remove(); return
 		end
 
-		local nodename = minetest.get_node(pos).name
-		local walkable = false
-		if nodename ~= "air" then
-			walkable = minetest.registered_nodes[nodename].walkable
-			-- ball can activate spawner, just not originating one
-			if nodename == "basic_machines:ball_spawner" and dist > 0.5 then walkable = true end
-		end
+		local node_name, def, walkable
+		local energy, bounce = self._energy, self._bounce
 
-		if not walkable then
-			if self._hurt ~= 0 then -- check for colliding nearby objects
-				local objects = minetest.get_objects_inside_radius(pos, 2)
-				if #objects > 1 then
-					for _, obj in ipairs(objects) do
-						local p, d = obj:get_pos(), 0
-						if p then
-							d = math.sqrt((p.x - pos.x)^2 + (p.y - pos.y)^2 + (p.z - pos.z)^2)
-						end
-						if d > 0 then
-							-- if minetest.is_protected(p, self._owner) then break end
-							-- if abs(p.x) < 32 and abs(p.y) < 32 and abs(p.z) < 32 then break end -- no damage around spawn
-
-							if obj:is_player() then -- player
-								if obj:get_player_name() == self._owner then break end -- don't hurt owner
-
-								local newhp = obj:get_hp() - self._hurt
-								if newhp <= 0 and use_boneworld and boneworld.killxp then
-									local killxp = boneworld.killxp[self._owner]
-									if killxp then
-										boneworld.killxp[self._owner] = killxp + 0.01
-									end
-								end
-								obj:set_hp(newhp)
-							else -- non player
-								local lua_entity = obj:get_luaentity()
-								if lua_entity then
-									if lua_entity.itemstring == "robot" then
-										self.object:remove(); break
-									-- if protection (mobs_redo) is on level 2 then don't let arrows harm mobs
-									elseif self._is_arrow and lua_entity.protected == 2 then
-										break
-									end
-								end
-								local newhp = obj:get_hp() - self._hurt
-								minetest.chat_send_player(self._owner, S("BALL: Target hp @1", newhp))
-								if newhp > 0 then obj:set_hp(newhp) else obj:remove() end
-							end
-
-							self.object:remove(); break
-						end
+		if self._solid == 0 and (energy ~= 0 or bounce > 0) then
+			node_name = minetest.get_node(pos).name
+			if node_name == "air" then
+				if bounce > 0 then self._in_air = true end
+			elseif energy ~= 0 and node_name == "basic_machines:ball_spawner" and dist > 0.5 then
+				-- ball can activate spawner, just not originating one
+				def = minetest.registered_nodes[node_name]
+				walkable = true
+			elseif node_name == "ignore" then
+				self.object:remove(); return
+			else
+				def = minetest.registered_nodes[node_name]
+				if def then
+					if bounce > 0 and self._in_air and ((def.groups or {}).liquid or 0) > 0 and self._speed < 7 then
+						-- bounce on liquids surface
+						walkable = true
+					else
+						walkable = def.walkable
 					end
 				end
 			end
+		end
 
-		elseif walkable then -- we hit a node
-			-- minetest.chat_send_all("Hit node at " .. minetest.pos_to_string(pos))
-			local node = minetest.get_node(pos)
-			local def = minetest.registered_nodes[node.name]
-			if def and (def.effector or def.mesecons and def.mesecons.effector) then -- activate target
-				local energy = self._energy
-
-				if energy ~= 0 and minetest.is_protected(pos, self._owner) then
+		if walkable then -- we hit a node - only with physical = false (or solid = 0)
+			if energy ~= 0 and def and (def.effector or def.mesecons and def.mesecons.effector) then -- activate target
+				if minetest.is_protected(pos, self._owner) then
 					return
 				end
 
-				local effector = def.effector or def.mesecons.effector
-				local param = def.effector and machines_TTL or node
-
 				self.object:remove()
+
+				local effector = def.effector or def.mesecons.effector
+				local param = def.effector and machines_TTL or minetest.get_node(pos)
 
 				if energy > 0 and effector.action_on then
 					effector.action_on(pos, param)
 				elseif energy < 0 and effector.action_off then
 					effector.action_off(pos, param)
 				end
-			else -- bounce (copyright rnd, 2016)
-				local bounce = self._bounce
-
-				if bounce == 0 then
-					self.object:remove(); return
-				end
-
+			elseif bounce > 0 then -- bounce (copyright rnd, 2016)
 				local n = {x = 0, y = 0, z = 0} -- this will be bounce normal
 				local v = self.object:get_velocity()
+				local opos = vector.round(pos) -- obstacle
 
-				if bounce == 2 then -- uses special blocks for non buggy lag proof bouncing: by default it bounces in y direction
-					local bounce_direction = bounce_materials[node.name] or 0
-
-					if bounce_direction == 0 then
-						if v.y >= 0 then n.y = -1 else n.y = 1 end
-					elseif bounce_direction == 1 then
-						if v.x >= 0 then n.x = -1 else n.x = 1 end
-					elseif bounce_direction == 2 then
-						if v.z >= 0 then n.z = -1 else n.z = 1 end
-					end
-				else
+				if bounce == 1 then
 					-- algorithm to determine bounce direction - problem:
-					-- with lag it's impossible to determine reliable which node was hit and which face...
-					if v.x <= 0 then n.x = 1 else n.x = -1 end -- possible bounce directions
-					if v.y <= 0 then n.y = 1 else n.y = -1 end
-					if v.z <= 0 then n.z = 1 else n.z = -1 end
+					-- with lag it's impossible to determine reliably which node was hit and which face...
 
-					local opos = {x = round(pos.x), y = round(pos.y), z = round(pos.z)} -- obstacle
+					-- possible bounce directions
+					if v.x > 0 then n.x = -1 else n.x = 1 end
+					if v.y > 0 then n.y = -1 else n.y = 1 end
+					if v.z > 0 then n.z = -1 else n.z = 1 end
+
+					-- obtain bounce direction
 					local bpos = vector.subtract(pos, opos) -- boundary position on cube, approximate
-					local dpos = {x = 0.5 * n.x, y = 0.5 * n.y, z = 0.5 * n.z} -- calculate distance to bounding surface midpoints
+					local dpos = vector.multiply(n, 0.5) -- calculate distance to bounding surface midpoints
 					local d1 = (bpos.x - dpos.x)^2 + bpos.y^2 + bpos.z^2
 					local d2 = bpos.x^2 + (bpos.y - dpos.y)^2 + bpos.z^2
 					local d3 = bpos.x^2 + bpos.y^2 + (bpos.z - dpos.z)^2
-					local d = math.min(d1, d2, d3) -- we obtain bounce direction from minimal distance
 
+					local d = math.min(d1, d2, d3) -- we obtain bounce direction from minimal distance
 					if d1 == d then -- x
 						n.y, n.z = 0, 0
 					elseif d2 == d then -- y
@@ -213,32 +160,39 @@ minetest.register_entity("basic_machines:ball", {
 					elseif d3 == d then -- z
 						n.x, n.y = 0, 0
 					end
+				else -- bounce == 2, uses special blocks for non buggy lag proof bouncing: by default it bounces in y direction
+					local bounce_direction = bounce_materials[node_name] or 0
+					if bounce_direction == 0 then
+						if v.y > 0 then n.y = -1 else n.y = 1 end
+					elseif bounce_direction == 1 then
+						if v.x > 0 then n.x = -1 else n.x = 1 end
+					elseif bounce_direction == 2 then
+						if v.z > 0 then n.z = -1 else n.z = 1 end
+					end
+				end
 
-					nodename = minetest.get_node(vector.add(opos, n)).name -- verify normal
-					walkable = nodename ~= "air"
-					if walkable then -- problem, nonempty node - incorrect normal, fix it
-						if n.x ~= 0 then -- x direction is wrong, try something else
-							n.x = 0
-							if v.y >= 0 then n.y = -1 else n.y = 1 end -- try y
-							nodename = minetest.get_node(vector.add(opos, n)).name -- verify normal
-							walkable = nodename ~= "air"
-							if walkable then -- still problem, only remaining is z
-								n.y = 0
-								if v.z >= 0 then n.z = -1 else n.z = 1 end
-								nodename = minetest.get_node(vector.add(opos, n)).name -- verify normal
-								walkable = nodename ~= "air"
-								if walkable then -- messed up, just remove the ball
-									self.object:remove(); return
-								end
+				-- verify new ball position
+				local new_pos = vector.add(pos, vector.multiply(n, 0.2))
+
+				local new_pos_node_name = minetest.get_node(new_pos).name
+				if new_pos_node_name == "air" then
+					self._in_air = true
+				else
+					local new_pos_node_def = minetest.registered_nodes[new_pos_node_name]
+					if new_pos_node_def then
+						local new_pos_is_walkable = new_pos_node_def.walkable
+						if new_pos_is_walkable then -- problem, nonempty node - incorrect position
+							self.object:remove(); return -- just remove the ball
+						elseif ((new_pos_node_def.groups or {}).liquid or 0) > 0 then
+							if self._in_air and self._speed < 7 then
+								self._speed = 7 -- sink the ball
 							end
+							self._in_air = false
 						end
 					end
 				end
 
-				local bpos = vector.add(pos, vector.multiply(n, 0.2)) -- point placed a bit further away from box
-				local elasticity = self._elasticity
-
-				-- bounce
+				-- elastify velocity
 				if n.x ~= 0 then
 					v.x = -elasticity * v.x
 				elseif n.y ~= 0 then
@@ -247,26 +201,78 @@ minetest.register_entity("basic_machines:ball", {
 					v.z = -elasticity * v.z
 				end
 
-				self.object:set_pos(bpos) -- place object at last known outside point
+				-- bounce
+				self.object:set_pos(new_pos) -- ball placed a bit further away from box
 				self.object:set_velocity(v)
 
 				minetest.sound_play("default_dig_cracky", {pos = pos, gain = 1, max_hear_distance = 8}, true)
+			else
+				self.object:remove(); return
+			end
+
+		elseif self._hurt ~= 0 then -- check for colliding nearby objects
+			local objects = minetest.get_objects_inside_radius(pos, 2)
+			if #objects > 1 then
+				for _, obj in ipairs(objects) do
+					if obj:is_player() then -- player
+						if obj:get_player_name() ~= self._owner then -- don't hurt owner
+							local hp = obj:get_hp()
+							local newhp = hp - self._hurt
+							if newhp <= 0 and use_boneworld and boneworld.killxp then
+								local killxp = boneworld.killxp[self._owner]
+								if killxp then
+									boneworld.killxp[self._owner] = killxp + 0.01
+								end
+							end
+							obj:set_hp(newhp)
+							if newhp > 0 and newhp < hp then
+								obj:add_velocity(vector.divide(self.object:get_velocity(), 3))
+							end
+							self.object:remove(); break
+						end
+					elseif obj ~= self.object then -- non player
+						local lua_entity = obj:get_luaentity()
+						if lua_entity then
+							if lua_entity.itemstring == "robot" then
+								self.object:remove(); break
+							elseif lua_entity.protected ~= 2 then -- if protection (mobs_redo) is on level 2 then don't let ball harm mobs
+								local hp = obj:get_hp()
+								local newhp = hp - self._hurt
+								if newhp > 0 then
+									obj:set_hp(newhp)
+									if newhp < hp then
+										obj:add_velocity(vector.divide(self.object:get_velocity(), 4))
+									end
+								else
+									obj:remove()
+								end
+								self.object:remove(); break
+							end
+						end
+					end
+				end
 			end
 		end
 	end,
 
-	on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-		if self._punchable == 0 then return end
-		if self._punchable == 1 then -- only those in protection
-			local obj_pos = self.object:get_pos()
-			if not minetest.is_protected(obj_pos) or
-				not puncher or minetest.is_protected(obj_pos, puncher:get_player_name())
-			then
-				return
+	on_punch = function(self, puncher, time_from_last_punch, _, dir)
+		local punchable = self._punchable
+		if punchable == 0 then -- no punch
+			return
+		elseif time_from_last_punch > 0.5 then
+			if punchable == 1 then -- only those in protection
+				local obj_pos = self.object:get_pos()
+				if minetest.is_protected(obj_pos) or
+					puncher and minetest.is_protected(obj_pos, puncher:get_player_name())
+				then
+					self.object:set_velocity(vector.multiply(dir, self._speed))
+				else
+					return
+				end
+			else -- everywhere
+				self.object:set_velocity(vector.multiply(dir, self._speed))
 			end
 		end
-		if time_from_last_punch < 0.5 then return end
-		self.object:set_velocity(vector.multiply(dir, (self._speed or ball_default.speed)))
 	end
 })
 
@@ -349,7 +355,7 @@ minetest.register_node("basic_machines:ball_spawner", {
 		ball_spawner_update_form(meta)
 	end,
 
-	after_dig_node = function(pos, oldnode, oldmetadata, digger)
+	after_dig_node = function(pos, _, oldmetadata, digger)
 		local stack; local inv = digger:get_inventory()
 
 		if (digger:get_player_control() or {}).sneak then
@@ -372,14 +378,12 @@ minetest.register_node("basic_machines:ball_spawner", {
 		end
 	end,
 
-	on_receive_fields = function(pos, formname, fields, sender)
+	on_receive_fields = function(pos, _, fields, sender)
 		local name = sender:get_player_name()
 		if fields.OK then
 			if minetest.is_protected(pos, name) then return end
 			local privs = minetest.check_player_privs(name, "privs")
 			local meta = minetest.get_meta(pos)
-
-			-- minetest.chat_send_all("form at " .. dump(pos) .. " fields " .. dump(fields))
 
 			-- target
 			local x0 = tonumber(fields.x0) or ball_default.x0
@@ -496,7 +500,7 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 			if t0 > t1 - 2 * machines_minstep then -- activated before natural time
 				T = T + 1
 			elseif T > 0 then
-				if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
+				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
 					T = 0; meta:set_string("infotext", "")
 				else
 					T = T - 1
@@ -542,6 +546,9 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 
 				-- energy
 				local energy = meta:get_int("energy") -- if positive activates, negative deactivates, 0 does nothing
+				if energy ~= 0 then -- make the ball glow
+					obj:set_properties({glow = 9})
+				end
 				local colorize = energy < 0 and "^[colorize:blue:120" or ""
 				lua_entity._energy = energy
 
@@ -559,9 +566,7 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 				obj:set_hp(meta:get_float("hp"))
 
 				-- hurt
-				local hurt = meta:get_float("hurt")
-				if hurt > 0 then lua_entity._is_arrow = true end -- tell advanced mob protection this is an arrow
-				lua_entity._hurt = hurt
+				lua_entity._hurt = meta:get_float("hurt")
 
 				-- lifetime
 				if meta:get_int("admin") == 1 then
@@ -571,6 +576,7 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 				-- solid
 				if meta:get_int("solid") == 1 then
 					obj:set_properties({physical = true})
+					lua_entity._solid = 1
 				end
 
 				local visual = meta:get_string("visual")
@@ -600,7 +606,7 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 			if t0 > t1 - 2 * machines_minstep then -- activated before natural time
 				T = T + 1
 			elseif T > 0 then
-				if t1 - t0 > machines_timer then -- reset temperature if more than 5s elapsed since last activation
+				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
 					T = 0; meta:set_string("infotext", "")
 				else
 					T = T - 1
@@ -645,6 +651,7 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 				lua_entity._speed = speed
 
 				-- energy
+				obj:set_properties({glow = 9}) -- make the ball glow
 				obj:get_luaentity()._energy = -1
 
 				-- hp
@@ -690,7 +697,7 @@ minetest.register_tool("basic_machines:ball_spell", {
 		max_drop_level = 0
 	},
 
-	on_use = function(itemstack, user, pointed_thing)
+	on_use = function(itemstack, user)
 		if not user then return end
 		local pos = user:get_pos(); pos.y = pos.y + 1
 		local meta = minetest.deserialize(itemstack:get_meta():get_string("")) or {}
@@ -716,6 +723,9 @@ minetest.register_tool("basic_machines:ball_spell", {
 			-- energy
 			-- if positive activates, negative deactivates, 0 does nothing
 			local energy = tonumber(meta["energy"]) or ball_default.energy
+			if energy ~= 0 then -- make the ball glow
+				obj:set_properties({glow = 9})
+			end
 			local colorize = energy < 0 and "^[colorize:blue:120" or ""
 			lua_entity._energy = energy
 
@@ -738,7 +748,6 @@ minetest.register_tool("basic_machines:ball_spell", {
 			-- hurt
 			local hurt = tonumber(meta["hurt"]) or ball_default.hurt
 			hurt = privs and hurt or math.min(hurt, max_damage)
-			if hurt > 0 then lua_entity._is_arrow = true end -- tell advanced mob protection this is an arrow
 			lua_entity._hurt = hurt
 
 			-- lifetime

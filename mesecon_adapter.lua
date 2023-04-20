@@ -51,7 +51,7 @@ minetest.register_node("basic_machines:mesecon_adapter", {
 		"jeija_luacontroller_top.png", "jeija_luacontroller_top.png"},
 	sounds = default.node_sound_wood_defaults(),
 
-	after_place_node = function(pos, placer)
+	after_place_node = function(pos)
 		minetest.get_meta(pos):set_string("infotext", S("Mesecon Adapter: place machine to be activated on top"))
 	end,
 
