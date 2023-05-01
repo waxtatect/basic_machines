@@ -139,7 +139,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 					if farming.mod == "redo" then -- check for beanpole and trellis
 						if prefer == "farming:beans" then
 							local item = "farming:beanpole"
-							if third_upgradetype > 0 then item = item .. " " .. node2_count end
+							if third_upgradetype then item = item .. " " .. node2_count end
 							if inv:contains_item("main", item) then
 								inv:remove_item("main", item)
 							else
@@ -147,7 +147,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 							end
 						elseif prefer == "farming:grapes" then
 							local item = "farming:trellis"
-							if third_upgradetype > 0 then item = item .. " " .. node2_count end
+							if third_upgradetype then item = item .. " " .. node2_count end
 							if inv:contains_item("main", item) then
 								inv:remove_item("main", item)
 							else
