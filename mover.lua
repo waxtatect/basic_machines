@@ -22,8 +22,7 @@ local mover = {
 	bonemeal_table = {
 		["bonemeal:bonemeal"] = true,
 		["bonemeal:fertiliser"] = true,
-		["bonemeal:mulch"] = true,
-		["x_farming:bonemeal"] = true
+		["bonemeal:mulch"] = true
 	},
 
 	-- list of chests with inventory named "main"
@@ -73,6 +72,7 @@ local mover = {
 		["x_farming:cocoa_1"] = 999999,
 		["x_farming:cocoa_2"] = 999999,
 		["x_farming:cocoa_3"] = 999999,
+		["x_farming:seed_rice"] = 999999,
 
 		-- move machines for free (mostly)
 		["basic_machines:ball_spawner"] = 0,
@@ -149,6 +149,7 @@ local mover = {
 		["shield_frame:shield_entity"] = true,
 		["signs_lib:text"] = true,
 		["statue:statue"] = true,
+		["x_farming:stove_food"] = true,
 		["xdecor:f_item"] = true
 	},
 
@@ -176,7 +177,6 @@ end
 --
 
 if minetest.global_exists("farming") then
-	local use_x_farming = minetest.global_exists("x_farming")
 	for name, plant in pairs(farming.registered_plants or {}) do
 		if farming.mod == "redo" then
 			mover.plants_table[plant.seed] = plant.crop .. "_1"
@@ -184,13 +184,21 @@ if minetest.global_exists("farming") then
 			local seed = "farming:seed_" .. name
 			if minetest.registered_nodes[seed] then
 				mover.plants_table[seed] = true
-			elseif use_x_farming then
-				seed = "x_farming:seed_" .. name
-				if minetest.registered_nodes[seed] then
-					mover.plants_table[seed] = true
-				end
 			end
 		end
+	end
+end
+
+if minetest.global_exists("x_farming") then
+	for name, _ in pairs(x_farming.registered_plants or {}) do
+		local seed = "x_farming:seed_" .. name
+		if minetest.registered_nodes[seed] then
+			mover.plants_table[seed] = true
+		end
+	end
+	mover.plants_table["x_farming:seed_rice"] = nil
+	if minetest.registered_nodes["x_farming:seed_salt"] then
+		mover.plants_table["x_farming:seed_salt"] = true
 	end
 end
 
@@ -275,7 +283,7 @@ local function pos1list_checks(pos, length_pos, owner, upgrade)
 			else
 				node[i], node_name[i] = nodei, nodei_name
 				if upgrade ~= -1 then
-					hardness = hardness + (mover_hardness[node_name] or 1)
+					hardness = hardness + (mover_hardness[nodei_name] or 1)
 				end
 			end
 		end
@@ -752,7 +760,6 @@ minetest.register_node("basic_machines:mover", {
 				elseif activation_count > 0 then
 					meta:set_int("activation_count", 0)
 				end
-
 				if upgrade ~= -1 then
 					fuel = fuel - (new_fuel_cost or fuel_cost); meta:set_float("fuel", fuel) -- fuel cost
 				end

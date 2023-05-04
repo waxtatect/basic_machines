@@ -12,6 +12,8 @@ local itemstring_to_stack = basic_machines.itemstring_to_stack
 local machines_operations = basic_machines.properties.machines_operations
 local mover_upgrade_max = basic_machines.properties.mover_upgrade_max
 local node_to_stack = basic_machines.node_to_stack
+local use_farming = minetest.global_exists("farming")
+local use_x_farming = minetest.global_exists("x_farming")
 local math_min = math.min
 
 -- minetest drop code emulation, other idea: minetest.get_node_drops
@@ -62,7 +64,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 	prefer = prefer or meta:get_string("prefer")
 	source_chest = source_chest or mover_chests[node1_name]
 	local third_upgradetype = upgradetype == 3
-	local seed_planting, node_def, node1_param2, last_pos2, new_fuel_cost, first_pos1
+	local seed_planting, node_def, node1_param2, last_pos2, new_fuel_cost
 
 	-- checks
 	if prefer ~= "" then -- filter check
@@ -74,7 +76,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 				local plant_def = minetest.registered_nodes[seed_planting]
 				if plant_def then -- farming redo mod, check if transform seed -> plant is needed
 					node1 = {name = seed_planting, param2 = plant_def.place_param2 or 1}
-				elseif seed_planting == true then -- minetest_game farming mod
+				elseif seed_planting == true then -- minetest_game farming mod and x_farming mod
 					node1 = {name = prefer, param2 = 1}
 				else
 					return
@@ -136,7 +138,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 			if third_upgradetype then stack:set_count(node2_count) end
 			if inv:contains_item("main", stack) then
 				if seed_planting then
-					if farming.mod == "redo" then -- check for beanpole and trellis
+					if use_farming and farming.mod == "redo" then -- check for beanpole and trellis
 						if prefer == "farming:beans" then
 							local item = "farming:beanpole"
 							if third_upgradetype then item = item .. " " .. node2_count end
@@ -179,7 +181,14 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 
 					minetest.bulk_set_node(pos2, node1)
 
-					if farming.handle_growth then -- farming redo mod
+					if use_x_farming and node1.name:sub(1, 9) == "x_farming" and x_farming.grow_plant then -- x_farming mod
+						for i = 1, length_pos2 do
+							local pos2i = pos2[i]
+							if pos2i.x then
+								x_farming.grow_plant(pos2i)
+							end
+						end
+					elseif farming.handle_growth then -- farming redo mod
 						for i = 1, length_pos2 do
 							local pos2i = pos2[i]
 							if pos2i.x then
@@ -196,7 +205,9 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 					end
 				else
 					minetest.set_node(pos2, node1)
-					if farming.handle_growth then -- farming redo mod
+					if use_x_farming and node1.name:sub(1, 9) == "x_farming" and x_farming.grow_plant then -- x_farming mod
+						x_farming.grow_plant(pos2)
+					elseif farming.handle_growth then -- farming redo mod
 						farming.handle_growth(pos2, node1)
 					elseif farming.grow_plant then -- minetest_game farming mod
 						farming.grow_plant(pos2)
@@ -244,7 +255,8 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 
 		if mover_chests[node2_name] then -- target_chest, put node dug in chest
 			if third_upgradetype then
-				local length_pos1, node1_count = #pos1, 0; new_fuel_cost = 0
+				local length_pos1, node1_count = #pos1, 0
+				local first_pos1; new_fuel_cost = 0
 
 				for i = 1, length_pos1 do
 					local node1i_name = node1_name[i]
@@ -268,9 +280,9 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 
 							if drops then
 								if fuel_cost > 0 then
+									if not first_pos1 then first_pos1 = pos1[i] end
 									new_fuel_cost = new_fuel_cost + (mover_hardness[node1i_name] or 1)
 								end
-								if not first_pos1 then first_pos1 = pos1[i] end
 								node1_count = node1_count + 1
 							else
 								pos1[i] = {}

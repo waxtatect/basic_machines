@@ -14,7 +14,7 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 	prefer = prefer or meta:get_string("prefer")
 	source_chest = source_chest or mover_chests[node1_name]
 	local third_upgradetype = upgradetype == 3
-	local node2_name, target_chest, node_def, node1_param2, new_fuel_cost, last_pos2, first_pos1
+	local node2_name, target_chest, node_def, node1_param2, new_fuel_cost, last_pos2
 
 	-- checks
 	if prefer ~= "" then -- filter check
@@ -134,7 +134,8 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 
 		if mover_chests[node2_name] then -- target_chest, put items in chest
 			if third_upgradetype then
-				local length_pos1, node1_count = #pos1, 0; new_fuel_cost = 0
+				local length_pos1, node1_count = #pos1, 0
+				local first_pos1; new_fuel_cost = 0
 
 				local inv = minetest.get_meta(pos2):get_inventory()
 				for i = 1, length_pos1 do
@@ -161,9 +162,9 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 
 							if items then
 								if fuel_cost > 0 then
+									if not first_pos1 then first_pos1 = pos1[i] end
 									new_fuel_cost = new_fuel_cost + (mover_hardness[node1i_name] or 1)
 								end
-								if not first_pos1 then first_pos1 = pos1[i] end
 								node1_count = node1_count + 1
 							else
 								pos1[i] = {}
