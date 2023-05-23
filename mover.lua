@@ -37,13 +37,13 @@ local mover = {
 
 	-- define which nodes are dug up completely, like a tree
 	dig_up_table = {
-		["default:acacia_tree"] = {r = 2}, -- acacia trees grow wider than others
-		["default:aspen_tree"] = true,
-		["default:cactus"] = {r = 0},
-		["default:jungletree"] = true,
-		["default:papyrus"] = {r = 0},
-		["default:pine_tree"] = true,
-		["default:tree"] = true
+		["default:acacia_tree"] = {h = 6, r = 2}, -- acacia trees grow wider than others
+		["default:aspen_tree"] = {h = 10, r = 0},
+		["default:cactus"] = {h = 5, r = 2},
+		["default:jungletree"] = {h = 11}, -- not emergent jungle tree
+		["default:papyrus"] = {h = 3, r = 0},
+		["default:pine_tree"] = {h = 13, r = 0},
+		["default:tree"] = {h = 4, r = 1}
 	},
 
 	-- how hard it is to move blocks, default factor 1,
@@ -160,18 +160,32 @@ local mover = {
 
 -- cool_trees
 local cool_trees = {
-	{"baldcypress", h = 17, r = 5}, "bamboo", {"birch", d = 1}, "cacaotree", "cherrytree",
-	{"chestnuttree", r = 5}, "clementinetree", {"ebony", r = 4}, {"hollytree", r = 3},
-	"jacaranda", {"larch", r = 2}, "lemontree", {"mahogany", r = 2}, {"maple", r = 3},
-	{"oak", r = 4}, {"palm", r = 2}, {"plumtree", r = 3, d = 1}, "pomegranate",
-	{"sequoia", h = 46, r = 7, d = 4}, {"willow", r = 4}
+	{"baldcypress", h = 17, r = 5}, -- why the trunk isn't centered at the sapling position
+	{"bamboo", h = 10, r = 0},
+	{"birch", h = 4, r = 0, d = 1},
+	{"cacaotree", h = 3, r = 0},
+	{"cherrytree", h = 5},
+	{"chestnuttree", h = 10, r = 5},
+	{"clementinetree", h = 3, r = 0},
+	{"ebony", h = 14, r = 4},
+	{"hollytree", h = 10, r = 3},
+	{"jacaranda", h = 6, r = 0},
+	{"larch", h = 13, r = 2},
+	{"lemontree", h = 3},
+	{"mahogany", h = 15, r = 2},
+	{"maple", h = 7, r = 3},
+	{"oak", h = 14, r = 4},
+	{"palm", h = 4, r = 2},
+	{"plumtree", h = 8, r = 3, d = 1},
+	{"pomegranate", h = 2, r = 0},
+	{"sequoia", h = 46, r = 7, d = 4},
+	{"willow", h = 11, r = 3}
 }
 
 for _, cool_tree in ipairs(cool_trees) do
-	local name = type(cool_tree) == "table" and cool_tree[1] or cool_tree
+	local name = cool_tree[1]
 	if minetest.global_exists(name) or minetest.get_modpath(name) then
-		mover.dig_up_table[name .. ":trunk"] = type(cool_tree) == "table" and
-			{h = cool_tree.h, r = cool_tree.r, d = cool_tree.d} or true
+		mover.dig_up_table[name .. ":trunk"] = {h = cool_tree.h, r = cool_tree.r, d = cool_tree.d}
 	end
 end
 --
@@ -298,8 +312,9 @@ local function is_pos2_protected(pos, owner, mode_third_upgradetype)
 	if mode_third_upgradetype then
 		local length_pos = #pos
 		if length_pos > 0 then
+			local is_protected = minetest.is_protected
 			for i = 1, length_pos do
-				if minetest.is_protected(pos[i], owner) then
+				if is_protected(pos[i], owner) then
 					return true
 				end
 			end
@@ -311,7 +326,7 @@ end
 
 minetest.register_node("basic_machines:mover", {
 	description = S("Mover"),
-	groups = {cracky = 3},
+	groups = {cracky = 2},
 	tiles = {"basic_machines_mover.png"},
 	sounds = default.node_sound_wood_defaults(),
 
@@ -357,15 +372,6 @@ minetest.register_node("basic_machines:mover", {
 		end
 	end,
 
-	can_dig = function(pos, player) -- don't dig if upgrades inside, cause they will be destroyed
-		if player then
-			local meta = minetest.get_meta(pos)
-			return meta:get_inventory():is_empty("upgrade") and meta:get_string("owner") == player:get_player_name()
-		else
-			return false
-		end
-	end,
-
 	on_rightclick = function(pos, _, player)
 		local name, meta = player:get_player_name(), minetest.get_meta(pos)
 
@@ -378,6 +384,28 @@ minetest.register_node("basic_machines:mover", {
 
 		minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
 			basic_machines.get_mover_form(pos))
+	end,
+
+	on_dig = function(pos, node, digger)
+		if digger and digger:is_player() then
+			local meta = minetest.get_meta(pos)
+			if meta:get_string("owner") == digger:get_player_name() then -- owner can always remove his mover
+				local inv = meta:get_inventory()
+				local inv_stack
+				if not inv:is_empty("upgrade") then
+					inv_stack = inv:get_stack("upgrade", 1)
+				end
+				local node_removed = minetest.remove_node(pos)
+				if node_removed then
+					if inv_stack then
+						minetest.add_item(pos, inv_stack)
+					end
+					minetest.handle_node_drops(pos, {node.name}, digger)
+				end
+				return node_removed
+			end
+		end
+		return false
 	end,
 
 	allow_metadata_inventory_move = function()
@@ -632,6 +660,7 @@ minetest.register_node("basic_machines:mover", {
 			end
 
 			if pos_protected then -- protection check
+				meta:set_int("T", T + math.ceil(mover_max_temp * 0.2))
 				meta:set_string("infotext", S("Mover block. Protection fail.")); return
 			elseif not object and node1_name == "air" or node1_name == "ignore" then -- node check
 				return -- nothing to move
@@ -641,6 +670,7 @@ minetest.register_node("basic_machines:mover", {
 			local length_pos2
 			pos_protected, length_pos2 = is_pos2_protected(pos2, owner, mode_third_upgradetype)
 			if pos_protected then -- protection check
+				meta:set_int("T", T + math.ceil(mover_max_temp * 0.2))
 				meta:set_string("infotext", S("Mover block. Protection fail.")); return
 			end
 
@@ -673,9 +703,12 @@ minetest.register_node("basic_machines:mover", {
 					fuel_cost = mover.hardness[prefer] or 1
 				else
 					source_chest = mover.chests[node1_name]
-					if source_chest and node1_name ~= "default:chest" then
+					if source_chest then
 						prefer = meta:get_string("prefer")
 						fuel_cost = mover.hardness[prefer] or 1
+						if node1_name == "default:chest" and fuel_cost > 1 then
+							fuel_cost = fuel_cost * 0.65
+						end
 						if mode_third_upgradetype then
 							fuel_cost = fuel_cost * length_pos2
 						end
@@ -700,6 +733,8 @@ minetest.register_node("basic_machines:mover", {
 
 					if mode == "inventory" or object then
 						fuel_cost = fuel_cost * 0.1
+					elseif mode == "dig" and not third_upgradetype then
+						fuel_cost = fuel_cost * 1.1
 					end
 
 					if temp_80P and not third_upgradetype then

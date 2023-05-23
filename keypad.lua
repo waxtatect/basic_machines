@@ -54,6 +54,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 
 	if minetest.is_protected(pos, owner) then
 		meta:set_int("count", 0)
+		meta:set_int("T", T + 1)
 		meta:set_string("infotext", S("Protection fail. Reset."))
 		return
 	end
@@ -288,7 +289,7 @@ end
 
 minetest.register_node("basic_machines:keypad", {
 	description = S("Keypad"),
-	groups = {cracky = 3},
+	groups = {cracky = 2},
 	tiles = {"basic_machines_keypad.png"},
 	sounds = default.node_sound_wood_defaults(),
 
@@ -323,6 +324,19 @@ minetest.register_node("basic_machines:keypad", {
 			"]field[0.25,4.25;1,0.8;x0;" .. F(S("Target")) .. ";" .. x0 ..
 			"]field[1.5,4.25;1,0.8;y0;;" .. y0 .. "]field[2.75,4.25;1,0.8;z0;;" .. z0 ..
 			"]button[4.75,4.25;1,0.8;help;" .. F(S("help")) .. "]")
+	end,
+
+	on_dig = function(pos, node, digger)
+		if digger and digger:is_player() then
+			if minetest.get_meta(pos):get_string("owner") == digger:get_player_name() then -- owner can always remove his keypad
+				local node_removed = minetest.remove_node(pos)
+				if node_removed then
+					minetest.handle_node_drops(pos, {node.name}, digger)
+				end
+				return node_removed
+			end
+		end
+		return minetest.node_dig(pos, node, digger)
 	end,
 
 	effector = {

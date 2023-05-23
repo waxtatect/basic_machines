@@ -312,24 +312,29 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 			else
 				local dig_up = mover_dig_up_table[node1_name] -- digs up node as a tree
 				if dig_up then
-					local h, r, d = 16, 1, 0 -- height, radius, depth
-
-					if type(dig_up) == "table" then
-						h, r, d = dig_up.h or h, dig_up.r or r, dig_up.d or d
-					end
-
+					local h, r, d = dig_up.h or 16, dig_up.r or 1, dig_up.d or 0 -- height, radius, depth
 					local positions = minetest.find_nodes_in_area(
 						{x = pos1.x - r, y = pos1.y - d, z = pos1.z - r},
 						{x = pos1.x + r, y = pos1.y + h, z = pos1.z + r},
 						node1_name)
+					local count = #positions
+
+					if count > 1 then
+						local is_protected = minetest.is_protected
+						for i = 1, count do
+							if is_protected(positions[i], owner) then
+								return
+							end
+						end
+					end
 
 					minetest.bulk_set_node(positions, {name = "air"})
 
-					for i = 1, #positions do
+					for i = 1, count do
 						check_for_falling(positions[i])
 					end
 
-					local count, stack_max, stacks = #positions, ItemStack(node1_name):get_stack_max(), {}
+					local stack_max, stacks = ItemStack(node1_name):get_stack_max(), {}
 
 					if count > stack_max then
 						local stacks_n = count / stack_max
