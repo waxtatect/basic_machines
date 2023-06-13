@@ -159,7 +159,7 @@ local mover = {
 }
 
 -- cool_trees
-local cool_trees = {
+local cool_trees = { -- all but pineapple
 	{"baldcypress", h = 17, r = 5}, -- why the trunk isn't centered at the sapling position
 	{"bamboo", h = 10, r = 0},
 	{"birch", h = 4, r = 0, d = 1},
@@ -281,10 +281,11 @@ local function pos1_checks(pos, owner)
 	return false, node, node.name
 end
 
-local function pos1list_checks(pos, length_pos, owner, upgrade)
+local function pos1list_checks(pos, length_pos, owner, upgrade, meta)
 	local is_protected = minetest.is_protected
 	local node, node_name, count = {}, {}, 0
-	local hardness, mover_hardness = 0, mover.hardness
+	local mover_hardness, hardness = mover.hardness, 0
+	local maxpower -- battery maximum power output
 	for i = 1, length_pos do
 		local posi = pos[i]
 		if is_protected(posi, owner) then -- protection check
@@ -294,15 +295,27 @@ local function pos1list_checks(pos, length_pos, owner, upgrade)
 			local nodei_name = nodei.name
 			if nodei_name == "air" or nodei_name == "ignore" then
 				pos[i] = {}; count = count + 1
-			else
+			elseif upgrade == -1 then -- admin, just add nodes
 				node[i], node_name[i] = nodei, nodei_name
-				if upgrade ~= -1 then
-					hardness = hardness + (mover_hardness[nodei_name] or 1)
+			else
+				local nodei_hardness = mover_hardness[nodei_name] or 1
+				if nodei_hardness < 596 then -- (3 * 99 diamonds blocks + 1)
+					node[i], node_name[i] = nodei, nodei_name
+					hardness = hardness + nodei_hardness
+				else
+					maxpower = maxpower or minetest.get_meta( -- battery must be already connected
+						{x = meta:get_int("batx"), y = meta:get_int("baty"), z = meta:get_int("batz")}):get_float("maxpower")
+					if nodei_hardness > maxpower then -- ignore nodes too hard to move for the battery current upgrade
+						pos[i] = {}; count = count + 1
+					else
+						node[i], node_name[i] = nodei, nodei_name
+						hardness = hardness + nodei_hardness
+					end
 				end
 			end
 		end
 	end
-	if count == length_pos then -- only air/ignore nodes, nothing to move
+	if count == length_pos then -- only air/ignore/hard nodes, nothing to move
 		node_name = "air"
 	end
 	return false, pos, node, node_name, hardness
@@ -651,7 +664,7 @@ minetest.register_node("basic_machines:mover", {
 				local length_pos1 = #pos1
 				if length_pos1 > 0 then
 					first_pos1 = pos1[1]
-					pos_protected, pos1, node1, node1_name, nodes1_hardness = pos1list_checks(pos1, length_pos1, owner, upgrade)
+					pos_protected, pos1, node1, node1_name, nodes1_hardness = pos1list_checks(pos1, length_pos1, owner, upgrade, meta)
 				else
 					pos_protected, node1, node1_name = pos1_checks(pos1, owner)
 				end
@@ -713,7 +726,7 @@ minetest.register_node("basic_machines:mover", {
 							fuel_cost = fuel_cost * length_pos2
 						end
 					else
-						fuel_cost = nodes1_hardness or mover.hardness[node1_name] or 1
+						fuel_cost = nodes1_hardness or mover.hardness[node1_name] or 1 -- add maxpower battery check too ?
 					end
 				end
 

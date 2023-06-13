@@ -54,7 +54,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 
 	if minetest.is_protected(pos, owner) then
 		meta:set_int("count", 0)
-		meta:set_int("T", T + 1)
+		meta:set_int("T", T + 2)
 		meta:set_string("infotext", S("Protection fail. Reset."))
 		return
 	end
