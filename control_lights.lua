@@ -30,17 +30,19 @@ local function enable_toggle_light(name)
 end
 
 -- lights
-local lights = {
-	"default:mese_post_light",
-	"default:mese_post_light_acacia_wood",
-	"default:mese_post_light_aspen_wood",
-	"default:mese_post_light_junglewood",
-	"default:mese_post_light_pine_wood",
-	"default:meselamp"
-}
+local lights = {}
 
 if minetest.get_modpath("darkage") then
 	table.insert(lights, "darkage:lamp")
+end
+
+if basic_machines.use_default then
+	table.insert(lights, "default:mese_post_light")
+	table.insert(lights, "default:mese_post_light_acacia_wood")
+	table.insert(lights, "default:mese_post_light_aspen_wood")
+	table.insert(lights, "default:mese_post_light_junglewood")
+	table.insert(lights, "default:mese_post_light_pine_wood")
+	table.insert(lights, "default:meselamp")
 end
 
 if minetest.global_exists("moreblocks") then

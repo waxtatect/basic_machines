@@ -48,7 +48,7 @@ local function constructor_process(pos, constructor, name)
 	if craft then
 		local item = craft.item
 		local stack = ItemStack(item)
-		local def = stack:get_definition()
+		local def = minetest.registered_items[stack:get_name()]
 
 		if def then
 			local inv = meta:get_inventory()
@@ -80,17 +80,16 @@ local function constructor_process(pos, constructor, name)
 		end
 	end
 end
-
-local function add_constructor(name, def)
-	craft_recipes[name] = def.craft_recipes
-	recipes_order[name] = def.recipes_order
-	recipes_order_translated[name] = table.concat(def.recipes_order_translated, ",")
+local function add_constructor(name, items, description, recipe)
+	craft_recipes[name] = items.craft_recipes
+	recipes_order[name] = items.recipes_order
+	recipes_order_translated[name] = table.concat(items.recipes_order_translated, ",")
 
 	minetest.register_node(name, {
-		description = def.description,
+		description = description,
 		groups = {cracky = 3, constructor = 1},
 		tiles = {name:gsub(":", "_") .. ".png"},
-		sounds = default.node_sound_wood_defaults(),
+		sounds = basic_machines.sound_node_machine(),
 
 		after_place_node = function(pos, placer)
 			if not placer then return end
@@ -100,7 +99,7 @@ local function add_constructor(name, def)
 				S("Constructor: to operate it insert materials, select item to make and click craft button"))
 			meta:set_string("owner", placer:get_player_name())
 
-			meta:set_string("craft", def.recipes_order[1])
+			meta:set_string("craft", items.recipes_order[1])
 			meta:set_int("selected", 1)
 
 			local inv = meta:get_inventory()
@@ -167,21 +166,17 @@ local function add_constructor(name, def)
 		}
 	})
 
-	minetest.register_craft({
-		output = name,
-		recipe = def.recipe
-	})
+	if recipe then
+		minetest.register_craft({
+			output = name,
+			recipe = recipe
+		})
+	end
 end
 
 
 -- CONSTRUCTOR
-local def = {
-	description = S("Constructor"),
-	recipe = {
-		{"default:steel_ingot", "default:steel_ingot", "default:steel_ingot"},
-		{"default:steel_ingot", "default:copperblock", "default:steel_ingot"},
-		{"default:steel_ingot", "default:steel_ingot", "default:steel_ingot"}
-	},
+local items = {
 	craft_recipes = {
 		["Autocrafter"] = {
 			item = "basic_machines:autocrafter",
@@ -306,13 +301,23 @@ local def = {
 }
 
 if minetest.global_exists("mesecon") then -- add mesecon adapter
-	def.craft_recipes["Mesecon Adapter"] = {
+	items.craft_recipes["Mesecon Adapter"] = {
 		item = "basic_machines:mesecon_adapter",
 		description = S("Interface between machines and mesecons"),
 		craft = {"default:mese_crystal_fragment"}
 	}
-	def.recipes_order[#def.recipes_order + 1] = "Mesecon Adapter"
-	def.recipes_order_translated[#def.recipes_order_translated + 1] = F(S("Mesecon Adapter"))
+	items.recipes_order[#items.recipes_order + 1] = "Mesecon Adapter"
+	items.recipes_order_translated[#items.recipes_order_translated + 1] = F(S("Mesecon Adapter"))
 end
 
-add_constructor("basic_machines:constructor", def)
+local recipe
+
+if basic_machines.use_default then
+	recipe = {
+		{"default:steel_ingot", "default:steel_ingot", "default:steel_ingot"},
+		{"default:steel_ingot", "default:copperblock", "default:steel_ingot"},
+		{"default:steel_ingot", "default:steel_ingot", "default:steel_ingot"}
+	}
+end
+
+add_constructor("basic_machines:constructor", items, S("Constructor"), recipe)

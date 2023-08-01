@@ -31,7 +31,7 @@ minetest.register_node("basic_machines:clockgen", {
 	description = S("Clock Generator"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_clock_generator.png"},
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
 		if not placer then return end
@@ -57,7 +57,7 @@ minetest.register_node("basic_machines:clockgen", {
 	end
 })
 
-if basic_machines.settings.register_crafts then
+if basic_machines.settings.register_crafts and basic_machines.use_default then
 	minetest.register_craft({
 		output = "basic_machines:clockgen",
 		recipe = {

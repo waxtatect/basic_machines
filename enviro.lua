@@ -87,7 +87,7 @@ minetest.register_node("basic_machines:enviro", {
 	drawtype = "allfaces",
 	paramtype = "light",
 	param1 = 1,
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
 		if not placer then return end

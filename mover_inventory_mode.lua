@@ -82,7 +82,7 @@ local function inventory(_, meta, _, prefer, pos1, _, node1_name, _, pos2, mreve
 	-- play sound
 	local activation_count = meta:get_int("activation_count")
 	if activation_count < 16 then
-		minetest.sound_play("basic_machines_chest_inventory_move", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
+		minetest.sound_play("basic_machines_inventory_move", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
 	end
 
 	return activation_count

@@ -6,10 +6,11 @@ local machines_minstep = basic_machines.properties.machines_minstep
 local twodigits_float = basic_machines.twodigits_float
 local use_unified_inventory = minetest.global_exists("unified_inventory")
 local use_i3 = minetest.global_exists("i3")
+local use_default = basic_machines.use_default
 -- grinder recipes:
 -- ["in"] = {fuel cost, "out", quantity of material produced, quantity of material required for processing}
 local grinder_recipes = {}
-local grinder_recipes_translated, grinder_recipes_help = {S("Recipes:\n")}, nil
+local grinder_recipes_translated, grinder_recipes_help = {S("\nRecipes:\n")}, nil
 
 if use_unified_inventory then
 	unified_inventory.register_craft_type("basic_machines_grinding", {
@@ -91,17 +92,22 @@ basic_machines.set_grinder_recipes = function(recipes)
 	end
 end
 
--- default
-register_recipe("default:cobble", {1, "default:gravel", 1, 1})
-register_recipe("default:desert_stone", {2, "default:desert_sand", 4, 1})
-register_recipe("default:dirt", {0.5, "default:clay_lump", 4, 1})
-register_recipe("default:gravel", {0.5, "default:dirt", 1, 1})
-register_recipe("default:ice", {1, "default:snow", 4, 1})
-register_recipe("default:obsidian_shard", {199, "default:lava_source", 1, 1})
-register_recipe("default:stone", {2, "default:sand", 1, 1})
-
 if minetest.get_modpath("darkage") then
 	register_recipe("darkage:silt_lump", {1, "darkage:chalk_powder", 1, 1})
+end
+
+if use_default then
+	register_recipe("default:cobble", {1, "default:gravel", 1, 1})
+	register_recipe("default:desert_stone", {2, "default:desert_sand", 4, 1})
+	register_recipe("default:dirt", {0.5, "default:clay_lump", 4, 1})
+	register_recipe("default:gravel", {0.5, "default:dirt", 1, 1})
+	register_recipe("default:ice", {1, "default:snow", 4, 1})
+	register_recipe("default:obsidian_shard", {199, "default:lava_source", 1, 1})
+	register_recipe("default:stone", {2, "default:sand", 1, 1})
+
+	if minetest.get_modpath("gloopblocks") then
+		register_recipe("gloopblocks:basalt", {1, "default:cobble", 1, 1})
+	end
 end
 
 if minetest.global_exists("es") then
@@ -109,10 +115,6 @@ if minetest.global_exists("es") then
 	register_recipe("es:emerald_crystal", {16, "es:emerald_dust", 2, 1})
 	register_recipe("es:purpellium_lump", {16, "es:purpellium_dust", 2, 1})
 	register_recipe("es:ruby_crystal", {16, "es:ruby_dust", 2, 1})
-end
-
-if minetest.get_modpath("gloopblocks") then
-	register_recipe("gloopblocks:basalt", {1, "default:cobble", 1, 1})
 end
 
 if basic_machines.settings.grinder_register_dusts then
@@ -154,18 +156,20 @@ if basic_machines.settings.grinder_register_dusts then
 	local moreores_tin_lump_present = minetest.registered_items["moreores:tin_lump"]
 
 	for i, purity in ipairs(purity_table) do
-		register_dust("basic_machines:iron_dust_" .. purity,
-			S("Iron Dust (purity @1%)", purity), "999999", purity)
-		register_dust("basic_machines:copper_dust_" .. purity,
-			S("Copper Dust (purity @1%)", purity), "C8800D", purity)
-		register_dust("basic_machines:tin_dust_" .. purity,
-			S("Tin Dust (purity @1%)", purity), "9F9F9F", purity)
-		register_dust("basic_machines:gold_dust_" .. purity,
-			S("Gold Dust (purity @1%)", purity), "FFFF00", purity)
-		register_dust("basic_machines:mese_dust_" .. purity,
-			S("Mese Dust (purity @1%)", purity), "CCCC00", purity)
-		register_dust("basic_machines:diamond_dust_" .. purity,
-			S("Diamond Dust (purity @1%)", purity), "00EEFF", purity, light_source[1][i])
+		if use_default then
+			register_dust("basic_machines:iron_dust_" .. purity,
+				S("Iron Dust (purity @1%)", purity), "999999", purity)
+			register_dust("basic_machines:copper_dust_" .. purity,
+				S("Copper Dust (purity @1%)", purity), "C8800D", purity)
+			register_dust("basic_machines:tin_dust_" .. purity,
+				S("Tin Dust (purity @1%)", purity), "9F9F9F", purity)
+			register_dust("basic_machines:gold_dust_" .. purity,
+				S("Gold Dust (purity @1%)", purity), "FFFF00", purity)
+			register_dust("basic_machines:mese_dust_" .. purity,
+				S("Mese Dust (purity @1%)", purity), "CCCC00", purity)
+			register_dust("basic_machines:diamond_dust_" .. purity,
+				S("Diamond Dust (purity @1%)", purity), "00EEFF", purity, light_source[1][i])
+		end
 
 		if moreores_tin_lump_present then -- are moreores (tin, silver, mithril) present ?
 			-- register_dust("basic_machines:tin_dust_" .. purity,
@@ -203,12 +207,14 @@ if basic_machines.settings.grinder_register_dusts then
 		end
 	end
 
-	register_dust_recipe("iron", "default:iron_lump", 4, "default:steel_ingot", 8)
-	register_dust_recipe("copper", "default:copper_lump", 4, "default:copper_ingot", 8)
-	register_dust_recipe("tin", "default:tin_lump", 4, "default:tin_ingot", 8)
-	register_dust_recipe("gold", "default:gold_lump", 6, "default:gold_ingot", 25)
-	register_dust_recipe("mese", "default:mese_crystal", 8, nil, 250)
-	register_dust_recipe("diamond", "default:diamond", 16, nil, 500) -- 0.3hr cooking time to make diamond!
+	if use_default then
+		register_dust_recipe("iron", "default:iron_lump", 4, "default:steel_ingot", 8)
+		register_dust_recipe("copper", "default:copper_lump", 4, "default:copper_ingot", 8)
+		register_dust_recipe("tin", "default:tin_lump", 4, "default:tin_ingot", 8)
+		register_dust_recipe("gold", "default:gold_lump", 6, "default:gold_ingot", 25)
+		register_dust_recipe("mese", "default:mese_crystal", 8, nil, 250)
+		register_dust_recipe("diamond", "default:diamond", 16, nil, 500) -- 0.3hr cooking time to make diamond!
+	end
 
 	if moreores_tin_lump_present then
 		-- register_dust_recipe("tin", "moreores:tin_lump", 4, "moreores:tin_ingot", 8)
@@ -241,26 +247,28 @@ if basic_machines.settings.grinder_register_dusts then
 			})
 		end
 
-		local recipe = {}
+		if use_default then
+			local recipe = {}
 
-		if farming_mod == "farming_redo" then
-			recipe.tin = {"farming:cocoa_beans", "farming:cocoa_beans", "basic_machines:tin_dust_00"}
-			recipe.mese = {"farming:rhubarb", "farming:rhubarb", "basic_machines:mese_dust_00"}
-		elseif farming_mod == "x_farming" then
-			recipe.tin = {"x_farming:salt", "x_farming:salt", "basic_machines:tin_dust_00"}
-			recipe.mese = {"x_farming:strawberry", "x_farming:strawberry", "basic_machines:mese_dust_00"}
+			if farming_mod == "farming_redo" then
+				recipe.tin = {"farming:cocoa_beans", "farming:cocoa_beans", "basic_machines:tin_dust_00"}
+				recipe.mese = {"farming:rhubarb", "farming:rhubarb", "basic_machines:mese_dust_00"}
+			elseif farming_mod == "x_farming" then
+				recipe.tin = {"x_farming:salt", "x_farming:salt", "basic_machines:tin_dust_00"}
+				recipe.mese = {"x_farming:strawberry", "x_farming:strawberry", "basic_machines:mese_dust_00"}
+			end
+
+			register_extractor("iron", S("Iron Extractor"), "999999",
+				{"default:leaves", "default:leaves", "basic_machines:iron_dust_00"})
+			register_extractor("copper", S("Copper Extractor"), "C8800D",
+				{"default:papyrus", "default:papyrus", "basic_machines:copper_dust_00"})
+			register_extractor("tin", S("Tin Extractor"), "C89F9F", recipe.tin)
+			register_extractor("gold", S("Gold Extractor"), "FFFF00",
+				{"basic_machines:tin_extractor", "basic_machines:copper_extractor", "basic_machines:gold_dust_00"})
+			register_extractor("mese", S("Mese Extractor"), "CCCC00", recipe.mese)
+			register_extractor("diamond", S("Diamond Extractor"), "00EEFF",
+				{"farming:wheat", "farming:cotton", "basic_machines:diamond_dust_00"})
 		end
-
-		register_extractor("iron", S("Iron Extractor"), "999999",
-			{"default:leaves", "default:leaves", "basic_machines:iron_dust_00"})
-		register_extractor("copper", S("Copper Extractor"), "C8800D",
-			{"default:papyrus", "default:papyrus", "basic_machines:copper_dust_00"})
-		register_extractor("tin", S("Tin Extractor"), "C89F9F", recipe.tin)
-		register_extractor("gold", S("Gold Extractor"), "FFFF00",
-			{"basic_machines:tin_extractor", "basic_machines:copper_extractor", "basic_machines:gold_dust_00"})
-		register_extractor("mese", S("Mese Extractor"), "CCCC00", recipe.mese)
-		register_extractor("diamond", S("Diamond Extractor"), "00EEFF",
-			{"farming:wheat", "farming:cotton", "basic_machines:diamond_dust_00"})
 
 		if moreores_tin_lump_present then
 			register_extractor("silver", S("Silver Extractor"), "BBBBBB",
@@ -390,7 +398,7 @@ minetest.register_node("basic_machines:grinder", {
 	description = S("Grinder"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_grinder.png"},
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
 		if not placer then return end
@@ -434,12 +442,16 @@ minetest.register_node("basic_machines:grinder", {
 
 		elseif fields.help then
 			if grinder_recipes_help == nil then
-				grinder_recipes_help = F(table.concat(grinder_recipes_translated, "\n"))
+				if #grinder_recipes_translated > 1 then
+					grinder_recipes_help = F(table.concat(grinder_recipes_translated, "\n"))
+				else
+					grinder_recipes_help = ""
+				end
 			end
 			minetest.show_formspec(sender:get_player_name(), "basic_machines:help_grinder",
 				"formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" .. F(S("Grinder help")) .. ";" ..
 				F(S("To upgrade grinder, put grinders in upgrade slot." ..
-				" Each upgrade adds ability to process additional materials.\n\n")) .. grinder_recipes_help .. "]")
+				" Each upgrade adds ability to process additional materials.\n")) .. grinder_recipes_help .. "]")
 		end
 	end,
 
@@ -482,7 +494,7 @@ minetest.register_node("basic_machines:grinder", {
 	}
 })
 
-if basic_machines.settings.register_crafts then
+if basic_machines.settings.register_crafts and use_default then
 	minetest.register_craft({
 		output = "basic_machines:grinder",
 		recipe = {

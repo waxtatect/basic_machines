@@ -193,13 +193,13 @@ local function battery_upgrade(meta, pos)
 end
 
 -- this function will activate furnace
-local machines_activate_furnace = minetest.registered_nodes["default:furnace"].on_metadata_inventory_put
+local machines_activate_furnace = (minetest.registered_nodes["default:furnace"] or {}).on_metadata_inventory_put
 
 minetest.register_node("basic_machines:battery_0", {
 	description = S("Battery"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_outlet.png", "basic_machines_battery.png", "basic_machines_battery_0.png"},
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
 		if not placer then return end
@@ -463,7 +463,7 @@ minetest.register_node("basic_machines:generator", {
 	description = S("Generator"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_generator.png"},
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
 		if not placer then return end
@@ -613,7 +613,7 @@ minetest.register_craftitem("basic_machines:power_rod", {
 	light_source = 12
 })
 
-if basic_machines.settings.register_crafts then
+if basic_machines.settings.register_crafts and basic_machines.use_default then
 	minetest.register_craft({
 		output = "basic_machines:battery_0",
 		recipe = {

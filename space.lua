@@ -147,43 +147,45 @@ minetest.register_globalstep(function(dtime)
 end)
 --[[
 -- AIR EXPERIMENT
-minetest.register_node("basic_machines:air", {
-	description = S("Enable breathing in space"),
-	groups = {not_in_creative_inventory = 1},
-	drawtype = "glasslike", -- drawtype = "liquid",
-	tiles = {"default_water_source_animated.png"},
-	use_texture_alpha = "blend",
-	paramtype = "light",
-	sunlight_propagates = true, -- Sunlight shines through
-	walkable	= false, -- Would make the player collide with the air node
-	pointable	= false, -- You can't select the node
-	diggable	= false, -- You can't dig the node
-	buildable_to = true,
-	drop = "",
+if basic_machines.use_default then
+	minetest.register_node("basic_machines:air", {
+		description = S("Enable breathing in space"),
+		groups = {not_in_creative_inventory = 1},
+		drawtype = "glasslike", -- drawtype = "liquid",
+		tiles = {"default_water_source_animated.png"},
+		use_texture_alpha = "blend",
+		paramtype = "light",
+		sunlight_propagates = true, -- Sunlight shines through
+		walkable	= false, -- Would make the player collide with the air node
+		pointable	= false, -- You can't select the node
+		diggable	= false, -- You can't dig the node
+		buildable_to = true,
+		drop = "",
 
-	after_place_node = function(pos)
-		local r = 3
-		for i = -r, r do
-			for j = -r, r do
-				for k = -r, r do
-					local p = {x = pos.x + i, y = pos.y + j, z = pos.z + k}
-					if minetest.get_node(p).name == "air" then
-						minetest.set_node(p, {name = "basic_machines:air"})
+		after_place_node = function(pos)
+			local r = 3
+			for i = -r, r do
+				for j = -r, r do
+					for k = -r, r do
+						local p = {x = pos.x + i, y = pos.y + j, z = pos.z + k}
+						if minetest.get_node(p).name == "air" then
+							minetest.set_node(p, {name = "basic_machines:air"})
+						end
 					end
 				end
 			end
 		end
-	end
-})
+	})
 
-minetest.register_abm({
-	label = "[basic_machines] Air experiment",
-	nodenames = {"basic_machines:air"},
-	neighbors = {"air"},
-	interval = 10,
-	chance = 1,
-	action = function(pos)
-		minetest.set_node(pos, {name = "air"})
-	end
-})
+	minetest.register_abm({
+		label = "[basic_machines] Air experiment",
+		nodenames = {"basic_machines:air"},
+		neighbors = {"air"},
+		interval = 10,
+		chance = 1,
+		action = function(pos)
+			minetest.set_node(pos, {name = "air"})
+		end
+	})
+end
 --]]

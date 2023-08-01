@@ -11,7 +11,7 @@ minetest.register_node("basic_machines:detector", {
 	description = S("Detector"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_detector.png"},
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
 		if not placer then return end
@@ -112,7 +112,7 @@ minetest.register_node("basic_machines:detector", {
 			meta:set_int("t", t1); meta:set_int("T", T)
 
 			if T > 2 then -- overheat
-				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
 				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
 			end
@@ -282,7 +282,7 @@ minetest.register_node("basic_machines:detector", {
 	}
 })
 
-if basic_machines.settings.register_crafts then
+if basic_machines.settings.register_crafts and basic_machines.use_default then
 	minetest.register_craft({
 		output = "basic_machines:detector",
 		recipe = {

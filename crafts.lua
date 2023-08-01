@@ -1,11 +1,6 @@
-if minetest.get_modpath("darkage") then
-	minetest.register_craft({
-		type = "cooking",
-		output = "darkage:basalt",
-		recipe = "default:stone",
-		cooktime = 60
-	})
+local use_default = basic_machines.use_default
 
+if minetest.get_modpath("darkage") then
 	minetest.register_craft({
 		type = "cooking",
 		output = "darkage:schist",
@@ -21,27 +16,38 @@ if minetest.get_modpath("darkage") then
 		cooktime = 20
 	})
 
-	minetest.register_craft({
-		output = "darkage:serpentine",
-		recipe = {
-			{"darkage:marble", "default:cactus"}
-		}
-	})
+	if use_default then
+		minetest.register_craft({
+			type = "cooking",
+			output = "darkage:basalt",
+			recipe = "default:stone",
+			cooktime = 60
+		})
 
-	minetest.register_craft({
-		output = "darkage:mud",
-		recipe = {
-			{"default:dirt", "default:water_flowing"}
-		}
-	})
+		minetest.register_craft({
+			output = "darkage:serpentine",
+			recipe = {
+				{"darkage:marble", "default:cactus"}
+			}
+		})
+
+		minetest.register_craft({
+			output = "darkage:mud",
+			recipe = {
+				{"default:dirt", "default:water_flowing"}
+			}
+		})
+	end
 end
 
-minetest.register_craft({
-	type = "cooking",
-	output = "default:water_flowing",
-	recipe = "default:ice",
-	cooktime = 4
-})
+if use_default then
+	minetest.register_craft({
+		type = "cooking",
+		output = "default:water_flowing",
+		recipe = "default:ice",
+		cooktime = 4
+	})
+end
 
 -- CHARCOAL
 minetest.register_craftitem("basic_machines:charcoal", {
@@ -57,13 +63,15 @@ minetest.register_craft({
 	cooktime = 30
 })
 
-minetest.register_craft({
-	output = "default:coal_lump",
-	recipe = {
-		{"basic_machines:charcoal"},
-		{"basic_machines:charcoal"}
-	}
-})
+if use_default then
+	minetest.register_craft({
+		output = "default:coal_lump",
+		recipe = {
+			{"basic_machines:charcoal"},
+			{"basic_machines:charcoal"}
+		}
+	})
+end
 
 minetest.register_craft({
 	type = "fuel",

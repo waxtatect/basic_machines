@@ -1,3 +1,7 @@
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
+
 local F, S = basic_machines.F, basic_machines.S
 local def = {groups = {cracky = 3}}
 if minetest.global_exists("unifieddyes") then
@@ -68,11 +72,11 @@ end
 minetest.register_node("basic_machines:light_on", {
 	description = S("Light"),
 	groups = def.groups,
-	light_source = default.LIGHT_MAX,
+	light_source = 14,
 	tiles = {"basic_machines_light.png"},
 	paramtype2 = def.paramtype2,
 	palette = def.palette,
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos)
 		local meta = minetest.get_meta(pos)
@@ -111,12 +115,12 @@ minetest.register_node("basic_machines:light_off", {
 	tiles = {"basic_machines_light_off.png"},
 	paramtype2 = def.paramtype2,
 	palette = def.palette,
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	effector = def.light_off_action
 })
 
-if basic_machines.settings.register_crafts then
+if basic_machines.settings.register_crafts and basic_machines.use_default then
 	minetest.register_craft({
 		output = "basic_machines:light_on",
 		recipe = {

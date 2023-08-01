@@ -409,7 +409,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 	-- play sound
 	local activation_count = meta:get_int("activation_count")
 	if activation_count < 16 then
-		minetest.sound_play("basic_machines_transporter", {pos = last_pos2 or pos2, gain = 1, max_hear_distance = 8}, true)
+		minetest.sound_play("basic_machines_transport", {pos = last_pos2 or pos2, gain = 1, max_hear_distance = 8}, true)
 	end
 
 	return activation_count, new_fuel_cost

@@ -6,6 +6,7 @@ local mover_no_large_stacks = basic_machines.settings.mover_no_large_stacks
 local string_byte = string.byte
 local signs -- when activated with keypad their text will be updated
 local use_signs_lib = minetest.global_exists("signs_lib")
+local use_default = basic_machines.use_default
 local use_unifieddyes = minetest.global_exists("unifieddyes")
 
 if use_signs_lib then
@@ -13,11 +14,13 @@ if use_signs_lib then
 	for _, sign_name in ipairs(signs_lib.lbm_restore_nodes or {}) do
 		signs[sign_name] = true
 	end
-else -- minetest_game default mod
+elseif use_default then
 	signs = {
 		["default:sign_wall_steel"] = true,
 		["default:sign_wall_wood"] = true
 	}
+else
+	signs = {}
 end
 
 -- position, time to live (how many times can signal travel before vanishing to prevent infinite recursion),
@@ -44,15 +47,13 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 	meta:set_int("t", t1); meta:set_int("T", T)
 
 	if T > 2 then -- overheat
-		minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+		minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
 		meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 		return
 	end
 
 	-- protection check
-	local owner = meta:get_string("owner")
-
-	if minetest.is_protected(pos, owner) then
+	if minetest.is_protected(pos, meta:get_string("owner")) then
 		meta:set_int("count", 0)
 		meta:set_int("T", T + 2)
 		meta:set_string("infotext", S("Protection fail. Reset."))
@@ -149,17 +150,20 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			if use_signs_lib then -- with signs_lib
 				if signs_lib.update_sign then
 					signs_lib.update_sign(tpos, {text = text})
-				else
-					return
 				end
-			else -- minetest_game default mod
+			elseif use_default then -- minetest_game default mod
+				local infotext
+
 				if text:len() > 512 then
-					minetest.chat_send_player(owner, S("KEYPAD: Text too long.")); return
+					infotext = S("KEYPAD: Text too long.")
+					text = infotext
 				else
-					local tmeta = minetest.get_meta(tpos)
-					tmeta:set_string("infotext", S('"@1"', text))
-					tmeta:set_string("text", text)
+					infotext = S('"@1"', text)
 				end
+
+				local tmeta = minetest.get_meta(tpos)
+				tmeta:set_string("infotext", infotext)
+				tmeta:set_string("text", text)
 			end
 
 		-- target is keypad, special functions: @, % that output to target keypad's text
@@ -178,7 +182,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 				end, 16) -- up to 16 replacements
 
 				if text:len() > 4896 then
-					minetest.chat_send_player(owner, S("KEYPAD: Text too long.")); return
+					tmeta:set_string("text", S("KEYPAD: Text too long."))
 				else -- set target keypad's text
 					tmeta:set_string("text", text)
 				end
@@ -291,7 +295,7 @@ minetest.register_node("basic_machines:keypad", {
 	description = S("Keypad"),
 	groups = {cracky = 2},
 	tiles = {"basic_machines_keypad.png"},
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
 		if not placer then return end
@@ -354,7 +358,7 @@ minetest.register_node("basic_machines:keypad", {
 	}
 })
 
-if basic_machines.settings.register_crafts then
+if basic_machines.settings.register_crafts and use_default then
 	minetest.register_craft({
 		output = "basic_machines:keypad",
 		recipe = {

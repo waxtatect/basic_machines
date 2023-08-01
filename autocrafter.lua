@@ -127,16 +127,44 @@ basic_machines.change_autocrafter_recipe = on_output_change
 
 local function autocraft(inventory, craft)
 	if not craft then return end
-	local output_item = craft.output.item
 
-	-- check if we have enough room in dst
-	if not inventory:room_for_item("dst", output_item) then	return end
 	local consumption = craft.consumption
-	local inv_index = count_index(inventory:get_list("src"))
+
 	-- check if we have enough material available
+	local inv_items = count_index(inventory:get_list("src"))
 	for itemname, number in pairs(consumption) do
-		if (not inv_index[itemname]) or inv_index[itemname] < number then return end
+		local itemcount = inv_items[itemname]
+		if not itemcount or itemcount < number then return end
 	end
+
+	local output = craft.output.item
+	local decremented_input_items = craft.decremented_input.items
+
+	-- check if output and all replacements fit in dst
+	local out_items = count_index(decremented_input_items)
+	local output_name = output:get_name()
+	out_items[output_name] = (out_items[output_name] or 0) + output:get_count()
+	local empty_count = 0
+
+	for _, item in pairs(inventory:get_list("dst")) do
+		if item:is_empty() then
+			empty_count = empty_count + 1
+		else
+			local name = item:get_name()
+			if out_items[name] then
+				out_items[name] = out_items[name] - item:get_free_space()
+			end
+		end
+	end
+
+	for _, count in pairs(out_items) do
+		if count > 0 then
+			empty_count = empty_count - 1
+		end
+	end
+
+	if empty_count < 0 then return end
+
 	-- consume material
 	for itemname, number in pairs(consumption) do
 		for _ = 1, number do -- we have to do that since remove_item does not work if count > stack_max
@@ -145,11 +173,10 @@ local function autocraft(inventory, craft)
 	end
 
 	-- craft the result into the dst inventory and add any "replacements" as well
-	inventory:add_item("dst", output_item)
+	inventory:add_item("dst", output)
 	for i = 1, 9 do
-		inventory:add_item("dst", craft.decremented_input.items[i])
+		inventory:add_item("dst", decremented_input_items[i])
 	end
-	return
 end
 
 minetest.register_node("basic_machines:autocrafter", {
@@ -157,7 +184,7 @@ minetest.register_node("basic_machines:autocrafter", {
 	groups = {cracky = 3},
 	drawtype = "normal",
 	tiles = {"basic_machines_autocrafter.png"},
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	on_destruct = function(pos)
 		autocrafterCache[minetest.hash_node_position(pos)] = nil
@@ -283,7 +310,7 @@ minetest.register_node("basic_machines:autocrafter", {
 	}
 })
 
-if basic_machines.settings.register_crafts then
+if basic_machines.settings.register_crafts and basic_machines.use_default then
 	minetest.register_craft({
 		output = "basic_machines:autocrafter",
 		recipe = {

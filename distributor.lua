@@ -53,7 +53,7 @@ minetest.register_node("basic_machines:distributor", {
 	description = S("Distributor"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_distributor.png"},
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	on_secondary_use = function(_, user)
 		if user then
@@ -116,7 +116,7 @@ minetest.register_node("basic_machines:distributor", {
 			meta:set_int("t", t1); meta:set_int("T", T)
 
 			if T > 2 then -- overheat
-				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
 				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
 			end
@@ -180,7 +180,7 @@ minetest.register_node("basic_machines:distributor", {
 			meta:set_int("t", t1); meta:set_int("T", T)
 
 			if T > 2 then -- overheat
-				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
 				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
 			end
@@ -213,7 +213,7 @@ minetest.register_node("basic_machines:distributor", {
 	}
 })
 
-if basic_machines.settings.register_crafts then
+if basic_machines.settings.register_crafts and basic_machines.use_default then
 	minetest.register_craft({
 		output = "basic_machines:distributor",
 		recipe = {

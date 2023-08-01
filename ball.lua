@@ -14,17 +14,32 @@ local max_range = basic_machines.properties.max_range
 local max_damage = minetest.PLAYER_MAX_HP_DEFAULT / 4 -- player health 20
 -- to be used with bounce setting 2 in ball spawner:
 -- 1: bounce in x direction, 2: bounce in z direction, otherwise it bounces in y direction
-local bounce_materials = {
-	["default:glass"] = 2, ["default:wood"] = 1
-}
+local bounce_materials = {}
+local bounce_materials_help, axis = {S(", and for the next blocks:")}, {"x", "z"}
+
+local function add_bounce_material(name, direction)
+	bounce_materials[name] = direction
+	bounce_materials_help[#bounce_materials_help + 1] = ("%s: %s"):format(name, axis[direction])
+end
 
 if minetest.get_modpath("darkage") then
-	bounce_materials["darkage:iron_bars"] = 1
+	add_bounce_material("darkage:iron_bars", 1)
+end
+
+if basic_machines.use_default then
+	add_bounce_material("default:glass", 2)
+	add_bounce_material("default:wood", 1)
 end
 
 if minetest.get_modpath("xpanes") then
-	bounce_materials["xpanes:bar_10"] = 1
-	bounce_materials["xpanes:bar_2"] = 1
+	add_bounce_material("xpanes:bar_2", 1)
+	add_bounce_material("xpanes:bar_10", 1)
+end
+
+if #bounce_materials_help > 1 then
+	bounce_materials_help = table.concat(bounce_materials_help, "\n")
+else
+	bounce_materials_help = ""
 end
 
 local ball_default = {
@@ -205,7 +220,7 @@ minetest.register_entity("basic_machines:ball", {
 				self.object:set_pos(new_pos) -- ball placed a bit further away from box
 				self.object:set_velocity(v)
 
-				minetest.sound_play("default_dig_cracky", {pos = pos, gain = 1, max_hear_distance = 8}, true)
+				minetest.sound_play(basic_machines.sound_ball_bounce, {pos = pos, gain = 1, max_hear_distance = 8}, true)
 			else
 				self.object:remove(); return
 			end
@@ -304,14 +319,6 @@ local function ball_spawner_update_form(meta)
 		"]button[2.75,5.5;1,0.8;help;" .. F(S("help")) .. "]button_exit[4,5.5;1,0.8;OK;" .. F(S("OK")) .. "]")
 end
 
--- to be used with bounce setting 2 in ball spawner:
--- 1: bounce in x direction, 2: bounce in z direction, otherwise it bounces in y direction
-local bounce_materialslist, dirs, i = {}, {"x", "z"}, 1
-for material, v in pairs(bounce_materials) do
-	bounce_materialslist[i] = ("%s: %s"):format(material, dirs[v]); i = i + 1
-end
-bounce_materialslist = table.concat(bounce_materialslist, "\n")
-
 minetest.register_node("basic_machines:ball_spawner", {
 	description = S("Ball Spawner"),
 	groups = {cracky = 3, oddly_breakable_by_hand = 1},
@@ -321,7 +328,7 @@ minetest.register_node("basic_machines:ball_spawner", {
 	paramtype = "light",
 	param1 = 1,
 	walkable = false,
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 	drop = "",
 
 	after_place_node = function(pos, placer)
@@ -479,14 +486,13 @@ Visual*:		"cube" or "sprite"
 
 *: Not available as individual Ball Spawner
 
-**: Set to 2, the ball bounce following y direction and for the next blocks:
-@9
+**: Set to 2, the ball bounces following y direction@9
 
 ***: 0: not punchable, 1: only in protected area, 2: everywhere
 
 Note: Hold sneak while digging to get the Ball Spawner
 ]], max_range, max_range, max_range, max_range, max_range, max_range,
-max_damage, lifetime, bounce_materialslist)) .. "]")
+max_damage, lifetime, bounce_materials_help)) .. "]")
 		end
 	end,
 
@@ -509,7 +515,7 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 			meta:set_int("t", t1); meta:set_int("T", T)
 
 			if T > 2 then -- overheat
-				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
 				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
 			end
@@ -615,7 +621,7 @@ max_damage, lifetime, bounce_materialslist)) .. "]")
 			meta:set_int("t", t1); meta:set_int("T", T)
 
 			if T > 2 then -- overheat
-				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
 				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
 			end

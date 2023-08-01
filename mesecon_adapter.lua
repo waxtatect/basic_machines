@@ -49,7 +49,7 @@ minetest.register_node("basic_machines:mesecon_adapter", {
 	tiles = {"basic_machines_clock_generator.png", "basic_machines_clock_generator.png",
 		"jeija_luacontroller_top.png", "jeija_luacontroller_top.png",
 		"jeija_luacontroller_top.png", "jeija_luacontroller_top.png"},
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos)
 		minetest.get_meta(pos):set_string("infotext", S("Mesecon Adapter: place machine to be activated on top"))
@@ -66,7 +66,7 @@ minetest.register_node("basic_machines:mesecon_adapter", {
 	}
 })
 
-if basic_machines.settings.register_crafts then
+if basic_machines.settings.register_crafts and basic_machines.use_default then
 	minetest.register_craft({
 		output = "basic_machines:mesecon_adapter",
 		recipe = {{"default:mese_crystal_fragment"}}

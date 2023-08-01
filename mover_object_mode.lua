@@ -123,7 +123,7 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 		if no_sound then
 			return activation_count
 		elseif activation_count < 16 then -- play sound
-			minetest.sound_play("basic_machines_tng_transporter1", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
+			minetest.sound_play("basic_machines_object_move", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
 			return activation_count
 		end
 	end

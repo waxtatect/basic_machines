@@ -133,41 +133,43 @@ for _, trapdoor in ipairs(trapdoors) do
 	make_it_noclip(trapdoor .. "_open")
 end
 --[[
-local function make_it_nondiggable_but_removable(name, dropname, door)
-	minetest.override_item(name, {
-		diggable = false,
-		on_punch = function(pos, _, puncher) -- remove node if owner repeatedly punches it 3x
-			local player_name = puncher:get_player_name()
-			local meta = minetest.get_meta(pos)
-			-- can be dug by owner or if unprotected
-			if player_name == meta:get_string("owner") or not minetest.is_protected(pos, player_name) then
-				local t0, t = meta:get_int("punchtime"), minetest.get_gametime()
-				local count = meta:get_int("punchcount")
+if use_doors then
+	local function make_it_nondiggable_but_removable(name, dropname, door)
+		minetest.override_item(name, {
+			diggable = false,
+			on_punch = function(pos, _, puncher) -- remove node if owner repeatedly punches it 3x
+				local player_name = puncher:get_player_name()
+				local meta = minetest.get_meta(pos)
+				-- can be dug by owner or if unprotected
+				if player_name == meta:get_string("owner") or not minetest.is_protected(pos, player_name) then
+					local t0, t = meta:get_int("punchtime"), minetest.get_gametime()
+					local count = meta:get_int("punchcount")
 
-				if t - t0 < 2 then count = (count + 1) % 3 else count = 0 end
-				meta:set_int("punchtime", t); meta:set_int("punchcount", count)
+					if t - t0 < 2 then count = (count + 1) % 3 else count = 0 end
+					meta:set_int("punchtime", t); meta:set_int("punchcount", count)
 
-				if count == 1 then
-					minetest.chat_send_player(player_name, S("@1: Punch me one more time to remove me", door))
-				elseif count == 2 then -- remove steel door and drop it
-					minetest.set_node(pos, {name = "air"})
-					minetest.add_item(pos, ItemStack(dropname))
+					if count == 1 then
+						minetest.chat_send_player(player_name, S("@1: Punch me one more time to remove me", door))
+					elseif count == 2 then -- remove steel door and drop it
+						minetest.set_node(pos, {name = "air"})
+						minetest.add_item(pos, ItemStack(dropname))
+					end
 				end
 			end
-		end
-	})
-end
+		})
+	end
 
-local impervious_steel = {
-	{"doors:door_steel_a", "doors:door_steel", S("Steel Door")},
-	{"doors:door_steel_b", "doors:door_steel", S("Steel Door")},
-	{"doors:door_steel_c", "doors:door_steel", S("Steel Door")},
-	{"doors:door_steel_d", "doors:door_steel", S("Steel Door")},
-	{"doors:trapdoor_steel", "doors:trapdoor_steel", S("Steel Trapdoor")},
-	{"doors:trapdoor_steel_open", "doors:trapdoor_steel", S("Steel Trapdoor")}
-}
+	local impervious_steel = {
+		{"doors:door_steel_a", "doors:door_steel", S("Steel Door")},
+		{"doors:door_steel_b", "doors:door_steel", S("Steel Door")},
+		{"doors:door_steel_c", "doors:door_steel", S("Steel Door")},
+		{"doors:door_steel_d", "doors:door_steel", S("Steel Door")},
+		{"doors:trapdoor_steel", "doors:trapdoor_steel", S("Steel Trapdoor")},
+		{"doors:trapdoor_steel_open", "doors:trapdoor_steel", S("Steel Trapdoor")}
+	}
 
-for _, door in ipairs(impervious_steel) do
-	make_it_nondiggable_but_removable(door[1], door[2], door[3])
+	for _, door in ipairs(impervious_steel) do
+		make_it_nondiggable_but_removable(door[1], door[2], door[3])
+	end
 end
 --]]

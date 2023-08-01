@@ -36,15 +36,7 @@ local mover = {
 	},
 
 	-- define which nodes are dug up completely, like a tree
-	dig_up_table = {
-		["default:acacia_tree"] = {h = 6, r = 2}, -- acacia trees grow wider than others
-		["default:aspen_tree"] = {h = 10, r = 0},
-		["default:cactus"] = {h = 5, r = 2},
-		["default:jungletree"] = {h = 11}, -- not emergent jungle tree
-		["default:papyrus"] = {h = 3, r = 0},
-		["default:pine_tree"] = {h = 13, r = 0},
-		["default:tree"] = {h = 4, r = 1}
-	},
+	dig_up_table = {},
 
 	-- how hard it is to move blocks, default factor 1,
 	-- note: fuel cost is this multiplied by distance and divided by machine_operations..
@@ -157,6 +149,18 @@ local mover = {
 	-- for example seed -> plant, [nodename] = plant_name OR [nodename] = true
 	plants_table = {}
 }
+
+if basic_machines.use_default then
+	mover.dig_up_table = {
+		["default:acacia_tree"] = {h = 6, r = 2}, -- acacia trees grow wider than others
+		["default:aspen_tree"] = {h = 10, r = 0},
+		["default:cactus"] = {h = 5, r = 2},
+		["default:jungletree"] = {h = 11}, -- not emergent jungle tree
+		["default:papyrus"] = {h = 3, r = 0},
+		["default:pine_tree"] = {h = 13, r = 0},
+		["default:tree"] = {h = 4, r = 1}
+	}
+end
 
 -- cool_trees
 local cool_trees = { -- all but pineapple
@@ -299,7 +303,7 @@ local function pos1list_checks(pos, length_pos, owner, upgrade, meta)
 				node[i], node_name[i] = nodei, nodei_name
 			else
 				local nodei_hardness = mover_hardness[nodei_name] or 1
-				if nodei_hardness < 596 then -- (3 * 99 diamonds blocks + 1)
+				if nodei_hardness < 596 then -- (3 * 99 diamond blocks + 1)
 					node[i], node_name[i] = nodei, nodei_name
 					hardness = hardness + nodei_hardness
 				else
@@ -341,7 +345,7 @@ minetest.register_node("basic_machines:mover", {
 	description = S("Mover"),
 	groups = {cracky = 2},
 	tiles = {"basic_machines_mover.png"},
-	sounds = default.node_sound_wood_defaults(),
+	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
 		if not placer then return end
@@ -557,7 +561,7 @@ minetest.register_node("basic_machines:mover", {
 			meta:set_int("t", t1); meta:set_int("T", T)
 
 			if T > mover_max_temp or third_upgradetype and T > 2 then
-				minetest.sound_play("default_cool_lava", {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
 				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
 			end
@@ -784,7 +788,7 @@ minetest.register_node("basic_machines:mover", {
 					elseif supply < 0 then -- no battery at target location, try to find it!
 						if not basic_machines.find_and_connect_battery(pos, meta) then
 							meta:set_string("infotext", S("Can not find nearby battery to connect to!"))
-							minetest.sound_play("default_cool_lava", {pos = pos, gain = 1, max_hear_distance = 8}, true)
+							minetest.sound_play(basic_machines.sound_overheat, {pos = pos, gain = 1, max_hear_distance = 8}, true)
 							return
 						end
 					end
@@ -830,7 +834,7 @@ minetest.register_node("basic_machines:mover", {
 	}
 })
 
-if basic_machines.settings.register_crafts then
+if basic_machines.settings.register_crafts and basic_machines.use_default then
 	minetest.register_craft({
 		output = "basic_machines:mover",
 		recipe = {
