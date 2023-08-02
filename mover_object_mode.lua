@@ -126,8 +126,10 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 		local activation_count = meta:get_int("activation_count")
 		if no_sound then
 			return activation_count
-		elseif activation_count < 16 then -- play sound
-			minetest.sound_play("basic_machines_object_move", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
+		else
+			-- if activation_count < 16 then -- play sound
+				-- minetest.sound_play("basic_machines_object_move", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
+			-- end
 			return activation_count
 		end
 	end

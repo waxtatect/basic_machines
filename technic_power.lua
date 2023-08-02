@@ -84,18 +84,18 @@ local function battery_recharge(pos, energy, origin)
 
 		energy = energy_new
 
-		local count = meta:get_int("activation_count")
-		if count < 16 then
-			minetest.sound_play("basic_machines_electric_zap", {pos = pos, gain = 0.05, max_hear_distance = 8}, true)
-		end
+		-- local count = meta:get_int("activation_count")
+		-- if count < 16 then
+			-- minetest.sound_play("basic_machines_electric_zap", {pos = pos, gain = 0.05, max_hear_distance = 8}, true)
+		-- end
 
-		local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-		if t0 > t1 - machines_minstep then
-			meta:set_int("activation_count", count + 1)
-		elseif count > 0 then
-			meta:set_int("activation_count", 0)
-		end
-		meta:set_int("t", t1)
+		-- local t0, t1 = meta:get_int("t"), minetest.get_gametime()
+		-- if t0 > t1 - machines_minstep then
+			-- meta:set_int("activation_count", count + 1)
+		-- elseif count > 0 then
+			-- meta:set_int("activation_count", 0)
+		-- end
+		-- meta:set_int("t", t1)
 	elseif origin == "recharge_furnace" and energy < 1 then
 		minetest.swap_node(pos, {name = "basic_machines:battery_0"})
 		meta:set_string("infotext", S("Furnace needs at least 1 energy"))
@@ -576,7 +576,7 @@ minetest.register_node("basic_machines:generator", {
 					if energy < 0 then energy = 0 end
 					if energy > minenergy then energy = minenergy end -- excess energy is wasted
 					meta:set_float("upgrade", energy)
-					minetest.sound_play("basic_machines_electric_zap", {pos = pos, gain = 0.05, max_hear_distance = 8}, true)
+					-- minetest.sound_play("basic_machines_electric_zap", {pos = pos, gain = 0.05, max_hear_distance = 8}, true)
 					generator_update_form(meta, true)
 				end
 			end
