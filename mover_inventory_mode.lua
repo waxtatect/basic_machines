@@ -1,3 +1,7 @@
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
+
 local F, S = basic_machines.F, basic_machines.S
 local mover_limit_inventory_table = basic_machines.get_mover("limit_inventory_table")
 local get_palette_index = basic_machines.get_palette_index

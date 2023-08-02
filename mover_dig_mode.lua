@@ -1,3 +1,7 @@
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
+
 local F, S = basic_machines.F, basic_machines.S
 local mover_chests = basic_machines.get_mover("chests")
 local mover_dig_up_table = basic_machines.get_mover("dig_up_table")
@@ -368,7 +372,13 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 							else
 								minetest.add_item(pos1, itemname)
 							end
-							-- force_renew requires a source neighbour (borrowed from bucket mod)
+							-- borrowed and adapted from bucket mod
+							-- https://github.com/minetest/minetest_game/tree/master/mods/bucket
+							-- GNU Lesser General Public License, version 2.1
+							-- Copyright (C) 2011-2016 Kahrl <kahrl@gmx.net>
+							-- Copyright (C) 2011-2016 celeron55, Perttu Ahola <celeron55@gmail.com>
+							-- Copyright (C) 2011-2016 Various Minetest developers and contributors
+							-- force_renew requires a source neighbour
 							local source_neighbor = false
 							if liquiddef.force_renew then
 								source_neighbor = minetest.find_node_near(pos1, 1, liquiddef.source)
@@ -376,6 +386,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 							if not (source_neighbor and liquiddef.force_renew) then
 								minetest.set_node(pos1, {name = "air"})
 							end
+							--
 						end
 					elseif harvest_node1 then -- do we harvest the node ? (if optional mese_crystals mod present)
 						local item = harvest_node1[2]

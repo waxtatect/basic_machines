@@ -1,7 +1,7 @@
 -- ENVIRO block: change physics and skybox for players
--- Note: nonadmin players are limited in changes
-
--- rnd 2016:
+-- rnd 2016
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
 local max_range = basic_machines.properties.max_range

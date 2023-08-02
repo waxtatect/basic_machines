@@ -1,3 +1,7 @@
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
+
 local F, S = basic_machines.F, basic_machines.S
 local mover_chests = basic_machines.get_mover("chests")
 local check_palette_index = basic_machines.check_palette_index

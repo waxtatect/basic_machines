@@ -1,4 +1,6 @@
 -- Make gravelsieve work with signals - can toggle on/off
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
 
 local STEP_DELAY = tonumber(minetest.settings:get("gravelsieve_step_delay")) or 1.0
 

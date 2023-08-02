@@ -1,4 +1,6 @@
--- There is a certain fuel cost to operate
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
 local grinder_dusts_legacy = basic_machines.settings.grinder_dusts_legacy

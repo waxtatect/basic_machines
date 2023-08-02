@@ -1,8 +1,9 @@
--- rnd 2015:
-
 -- This node works as a reverse of crafting process with a 25% loss of items (aka recycling)
 -- You can select which recipe to use when recycling
 -- There is a fuel cost to recycle
+-- rnd 2015
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
 local machines_minstep = basic_machines.properties.machines_minstep

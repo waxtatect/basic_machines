@@ -1,3 +1,7 @@
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
+
 local use_default = basic_machines.use_default
 
 if minetest.get_modpath("darkage") then

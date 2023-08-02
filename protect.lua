@@ -1,4 +1,7 @@
 -- Adds event handler for attempt to dig in protected area
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
 
 -- Tries to activate specially configured nearby distributor at points with coordinates of form 20 * i
 -- Registers dig attempts in radius 10 around

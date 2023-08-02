@@ -1,3 +1,7 @@
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
+
 local S = basic_machines.S
 local exclusion_height = basic_machines.settings.exclusion_height
 local space_effects = basic_machines.settings.space_effects

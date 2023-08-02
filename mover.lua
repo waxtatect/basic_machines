@@ -3,6 +3,9 @@
 -- Mod with basic simple automatization for minetest
 -- No background processing, just two abms (clock generator, generator), no other lag causing background processing
 ------------------------------------------------------------------------------------------------------------------------
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
 local mover_upgrade_max = basic_machines.properties.mover_upgrade_max

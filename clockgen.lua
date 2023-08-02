@@ -1,3 +1,7 @@
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
+
 local S = basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 

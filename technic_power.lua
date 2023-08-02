@@ -1,3 +1,7 @@
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
+
 local F, S = basic_machines.F, basic_machines.S
 local energy_multiplier = basic_machines.settings.energy_multiplier
 local generator_upgrade_max = 50 + math.max(0, basic_machines.settings.generator_upgrade)

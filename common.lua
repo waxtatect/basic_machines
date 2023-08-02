@@ -1,7 +1,11 @@
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
+
 basic_machines = {
 	F = minetest.formspec_escape,
 	S = minetest.get_translator("basic_machines"),
-	version = "10/02/2021a custom",
+	version = "08/02/2023 (fork)",
 	properties = {
 		no_clock			= false,	-- if true all continuously running activities (clockgen/keypad) are disabled
 		machines_TTL		= 16,		-- time to live for signals, how many hops before signal dissipates

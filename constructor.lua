@@ -1,6 +1,6 @@
--- rnd 2016:
-
--- CONSTRUCTOR machine: used to make all other basic_machines
+-- rnd 2016
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
 local craft_recipes = {}
@@ -175,7 +175,7 @@ local function add_constructor(name, items, description, recipe)
 end
 
 
--- CONSTRUCTOR
+-- CONSTRUCTOR: used to make all other basic machines
 local items = {
 	craft_recipes = {
 		["Autocrafter"] = {

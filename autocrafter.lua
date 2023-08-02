@@ -1,5 +1,9 @@
 -- Modified and adapted from pipeworks mod by VanessaE
+-- https://github.com/mt-mods/pipeworks
 -- by rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
+
 -- Disabled timers and on/off button, now autocrafter is only activated by signal
 
 local S = basic_machines.S

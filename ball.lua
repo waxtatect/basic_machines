@@ -1,5 +1,7 @@
--- BALL: energy ball that flies around, can bounce and activate stuff
--- rnd 2016:
+-- Ball: energy ball that flies around, can bounce and activate stuff
+-- rnd 2016
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
 
 -- TO DO, move mode:
 -- Ball just rolling around on ground without hopping

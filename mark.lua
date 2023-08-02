@@ -1,4 +1,6 @@
 -- rnd: code borrowed from machines, mark.lua
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
 
 -- Needed for marking
 machines = {}

@@ -1,4 +1,7 @@
 -- Make other light blocks work with signals - can toggle on/off
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
 
 local function enable_toggle_light(name)
 	local def = minetest.registered_nodes[name]

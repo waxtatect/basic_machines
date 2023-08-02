@@ -1,4 +1,7 @@
 -- Make doors open/close with signal
+-- (c) 2015-2016 rnd
+-- Copyright (C) 2022-2023 мтест
+-- See README.md for license details
 
 -- local S = basic_machines.S
 local use_doors = minetest.global_exists("doors")
