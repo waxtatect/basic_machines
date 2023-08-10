@@ -2,10 +2,12 @@
 
 Lightweight automation mod for [Minetest](https://www.minetest.net)
 
-![screenshot](screenshot.png)
+![(screenshot)](screenshot.png)
 
 This is a modified version of basic_machines mod written by rnd:\
 &emsp;https://github.com/ac-minetest/basic_machines, [Minetest forum topic](https://forum.minetest.net/viewtopic.php?t=12033)
+
+Useful link: [:octocat:](https://github.com/waxtatect/basic_machines "Basic Machines repository")
 
 At least [Minetest](https://www.minetest.net) version 5.4.0 is needed
 

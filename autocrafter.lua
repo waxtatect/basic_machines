@@ -40,14 +40,13 @@ local function count_index(invlist)
 end
 
 local function get_craft(pos, inventory, hash)
-	local hash_number = hash or minetest.hash_node_position(pos)
-	local craft = autocrafterCache[hash_number]
-	if not craft then
-		local recipe = inventory:get_list("recipe")
-		local output, decremented_input = minetest.get_craft_result({method = "normal", width = 3, items = recipe})
-		craft = {recipe = recipe, consumption = count_index(recipe), output = output, decremented_input = decremented_input}
-		autocrafterCache[hash_number] = craft
-	end
+	hash = hash or minetest.hash_node_position(pos)
+	local craft = autocrafterCache[hash]
+	if craft then return craft end
+	local recipe = inventory:get_list("recipe")
+	local output, decremented_input = minetest.get_craft_result({method = "normal", width = 3, items = recipe})
+	craft = {recipe = recipe, consumption = count_index(recipe), output = output, decremented_input = decremented_input}
+	autocrafterCache[hash] = craft
 	return craft
 end
 
@@ -58,70 +57,58 @@ local function get_item_info(stack)
 	return description, name
 end
 
--- note, that this function assumes already being updated to virtual items
--- and doesn't handle recipes with stacksizes > 1
 local function after_recipe_change(pos, inventory)
-	local meta = minetest.get_meta(pos)
 	-- if we emptied the grid, there's no point in keeping it running or cached
 	if inventory:is_empty("recipe") then
 		autocrafterCache[minetest.hash_node_position(pos)] = nil
-		meta:set_string("infotext", S("Unconfigured autocrafter"))
-		inventory:set_stack("output", 1, "")
-		return
+		minetest.get_meta(pos):set_string("infotext", S("Unconfigured autocrafter"))
+		inventory:set_stack("output", 1, ItemStack(""))
+	else
+		local hash = minetest.hash_node_position(pos)
+		autocrafterCache[hash] = nil
+		local output_item = get_craft(pos, inventory, hash).output.item
+		local description, name = get_item_info(output_item)
+		minetest.get_meta(pos):set_string("infotext", S("Autocrafter: '@1' (@2)", description, name))
+		inventory:set_stack("output", 1, output_item)
 	end
-
-	local recipe = inventory:get_list("recipe")
-	local hash = minetest.hash_node_position(pos)
-	local craft = autocrafterCache[hash]
-
-	if craft then
-		-- check if it changed
-		local cached_recipe = craft.recipe
-		for i = 1, 9 do
-			if recipe[i]:get_name() ~= cached_recipe[i]:get_name() then
-				autocrafterCache[hash] = nil -- invalidate recipe
-				craft = nil
-				break
-			end
-		end
-	end
-
-	craft = craft or get_craft(pos, inventory, hash)
-	local output_item = craft.output.item
-	local description, name = get_item_info(output_item)
-	meta:set_string("infotext", S("Autocrafter: '@1' (@2)", description, name))
-	inventory:set_stack("output", 1, output_item)
 end
 
 -- clean out unknown items and groups
-local function normalize(item_list)
-	for i, item in pairs(item_list) do
-		if not minetest.registered_items[item] then
-			item_list[i] = ""
+local function normalize(items_list)
+	for i, item in pairs(items_list) do
+		if not minetest.registered_items[item] then -- ItemStack(item):get_name(), for items with count > 1
+			items_list[i] = ItemStack("")
 		end
 	end
-	return item_list
+	return items_list
 end
 
-local function on_output_change(pos, inventory, stack)
+local function on_output_change(pos, inventory, stack, index)
 	if stack then
-		local input = minetest.get_craft_recipe(stack:get_name())
-		if not input.items or input.type ~= "normal" then return end
-		local items, width = normalize(input.items), input.width
-		local item_idx, width_idx = 1, 1
-		for i = 1, 9 do
-			if width_idx <= width then
-				inventory:set_stack("recipe", i, items[item_idx])
-				item_idx = item_idx + 1
-			else
-				inventory:set_stack("recipe", i, ItemStack(""))
+		local recipe
+		if index then
+			recipe = minetest.get_all_craft_recipes(stack:get_name())
+			recipe = (recipe or {})[index] or {}
+		else
+			recipe = minetest.get_craft_recipe(stack:get_name())
+		end
+		if not recipe.items or recipe.type ~= "normal" then return end
+		local items, width = normalize(recipe.items), recipe.width
+		if width == 0 then -- shapeless recipe
+			inventory:set_list("recipe", items)
+		else
+			local item_idx, width_idx = 1, 1
+			for i = 1, 9 do
+				if width_idx <= width then
+					inventory:set_stack("recipe", i, items[item_idx])
+					item_idx = item_idx + 1
+				else
+					inventory:set_stack("recipe", i, ItemStack(""))
+				end
+				width_idx = (width_idx < 3) and (width_idx + 1) or 1
 			end
-			width_idx = (width_idx < 3) and (width_idx + 1) or 1
 		end
 	else
-		-- we'll set the output slot in after_recipe_change to the actual result of the new recipe
-		inventory:set_stack("output", 1, ItemStack(""))
-		-- inventory:set_list("output", {}) -- using saved map, it crashes the server... but why
 		inventory:set_list("recipe", {})
 	end
 	after_recipe_change(pos, inventory)
@@ -142,7 +129,7 @@ local function autocraft(inventory, craft)
 	end
 
 	local output = craft.output.item
-	local decremented_input_items = craft.decremented_input.items
+	local decremented_input_items = craft.decremented_input.items -- replacements
 
 	-- check if output and all replacements fit in dst
 	local out_items = count_index(decremented_input_items)

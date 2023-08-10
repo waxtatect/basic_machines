@@ -817,7 +817,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				" Upon activation text will be set:\nWhen target node is keypad, its \"text\" field will be set.\n" ..
 				"When target is detector/mover, its \"filter\" field will be set. To clear \"filter\" set text to \"@@\".\n" ..
 				"When target is distributor, you can change i-th target of distributor mode with \"<i> <mode>\".\n" ..
-				"When target is autocrafter, the recipe will be set. To clear the recipe set text to \"@@\".")) ..
+				"When target is autocrafter, set i-th recipe with \"<itemname> [<i>]\". To clear the recipe set text to \"@@\".")) ..
 				(use_unifieddyes and F(S("\nWhen target is light, you can change the index value (a multiple of 8) with \"i<index>\".")) or "") ..
 				F(S("\n\nKeyboard: To use keypad as keyboard for text input write \"@@\" in \"text\" field and set any password." ..
 				" Next time keypad is used it will work as text input device." ..

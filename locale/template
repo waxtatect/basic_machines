@@ -137,7 +137,7 @@ upgrade=
 Protection fail. Reset.=
 KEYPAD: Resetting. Punch again after @1s to activate.=
 Playing sound: '@1'=
-Playing sound: '@1', pitch: @2
+Playing sound: '@1', pitch: @2=
 Keypad operation: @1 cycle left=
 Keypad operation: @1 cycles left=
 Keypad. Right click to set it up or punch it. Set any password and text "@@" to work as keyboard.=
@@ -209,7 +209,7 @@ Keypad help=
 Mode: 0@=IDLE, 1@=OFF, 2@=ON, 3@=TOGGLE, control the way how the target is activated.@n@nRepeat: Number to control how many times activation is repeated after initial punch.@n@nPassword: Enter password and press OK. Password will be encrypted. Next time you use keypad you will need to enter correct password to gain access.@n@nText: If set then text on target node will be changed. In case target is detector/mover, filter settings will be changed. Can be used for special operations.@n@nTarget: Coordinates (x, y, z) relative to the keypad. (0, 0, 0) is keypad itself, (0, 1, 0) is one node above, (0, -1, 0) one node below. X coordinate axes goes from east to west, Y from down to up, Z from south to north.=
 @n@nAdvanced:@nText replacement: Suppose keypad A is set with text "@@Some @@. text @@!" and there are blocks on top of keypad A with infotext '1' and '2'. Suppose we target B with A and activate A. Then text of keypad B will be set to "some 1. text 2!".@nWord extraction: Suppose similar setup but now keypad A is set with text "%1". Then upon activation text of keypad B will be set to 1.st word of infotext.=
 ACCESS DENIED. WRONG PASSWORD.=
-@n@nSetup: Right click or punch (left click) the keypad, then follow instructions.@n@nTo set text on other nodes (text shows when you look at node) just target the node and set nonempty text. Upon activation text will be set:@nWhen target node is keypad, its "text" field will be set.@nWhen target is detector/mover, its "filter" field will be set. To clear "filter" set text to "@@".@nWhen target is distributor, you can change i-th target of distributor mode with "<i> <mode>".@nWhen target is autocrafter, the recipe will be set. To clear the recipe set text to "@@".=
+@n@nSetup: Right click or punch (left click) the keypad, then follow instructions.@n@nTo set text on other nodes (text shows when you look at node) just target the node and set nonempty text. Upon activation text will be set:@nWhen target node is keypad, its "text" field will be set.@nWhen target is detector/mover, its "filter" field will be set. To clear "filter" set text to "@@".@nWhen target is distributor, you can change i-th target of distributor mode with "<i> <mode>".@nWhen target is autocrafter, set i-th recipe with "<itemname> [<i>]". To clear the recipe set text to "@@".=
 @nWhen target is light, you can change the index value (a multiple of 8) with "i<index>".=
 @n@nKeyboard: To use keypad as keyboard for text input write "@@" in "text" field and set any password. Next time keypad is used it will work as text input device.@n@nDisplaying messages to nearby players (up to 5 blocks around keypad's target): Set text to "!text". Upon activation player will see "text" in their chat.@n@nPlaying sound to nearby players: set text to "$sound_name", optionally followed by a space and pitch value: 0.01 to 10. Can choose a sound with sounds menu.=
 ACCESS GRANTED=

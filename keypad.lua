@@ -109,9 +109,9 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 				if iter > 1 then meta:set_int("count", iter) end -- play sound only once
 				local i = text_sub:find(" ")
 				if i then
+					local sound_name = text_sub:sub(1, i - 1)
 					local pitch = tonumber(text_sub:sub(i + 1)) or 1
 					if pitch < 0.01 or pitch > 10 then pitch = 1 end
-					local sound_name = text_sub:sub(1, i - 1)
 					meta:set_string("infotext", S("Playing sound: '@1', pitch: @2", (sound_name:gsub("_", " ")), pitch))
 					minetest.sound_play(sound_name, {pos = pos, gain = 1, max_hear_distance = 16, pitch = pitch}, true)
 				else
@@ -244,10 +244,21 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			local tmeta = minetest.get_meta(tpos)
 			if bit == 64 then -- if text starts with '@' -> clear the recipe
 				basic_machines.change_autocrafter_recipe(tpos, tmeta:get_inventory(), nil)
-			elseif minetest.registered_items[text] then
-				basic_machines.change_autocrafter_recipe(tpos, tmeta:get_inventory(), ItemStack(text))
 			else
-				tmeta:set_string("infotext", text:gsub("^ +$", ""))
+				local i = text:find(" ")
+				local stack_name, idx
+				if i then
+					stack_name = text:sub(1, i - 1)
+					idx = tonumber(text:sub(i + 1)) or 1
+					if idx < 1 or idx > 1000 then idx = 1 end
+				else
+					stack_name = text
+				end
+				if minetest.registered_items[stack_name ~= "" and stack_name or nil] then
+					basic_machines.change_autocrafter_recipe(tpos, tmeta:get_inventory(), ItemStack(stack_name), idx)
+				else
+					tmeta:set_string("infotext", text:gsub("^ +$", ""))
+				end
 			end
 
 		elseif use_unifieddyes and name:find("basic_machines:light") then

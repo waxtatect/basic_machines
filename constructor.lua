@@ -80,6 +80,7 @@ local function constructor_process(pos, constructor, name)
 		end
 	end
 end
+
 local function add_constructor(name, items, description, recipe)
 	craft_recipes[name] = items.craft_recipes
 	recipes_order[name] = items.recipes_order
