@@ -5,7 +5,7 @@
 basic_machines = {
 	F = minetest.formspec_escape,
 	S = minetest.get_translator("basic_machines"),
-	version = "08/10/2023 (fork)",
+	version = "09/05/2023 (fork)",
 	properties = {
 		no_clock			= false,	-- if true all continuously running activities (clockgen/keypad) are disabled
 		machines_TTL		= 16,		-- time to live for signals, how many hops before signal dissipates
@@ -22,7 +22,7 @@ basic_machines = {
 		energy_multiplier		= 1,		-- energy crystals multiplier
 		power_stackmax			= 25,		-- power crystals stack max
 		-- grinder
-		grinder_register_dusts	= true,		-- dusts/extractors for lumps/ingots, needed for the others grinder settings
+		grinder_register_dusts	= true,		-- dusts/extractors for lumps/ingots, needed for the other grinder settings
 		grinder_dusts_quantity	= 2,		-- quantity of dusts produced by lump/ingot, minimum 0
 		grinder_dusts_legacy	= false,	-- legacy dust mode: dust_33 (smelt) -> dust_66 (smelt) -> ingot
 		grinder_extractors_type	= 1,		-- recipe priority if optional mod present, 1: farming_redo, 2: x_farming

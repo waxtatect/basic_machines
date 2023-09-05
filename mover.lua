@@ -113,7 +113,7 @@ local mover = {
 	-- list of nodes mover can't take from in inventory mode
 	-- node name = {list of bad inventories to take from} OR node name = true to ban all inventories
 	limit_inventory_table = {
-		["basic_machines:autocrafter"] = {["recipe"] = 1, ["output"] = 1},
+		["basic_machines:autocrafter"] = {["output"] = 1, ["recipe"] = 1},
 		["basic_machines:battery_0"] = {["upgrade"] = 1},
 		["basic_machines:battery_1"] = {["upgrade"] = 1},
 		["basic_machines:battery_2"] = {["upgrade"] = 1},
@@ -122,7 +122,8 @@ local mover = {
 		["basic_machines:grinder"] = {["upgrade"] = 1},
 		["basic_machines:mover"] = true,
 		["moreblocks:circular_saw"] = true,
-		["smartshop:shop"] = true
+		["smartshop:shop"] = true,
+		["xdecor:workbench"] = {["forms"] = 1, ["input"] = 1}
 	},
 
 	-- list of mover modes
