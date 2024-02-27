@@ -4,7 +4,7 @@
 -- No background processing, just two abms (clock generator, generator), no other lag causing background processing
 ------------------------------------------------------------------------------------------------------------------------
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -605,7 +605,7 @@ minetest.register_node("basic_machines:mover", {
 					local pc, dim = meta:get_int("pc"), meta:get_int("dim")
 
 					upgrade = meta:get_int("upgrade")
-					for i = 1, (upgrade == -1 and 1000 or upgrade) do -- 1000 for admin
+					for i = 1, (upgrade == -1 and 1000 or upgrade) do -- up to 1000 blocks for admin
 						pc = (pc + 1) % dim
 						local yc = y0 + (pc % y1); local xpc = (pc - (pc % y1)) / y1
 						local xc = x0 + (xpc % x1)
@@ -810,18 +810,19 @@ minetest.register_node("basic_machines:mover", {
 			-- do the thing
 			local activation_count, new_fuel_cost = (mover_modes[mode] or {}).task(pos, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2, mreverse, upgradetype, upgrade, fuel_cost)
 
-			if activation_count then -- something was moved
+			if activation_count then -- something happened
 				if t0 > tn then
 					meta:set_int("activation_count", activation_count + 1)
 				elseif activation_count > 0 then
 					meta:set_int("activation_count", 0)
 				end
-				if upgrade ~= -1 then
-					fuel = fuel - (new_fuel_cost or fuel_cost); meta:set_float("fuel", fuel) -- fuel cost
+				fuel_cost = new_fuel_cost or fuel_cost
+				if fuel_cost ~= 0 then
+					fuel = fuel - fuel_cost; meta:set_float("fuel", fuel) -- fuel remaining
 				end
 				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
-			elseif fuel_cost > 2 then
-				fuel = fuel - fuel_cost * 0.01; meta:set_float("fuel", fuel) -- 1% fuel cost if no task done
+			elseif fuel_cost > 1.5 then
+				fuel = fuel - fuel_cost * 0.03; meta:set_float("fuel", fuel) -- 3% fuel cost if no task done
 				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
 			elseif msg then -- mover refueled
 				meta:set_float("fuel", fuel)

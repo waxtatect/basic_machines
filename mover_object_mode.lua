@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -7,6 +7,17 @@ local mover_chests = basic_machines.get_mover("chests")
 local vector_add = vector.add
 local max_range = basic_machines.properties.max_range
 local mover_no_teleport_table = basic_machines.get_mover("no_teleport_table")
+
+local function vector_velocity(pos1, pos2, times)
+	if times > 20 then times = 20 elseif times < 0.2 then times = 0.2 end
+	local pos = vector.subtract(pos2, pos1)
+	local velocity = math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z)
+	if velocity > 0 and times ~= 1 then
+		velocity = velocity / (velocity * times)
+		velocity = vector.multiply(pos, velocity)
+	end
+	return velocity
+end
 
 local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 	local x1, y1, z1
@@ -19,7 +30,7 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 
 	local radius = math.min(vector.distance(pos1, vector_add(pos, {x = x1, y = y1, z = z1})), max_range) -- distance source1-source2
 	local elevator = meta:get_int("elevator"); if elevator == 1 and radius == 0 then radius = 1 end -- for compatibility
-	local teleport_any, no_sound
+	local no_sound
 
 	local node2 = minetest.get_node_or_nil(pos2)
 	local node2_name
@@ -46,7 +57,7 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 							if lua_entity and not lua_entity.tamed then -- check if mob (mobs_redo) tamed
 								inv = inv or minetest.get_meta(pos2):get_inventory()
 								if inv:room_for_item("main", stack) then
-									obj:remove(); inv:add_item("main", stack); teleport_any = true
+									obj:remove(); inv:add_item("main", stack)
 								end
 							end
 						end
@@ -60,7 +71,7 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 								else
 									minetest.add_item(obj:get_pos(), {name = "mobs:bucket_milk"})
 								end
-								lua_entity.gotten = true; teleport_any = true
+								lua_entity.gotten = true
 							end
 						end
 					end
@@ -69,69 +80,54 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 		end
 	elseif node2_name ~= "ignore" then -- move objects to another location
 		prefer = prefer or meta:get_string("prefer")
-		local times, velocityv = tonumber(prefer) or 0
-		if times ~= 0 then
-			if times == 99 then
-				velocityv = {x = 0, y = 0, z = 0}
-			else
-				if times > 20 then times = 20 elseif times < 0.2 then times = 0.2 end
-				velocityv = vector.subtract(pos2, pos1)
-				local vv = math.sqrt(velocityv.x * velocityv.x + velocityv.y * velocityv.y + velocityv.z * velocityv.z)
-				if vv ~= 0 then vv = vv / vv * times else vv = 0 end
-				velocityv = vector.multiply(velocityv, vv)
-			end
-		end
+		local times = tonumber(prefer) or 0
 
 		for _, obj in ipairs(minetest.get_objects_inside_radius(pos1, radius)) do
 			if obj:is_player() then
 				if not minetest.is_protected(obj:get_pos(), owner) and
 					(prefer == "" or prefer == obj:get_player_name())
 				then -- move player only from owners land
-					obj:set_pos(pos2); teleport_any = true
+					obj:set_pos(pos2)
 				end
 			else
 				local lua_entity = obj:get_luaentity()
 				local detected_obj = lua_entity and (lua_entity.itemstring or lua_entity.name) or ""
-				if not mover_no_teleport_table[detected_obj] then -- forbid to take an object on no teleport list
+				local detected_obj_name = ItemStack(detected_obj):get_name()
+				if not mover_no_teleport_table[detected_obj_name] then -- forbid to take an object on no teleport list
 					if times > 0 then -- interaction with objects like carts
 						if times == 99 then
-							obj:set_acceleration(velocityv)
-							obj:set_velocity(velocityv)
+							local zero = {x = 0, y = 0, z = 0}
+							obj:set_acceleration(zero)
+							obj:set_velocity(zero)
 							obj:set_properties({automatic_rotate = vector.distance(pos1, obj:get_pos()) / (radius + 5)})
+						elseif detected_obj_name == "basic_machines:ball" then
+							obj:set_velocity(vector_velocity(pos1, pos2, times)) -- move balls in target direction
+						elseif detected_obj_name == "carts:cart" then -- just accelerate cart
+							obj:set_velocity(vector_velocity(pos1, pos2, times))
+							no_sound = true; break
 						else
-							if lua_entity then
-								local name = lua_entity.name
-								if name == "basic_machines:ball" then -- move balls for free
-									obj:set_velocity(velocityv) -- move balls with set velocity in target direction
-								elseif name == "carts:cart" then -- just accelerate cart
-									obj:set_velocity(velocityv) -- move cart with set velocity in target direction
-									no_sound = true; break
-								end
-							else -- don't move objects like balls to destination after delay
-								minetest.after(times, function()
-									obj:move_to(pos2, false); teleport_any = true
-								end)
-							end
+							minetest.after(times, function() if obj then
+								obj:move_to(pos2, false)
+							end end); break
 						end
-					else
-						obj:move_to(pos2, false); teleport_any = true
+					elseif prefer == "" or prefer == detected_obj_name or prefer == detected_obj then
+						obj:move_to(pos2, false)
 					end
 				end
 			end
 		end
+	else -- nothing to do
+		return
 	end
 
-	-- fuel cost applied only if any teleport
-	if teleport_any then
+	if no_sound then
+		return meta:get_int("activation_count")
+	else -- play sound
 		local activation_count = meta:get_int("activation_count")
-		if no_sound then
-			return activation_count
-		else
-			-- if activation_count < 16 then -- play sound
-				-- minetest.sound_play("basic_machines_object_move", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
-			-- end
-			return activation_count
-		end
+		-- if activation_count < 16 then -- play sound
+			-- minetest.sound_play("basic_machines_object_move", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
+		-- end
+		return activation_count
 	end
 end
 

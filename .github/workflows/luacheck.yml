@@ -6,15 +6,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@master
+    - name: Checkout
+      uses: actions/checkout@master
 
-    - name: Install Luarocks
-      run: |
-        sudo apt-get update -qyy
-        sudo apt-get install luarocks -qyy
-
-    - name: Install Luacheck
-      run: luarocks install --local luacheck
-
-    - name: Run Luacheck
-      run: $HOME/.luarocks/bin/luacheck ./
+    - name: Luacheck linter
+      uses: lunarmodules/luacheck@master
