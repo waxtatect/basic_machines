@@ -20,6 +20,22 @@ local use_farming = minetest.global_exists("farming")
 local use_x_farming = minetest.global_exists("x_farming")
 local math_min = math.min
 
+local function is_valid_soil(pos)
+    -- skaapdev add support to validate node under seed.
+    local valid_seed_soils = { "farming:soil_wet", "default:dirt", }
+    local pos_under = { x=pos.x, y=pos.y-1, z=pos.z}
+    local pos_under_name = minetest.get_node(pos_under).name
+    local is_valid_soil = false
+    for _, soil in ipairs(valid_seed_soils) do
+        if pos_under_name == soil then
+            is_valid_soil = true
+            break
+        end
+    end
+    --print("MOVER is_valid_soil:" .. dump(is_valid_soil) .. " | pos_under_name:" .. dump(pos_under_name))
+    return is_valid_soil
+end
+
 -- minetest drop code emulation, other idea: minetest.get_node_drops
 local function add_node_drops(node_name, pos, node, filter, node_def, param2)
 	local def = node_def or minetest.registered_nodes[node_name]
@@ -176,6 +192,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 			end
 
 			if seed_planting then
+				if not is_valid_soil(pos2) then return end -- skaapdev only plant seeds on valid soil.
 				if third_upgradetype then
 					local length_pos2 = #pos2
 
