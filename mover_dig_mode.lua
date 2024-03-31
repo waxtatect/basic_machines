@@ -22,7 +22,7 @@ local math_min = math.min
 
 local function is_valid_soil(pos)
     -- skaapdev add support to validate node under seed.
-    local valid_seed_soils = { "farming:soil_wet", "default:dirt", }
+    local valid_seed_soils = { "farming:soil_wet", "farming:soil", "default:dirt", "x_farming:obsidian_soil", "x_farming:obsidian_soil_wet", }
     local pos_under = { x=pos.x, y=pos.y-1, z=pos.z}
     local pos_under_name = minetest.get_node(pos_under).name
     local is_valid_soil = false
