@@ -69,6 +69,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 	source_chest = source_chest or mover_chests[node1_name]
 	local third_upgradetype = upgradetype == 3
 	local seed_planting, node_def, node1_param2, last_pos2, new_fuel_cost
+	local sound_name = 'default_dig_dig_immediate' -- Set default sound for dig mode.
 
 	-- checks
 	if prefer ~= "" then -- filter check
@@ -176,6 +177,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 			end
 
 			if seed_planting then
+				sound_name = 'default_place_node' -- Sound for seed planting.
 				if third_upgradetype then
 					local length_pos2 = #pos2
 
@@ -419,9 +421,9 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 
 	-- play sound
 	local activation_count = meta:get_int("activation_count")
-	-- if activation_count < 16 then
-		-- minetest.sound_play("basic_machines_transport", {pos = last_pos2 or pos2, gain = 1, max_hear_distance = 8}, true)
-	-- end
+	if activation_count < 16 then
+		minetest.sound_play(sound_name, {pos = last_pos2 or pos2, gain = 1, max_hear_distance = 8}, true)
+	end
 
 	return activation_count, new_fuel_cost
 end
