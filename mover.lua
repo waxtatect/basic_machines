@@ -452,7 +452,12 @@ minetest.register_node("basic_machines:mover", {
 			end
 
 			local mode = meta:get_string("mode")
-			local prefer = item.name .. (item.count > 1 and (" " .. math_min(item.count, 65535)) or "")
+			local prefer
+			if mode == "dig" then
+				prefer = item.name -- skaapdev in dig mode allow filter to derive name from a stack. ( seems less broken to new users)
+			else
+				prefer = item.name .. (item.count > 1 and (" " .. math_min(item.count, 65535)) or "")
+			end
 
 			if basic_machines.check_mover_filter(mode, pos, meta, prefer) then -- input validation
 				if mover_no_large_stacks and basic_machines.check_mover_target(mode, pos, meta) then
