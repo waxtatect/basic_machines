@@ -46,6 +46,8 @@ for _, n in ipairs({"1", "11", "2", "N", "A"}) do
 				texturen, texturen, texturen},
 			glow = 11,
 			static_save = false,
+			physical = false,
+			pointable = false,
 			shaded = false
 		},
 		on_deactivate = function(self)
