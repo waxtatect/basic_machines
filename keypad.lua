@@ -27,6 +27,30 @@ else
 	signs = {}
 end
 
+local keypad_rot_list_idx_cache = {} -- Skaapdev add keypad support rotating word extraction from own list.
+local function keypad_rot_list(text, pos)
+	text = text:sub(2) -- Remove leading `^` from text.
+	local i
+	local pos_str = minetest.pos_to_string(pos)
+	if keypad_rot_list_idx_cache[pos_str] ~= nil then
+		i = keypad_rot_list_idx_cache[pos_str]
+	else
+		keypad_rot_list_idx_cache[pos_str] = 1
+		i = 1
+	end
+	-- Extract words(seperated by space) from text. Replace '#' symbol with spaces in word.
+	local words = {}; for word in text:gmatch("%S+") do word = word:gsub("#", " "); table.insert(words, word) end;
+	if i <= #words then
+		text = words[i]
+		i = i + 1
+	else
+		text = words[1]
+		i = 2
+	end
+	keypad_rot_list_idx_cache[pos_str] = i
+    return text
+end -- skaapdev end
+
 -- position, time to live (how many times can signal travel before vanishing to prevent infinite recursion),
 -- do we want to stop repeating
 basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
@@ -173,7 +197,11 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 		-- target is keypad, special functions: @, % that output to target keypad's text
 		elseif name == "basic_machines:keypad" then -- special modify of target keypad's text and change its target
 			local tmeta = minetest.get_meta(tpos)
-			if bit == 64 then -- target keypad's text starts with '@' (ascii code 64) -> character replacement
+			if bit == 94 then -- target keypad's text starts with '^' (ascii code 94) -> rotating word extraction from own text. skaapdev start
+				text = keypad_rot_list(text, pos)
+				-- set target keypad's text
+				tmeta:set_string("text", text) --skaapdev end
+			elseif bit == 64 then -- target keypad's text starts with '@' (ascii code 64) -> character replacement
 				text = text:sub(2)
 				if text == "" then -- clear target keypad's text
 					tmeta:set_string("text", ""); return
@@ -215,12 +243,15 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 
 		elseif name == "basic_machines:mover" then -- change filter on mover
 			local tmeta = minetest.get_meta(tpos)
-			if bit == 64 then -- if text starts with '@' -> clear the filter
+		    if bit == 64 then -- if text starts with '@' -> clear the filter
 				tmeta:set_string("prefer", "")
 				tmeta:get_inventory():set_list("filter", {})
 			else
 				local mode = tmeta:get_string("mode")
 				-- mover input validation
+				if bit == 94 then -- text starts with '^' (ascii code 94) -> rotating word extraction from own text. skaapdev start
+					text = keypad_rot_list(text, pos)
+				end -- skaapdev end
 				if basic_machines.check_mover_filter(mode, tpos, tmeta, text) then
 					if mover_no_large_stacks and basic_machines.check_mover_target(mode, tpos, tmeta) then
 						text = basic_machines.clamp_item_count(text)
@@ -245,6 +276,9 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			if bit == 64 then -- if text starts with '@' -> clear the recipe
 				basic_machines.change_autocrafter_recipe(tpos, tmeta:get_inventory(), nil)
 			else
+				if bit == 94 then -- text starts with '^' (ascii code 94) -> rotating word extraction from own text. skaapdev start
+					text = keypad_rot_list(text, pos)
+				end -- skaapdev end
 				local i = text:find(" ")
 				local stack_name, idx
 				if i then
@@ -272,6 +306,9 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			end
 
 		else
+			if bit == 94 then -- text starts with '^' (ascii code 94) -> rotating word extraction from own text. skaapdev start
+				text = keypad_rot_list(text, pos)
+			end -- skaapdev end
 			minetest.get_meta(tpos):set_string("infotext", text:gsub("^ +$", "")) -- just set text
 		end
 

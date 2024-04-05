@@ -827,7 +827,10 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				F(S("\n\nAdvanced:\nText replacement: Suppose keypad A is set with text \"@@some @@. text @@!\" and there are blocks on top of keypad A with infotext '1' and '2'." ..
 				" Suppose we target B with A and activate A. Then text of keypad B will be set to \"some 1. text 2!\"." ..
 				"\nWord extraction: Suppose similar setup but now keypad A is set with text \"%1\"." ..
-				" Then upon activation text of keypad B will be set to 1.st word of infotext.")) .. "]")
+				" Then upon activation text of keypad B will be set to 1.st word of infotext." ..
+				"\n\nRotating List: A keypad's text prefixed with the \"^\" symbol will be interpreted as a rotating list, with items separated by spaces.\n" ..
+				"On each signal, the keypad will transmit one word to the target.\n Example: Keypad configured to target mover filter with: \"^farming:wheat_8 farming:rice_8\"" ..
+				"\nThe \"#\" symbol is used to escape spaces. For instance, a keypad targeting an autocrafter could be set as:\n\"^farming:flour#1 farming:flour#4\"")) .. "]")
 		end
 
 	elseif formname_sub == "check_keypad" then
