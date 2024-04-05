@@ -8,6 +8,7 @@ local machines_minstep = basic_machines.properties.machines_minstep
 local twodigits_float = basic_machines.twodigits_float
 local use_unified_inventory = minetest.global_exists("unified_inventory")
 local use_i3 = minetest.global_exists("i3")
+local use_cg_plus = minetest.global_exists("cg") -- Skaapdev add support for cg_plus
 local use_default = basic_machines.use_default
 -- grinder recipes:
 -- ["in"] = {fuel cost, "out", quantity of material produced, quantity of material required for processing}
@@ -26,6 +27,15 @@ elseif use_i3 then
 		description = F(S("Grinding")),
 		icon = "basic_machines_grinder.png"
 	})
+elseif use_cg_plus then -- Skaapdev add support for cg_plus
+    cg.register_craft_type("basic_machines_grinding", {
+        description = F(cg.S("Grinding")),
+        inherit_width = true,
+        arrow_icon = "basic_machines_grinder.png",
+        get_grid_size = function(craft)
+            return {x = 1, y = 1}
+        end,
+    }) -- skaapdev end
 end
 
 local function register_recipe(name, def)
@@ -58,6 +68,8 @@ local function register_recipe(name, def)
 					result = def[2] .. " " .. def[3],
 					items = {name .. " " .. def[4]}
 				})
+			elseif use_cg_plus then -- Skaapdev add support for cg_plus
+			    cg.register_craft("basic_machines_grinding", def[2] .. " " .. def[3], name) -- skaapdev end
 			end
 		end
 	end
