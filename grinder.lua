@@ -32,7 +32,7 @@ elseif use_cg_plus then -- Skaapdev add support for cg_plus
 		description = F(S("Grinding")),
 		inherit_width = true,
 		arrow_icon = "basic_machines_grinder.png",
-		get_grid_size = function(craft)
+		get_grid_size = function()
 			return {x = 1, y = 1}
 		end
 	}) -- skaapdev end
