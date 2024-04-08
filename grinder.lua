@@ -28,14 +28,14 @@ elseif use_i3 then
 		icon = "basic_machines_grinder.png"
 	})
 elseif use_cg_plus then -- Skaapdev add support for cg_plus
-    cg.register_craft_type("basic_machines_grinding", {
-        description = F(cg.S("Grinding")),
-        inherit_width = true,
-        arrow_icon = "basic_machines_grinder.png",
-        get_grid_size = function(craft)
-            return {x = 1, y = 1}
-        end,
-    }) -- skaapdev end
+	cg.register_craft_type("basic_machines_grinding", {
+		description = F(S("Grinding")),
+		inherit_width = true,
+		arrow_icon = "basic_machines_grinder.png",
+		get_grid_size = function(craft)
+			return {x = 1, y = 1}
+		end
+	}) -- skaapdev end
 end
 
 local function register_recipe(name, def)
@@ -68,8 +68,8 @@ local function register_recipe(name, def)
 					result = def[2] .. " " .. def[3],
 					items = {name .. " " .. def[4]}
 				})
-			elseif use_cg_plus then -- Skaapdev add support for cg_plus
-			    cg.register_craft("basic_machines_grinding", def[2] .. " " .. def[3], name) -- skaapdev end
+			elseif use_cg_plus and cg.register_craft then -- Skaapdev add support for cg_plus
+				cg.register_craft("basic_machines_grinding", def[2] .. " " .. def[3], name) -- skaapdev end
 			end
 		end
 	end
