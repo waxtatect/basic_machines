@@ -34,6 +34,10 @@ elseif use_cg_plus then -- Skaapdev add support for cg_plus
 		arrow_icon = "basic_machines_grinder.png",
 		get_grid_size = function()
 			return {x = 1, y = 1}
+		end,
+		get_infotext = function(craft)
+			return minetest.colorize("#FFFF00",
+				F(cg.S("@1 Power use.", craft.metric or 0)))
 		end
 	}) -- skaapdev end
 end
@@ -69,7 +73,14 @@ local function register_recipe(name, def)
 					items = {name .. " " .. def[4]}
 				})
 			elseif use_cg_plus and cg.register_craft then -- Skaapdev add support for cg_plus
-				cg.register_craft("basic_machines_grinding", def[2] .. " " .. def[3], name) -- skaapdev end
+				cg.register_craft({
+				    item = name,
+				    type = "basic_machines_grinding",
+				    width = 0,
+				    output = def[2] .. " " .. def[3],
+				    items = { name .. " " .. def[4] },
+				    metric = def[1]
+				    })-- skaapdev end
 			end
 		end
 	end
@@ -518,3 +529,4 @@ if basic_machines.settings.register_crafts and use_default then
 		}
 	})
 end
+
