@@ -74,7 +74,7 @@ local function register_recipe(name, def)
 				})
 			elseif use_cg_plus and cg.register_craft then -- Skaapdev add support for cg_plus
 				cg.register_craft({
-				    item = name,
+				    item = def[2],
 				    type = "basic_machines_grinding",
 				    width = 0,
 				    output = def[2] .. " " .. def[3],
@@ -529,4 +529,3 @@ if basic_machines.settings.register_crafts and use_default then
 		}
 	})
 end
-
