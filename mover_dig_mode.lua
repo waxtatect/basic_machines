@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -68,7 +68,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 	prefer = prefer or meta:get_string("prefer")
 	source_chest = source_chest or mover_chests[node1_name]
 	local third_upgradetype = upgradetype == 3
-	local seed_planting, node_def, node1_param2, last_pos2, new_fuel_cost
+	local seed_planting, node_def, node1_param2, sound_def, last_pos2, new_fuel_cost
 
 	-- checks
 	if prefer ~= "" then -- filter check
@@ -85,6 +85,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 				else
 					return
 				end
+				sound_def = ((plant_def or minetest.registered_nodes[prefer] or {}).sounds or {}).place -- preparing for sound_play
 			else -- set preferred node
 				node_def = minetest.registered_nodes[prefer]
 				if node_def then
@@ -224,12 +225,15 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 						new_fuel_cost = fuel_cost * (1 - node2_count / length_pos2)
 					end
 				end
+				sound_def = (node_def.sounds or {}).place -- preparing for sound_play
 
 				minetest.bulk_set_node(pos2, node1)
 			else -- try to place node as the owner would
+				sound_def = (node_def.sounds or {}).place -- preparing for sound_play
+
 				local placer, is_placed = minetest.get_player_by_name(owner)
 				if placer then -- only if owner online
-					local on_place = (node_def or {}).on_place
+					local on_place = node_def.on_place
 					if on_place then
 						local _, placed_pos = on_place(node_to_stack(node1, node_def.paramtype2),
 							placer, {type = "node",	under = pos2,
@@ -384,7 +388,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 								source_neighbor = minetest.find_node_near(pos1, 1, liquiddef.source)
 							end
 							if not (source_neighbor and liquiddef.force_renew) then
-								minetest.set_node(pos1, {name = "air"})
+								minetest.remove_node(pos1)
 							end
 							--
 						end
@@ -400,7 +404,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 							end
 						end
 					else -- remove node and put drops in chest
-						minetest.set_node(pos1, {name = "air"})
+						minetest.remove_node(pos1)
 						check_for_falling(pos1) -- pre 5.0.0 nodeupdate(pos1)
 
 						add_node_drops(node1_name, pos2, node1, prefer ~= "", node_def, node1_param2)
@@ -408,7 +412,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 				end
 			end
 		elseif node2_name == "air" and not third_upgradetype then -- move node from pos1 to pos2
-			minetest.set_node(pos1, {name = "air"})
+			minetest.remove_node(pos1)
 			check_for_falling(pos1) -- pre 5.0.0 nodeupdate(pos1)
 
 			minetest.set_node(pos2, node1)
@@ -417,11 +421,11 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 		end
 	end
 
-	-- play sound
 	local activation_count = meta:get_int("activation_count")
-	-- if activation_count < 16 then
-		-- minetest.sound_play("basic_machines_transport", {pos = last_pos2 or pos2, gain = 1, max_hear_distance = 8}, true)
-	-- end
+
+	if sound_def and activation_count < 16 then -- play sound
+		minetest.sound_play(sound_def, {pitch = 0.9, pos = last_pos2 or pos2, max_hear_distance = 12}, true)
+	end
 
 	return activation_count, new_fuel_cost
 end

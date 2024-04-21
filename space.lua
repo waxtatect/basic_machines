@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local S = basic_machines.S
@@ -10,10 +10,13 @@ local space_start_eff = basic_machines.settings.space_start_eff
 local use_player_monoids = minetest.global_exists("player_monoids")
 local use_basic_protect = minetest.global_exists("basic_protect")
 
-minetest.register_on_punchplayer(function(player, hitter, _, tool_capabilities, dir)
-	if player:get_pos().y > space_start and hitter:is_player() then
-		if vector.length(player:get_velocity()) > 0 then
-			player:add_velocity(vector.multiply(dir, 5)) -- push player a little
+minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities)
+	if player:get_pos().y > space_start and hitter and hitter:is_player() then
+		if time_from_last_punch > 0.8 and vector.length(player:get_velocity()) > 0.2 then
+			local dir = vector.subtract(player:get_pos(), hitter:get_pos())
+			local unit_vector = vector.divide(dir, vector.length(dir))
+			local punch_vector = {x = 5, y = 0.9, z = 5}
+			player:add_velocity(vector.multiply(unit_vector, punch_vector)) -- push player a little
 		end
 		if tool_capabilities and ((tool_capabilities.damage_groups or {}).fleshy or 0) == 1 then
 			return true
@@ -188,7 +191,7 @@ if basic_machines.use_default then
 		interval = 10,
 		chance = 1,
 		action = function(pos)
-			minetest.set_node(pos, {name = "air"})
+			minetest.remove_node(pos)
 		end
 	})
 end

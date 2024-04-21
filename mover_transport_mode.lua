@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -8,11 +8,12 @@ local check_palette_index = basic_machines.check_palette_index
 
 local function transport(pos, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2)
 	prefer = prefer or meta:get_string("prefer")
+	local node_def, sound_def
 
 	-- checks
 	if prefer ~= "" then -- filter check
 		if prefer == node1_name then -- only take preferred node
-			local node_def = minetest.registered_nodes[prefer]
+			node_def = minetest.registered_nodes[prefer]
 			if node_def then
 				if not check_palette_index(meta, node1, node_def) then -- only take preferred node with palette_index
 					return
@@ -30,8 +31,8 @@ local function transport(pos, meta, owner, prefer, pos1, node1, node1_name, sour
 	local node2_name = minetest.get_node(pos2).name
 
 	-- transport items
-	if source_chest and mover_chests[node2_name] then -- transport all chest items from source to target
-		if prefer == node2_name then -- transport only with same chest type
+	if source_chest and mover_chests[node2_name] then -- take all items from chest to chest (filter needed)
+		if prefer == node2_name then -- only to same chest type
 			local inv2 = minetest.get_meta(pos2):get_inventory()
 			if inv2:is_empty("main") then
 				local inv1 = minetest.get_meta(pos1):get_inventory()
@@ -45,19 +46,20 @@ local function transport(pos, meta, owner, prefer, pos1, node1, node1_name, sour
 			return
 		end
 	elseif node2_name == "air" then -- transport nodes parallel as defined by source1 and target, clone with complete metadata
+		sound_def = ((node_def or minetest.registered_nodes[node1_name] or {}).sounds or {}).place -- preparing for sound_play
 		local meta1 = minetest.get_meta(pos1):to_table()
 		minetest.set_node(pos2, node1)
 		if meta1 then minetest.get_meta(pos2):from_table(meta1) end
-		minetest.set_node(pos1, {name = "air"})
+		minetest.remove_node(pos1)
 	else -- nothing to do
 		return
 	end
 
-	-- play sound
 	local activation_count = meta:get_int("activation_count")
-	-- if activation_count < 16 then
-		-- minetest.sound_play("basic_machines_transport", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
-	-- end
+
+	if sound_def and activation_count < 16 then -- play sound
+		minetest.sound_play(sound_def, {pitch = 0.9, pos = pos2, max_hear_distance = 12}, true)
+	end
 
 	return activation_count
 end

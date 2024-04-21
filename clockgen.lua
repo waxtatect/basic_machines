@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local S = basic_machines.S
@@ -42,7 +42,7 @@ minetest.register_node("basic_machines:clockgen", {
 
 		local name = placer:get_player_name()
 		if minetest.find_node_near(pos, 15, {"basic_machines:clockgen"}) then
-			minetest.set_node(pos, {name = "air"})
+			minetest.remove_node(pos)
 			minetest.add_item(pos, "basic_machines:clockgen")
 			minetest.chat_send_player(name, S("Clock Generator: Interference from nearby clock generator detected"))
 			return

@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -80,7 +80,7 @@ local function drop(_, meta, owner, prefer, pos1, node1, node1_name, source_ches
 					inv:remove_item("main", stack)
 				end
 			elseif prefer == node1_name and inv:is_empty("main") then -- remove chest only if empty
-				minetest.set_node(pos1, {name = "air"})
+				minetest.remove_node(pos1)
 			else
 				return
 			end
@@ -90,7 +90,7 @@ local function drop(_, meta, owner, prefer, pos1, node1, node1_name, source_ches
 			return
 		end
 	elseif minetest.get_node(pos2).name == "air" then -- drop node
-		minetest.set_node(pos1, {name = "air"})
+		minetest.remove_node(pos1)
 
 		if prefer ~= "" then
 			minetest.add_item(pos2, node_to_stack(node1, nil, node1_param2))

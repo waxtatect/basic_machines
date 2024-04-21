@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -93,9 +93,8 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 		end
 	end
 
-	-- set text on target
 	local text = meta:get_string("text")
-	if text ~= "" then
+	if text ~= "" then -- text operations
 		if text == "@" and meta:get_string("pass") ~= "" then -- keyboard mode, set text from input
 			text = meta:get_string("input")
 			meta:set_string("input", "") -- clear input
@@ -113,10 +112,10 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 					local pitch = tonumber(text_sub:sub(i + 1)) or 1
 					if pitch < 0.01 or pitch > 10 then pitch = 1 end
 					meta:set_string("infotext", S("Playing sound: '@1', pitch: @2", (sound_name:gsub("_", " ")), pitch))
-					minetest.sound_play(sound_name, {pos = pos, gain = 1, max_hear_distance = 16, pitch = pitch}, true)
+					minetest.sound_play({name = sound_name, pitch = pitch}, {pos = pos, max_hear_distance = 16}, true)
 				else
 					meta:set_string("infotext", S("Playing sound: '@1'", (text_sub:gsub("_", " "))))
-					minetest.sound_play(text_sub, {pos = pos, gain = 1, max_hear_distance = 16}, true)
+					minetest.sound_play(text_sub, {pos = pos, max_hear_distance = 16}, true)
 				end
 				return
 			end
@@ -150,6 +149,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			end
 		end
 
+		-- set text on target
 		if signs[name] then -- update text on signs
 			if use_signs_lib then -- with signs_lib
 				if signs_lib.update_sign then
@@ -191,12 +191,14 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 					tmeta:set_string("text", text)
 				end
 			elseif bit == 37 then -- target keypad's text starts with '%' (ascii code 37) -> word extraction
-				local ttext = minetest.get_meta({x = pos.x, y = pos.y + 1, z = pos.z}):get_string("infotext")
-				local i = tonumber(text:sub(2, 2)) or 1 -- read the number following the '%'
-				-- extract i-th word from text
-				local j = 0
-				for word in ttext:gmatch("%S+") do
-					j = j + 1; if j == i then text = word; break end
+				local i = tonumber(text:sub(2, 2)) or 0 -- read the number following the '%'
+				if i > 0 then
+					-- extract i-th word from text
+					local ttext = minetest.get_meta({x = pos.x, y = pos.y + 1, z = pos.z}):get_string("infotext")
+					local j = 0
+					for word in ttext:gmatch("%S+") do
+						j = j + 1; if j == i then text = word; break end
+					end
 				end
 
 				-- set target keypad's text
@@ -275,8 +277,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			minetest.get_meta(tpos):set_string("infotext", text:gsub("^ +$", "")) -- just set text
 		end
 
-	-- target activation
-	else
+	else -- target activation
 		if count < 2 then
 			meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
 		else

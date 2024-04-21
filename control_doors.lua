@@ -1,6 +1,6 @@
 -- Make doors open/close with signal
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 -- local S = basic_machines.S
@@ -154,7 +154,7 @@ if use_doors then
 					if count == 1 then
 						minetest.chat_send_player(player_name, S("@1: Punch me one more time to remove me", door))
 					elseif count == 2 then -- remove steel door and drop it
-						minetest.set_node(pos, {name = "air"})
+						minetest.remove_node(pos)
 						minetest.add_item(pos, ItemStack(dropname))
 					end
 				end
