@@ -8,8 +8,7 @@ local machines_minstep = basic_machines.properties.machines_minstep
 local twodigits_float = basic_machines.twodigits_float
 local use_unified_inventory = minetest.global_exists("unified_inventory")
 local use_i3 = minetest.global_exists("i3")
-local use_cg_plus = minetest.global_exists("cg") -- Skaapdev add support for cg_plus
-
+local use_cg_plus = minetest.global_exists("cg") -- Skaapdev add support for cg_plus mod
 local use_default = basic_machines.use_default
 -- grinder recipes:
 -- ["in"] = {fuel cost, "out", quantity of material produced, quantity of material required for processing}
@@ -28,17 +27,16 @@ elseif use_i3 then
 		description = F(S("Grinding")),
 		icon = "basic_machines_grinder.png"
 	})
-elseif use_cg_plus then -- Skaapdev add support for cg_plus
+elseif use_cg_plus then -- Skaapdev add support for cg_plus mod
 	cg.register_crafting_method("basic_machines_grinding", {
-		description = F(S("Grinding")),
-		inherit_width = true,
+		description = S("Grinding"),
 		arrow_icon = "basic_machines_grinder.png",
+		uses_crafting_grid = false,
 		get_grid_size = function()
 			return {x = 1, y = 1}
 		end,
 		get_infotext = function(craft)
-			return minetest.colorize("#FFFF00",
-				F(cg.S("@1 Power use.", craft.metric or 0)))
+			return minetest.colorize("#FFFF00", S("Power: @1", craft.power))
 		end
 	}) -- skaapdev end
 end
@@ -73,14 +71,14 @@ local function register_recipe(name, def)
 					result = def[2] .. " " .. def[3],
 					items = {name .. " " .. def[4]}
 				})
-			elseif use_cg_plus and cg.register_craft then -- Skaapdev add support for cg_plus
+			elseif use_cg_plus then -- Skaapdev add support for cg_plus mod
 				cg.register_craft({
-				    method = "basic_machines_grinding",
-				    width = 0,
-				    output = def[2] .. " " .. def[3],
-				    items = { name .. " " .. def[4] },
-				    metric = def[1]
-				    }, def[2])-- skaapdev end
+					method = "basic_machines_grinding",
+					width = 0,
+					items = {name .. " " .. def[4]},
+					output = def[2] .. " " .. def[3],
+					power = def[1]
+				}) -- skaapdev end
 			end
 		end
 	end
