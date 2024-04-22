@@ -16,25 +16,12 @@ local itemstring_to_stack = basic_machines.itemstring_to_stack
 local machines_operations = basic_machines.properties.machines_operations
 local mover_upgrade_max = basic_machines.properties.mover_upgrade_max
 local node_to_stack = basic_machines.node_to_stack
+local no_soil_check = {
+	["farming:cocoa_beans_raw"] = true
+}
 local use_farming = minetest.global_exists("farming")
 local use_x_farming = minetest.global_exists("x_farming")
 local math_min = math.min
-
-local function is_valid_soil(pos)
-    -- skaapdev add support to validate node under seed.
-    local valid_seed_soils = { "farming:soil_wet", "farming:soil", "default:dirt", "x_farming:obsidian_soil", "x_farming:obsidian_soil_wet", }
-    local pos_under = { x=pos.x, y=pos.y-1, z=pos.z}
-    local pos_under_name = minetest.get_node(pos_under).name
-    local is_valid_soil = false
-    for _, soil in ipairs(valid_seed_soils) do
-        if pos_under_name == soil then
-            is_valid_soil = true
-            break
-        end
-    end
-    --print("MOVER is_valid_soil:" .. dump(is_valid_soil) .. " | pos_under_name:" .. dump(pos_under_name))
-    return is_valid_soil
-end
 
 -- minetest drop code emulation, other idea: minetest.get_node_drops
 local function add_node_drops(node_name, pos, node, filter, node_def, param2)
@@ -140,7 +127,17 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 			for i = #pos2, 1, -1 do
 				if minetest.get_node(pos2[i]).name == "air" then
 					if not last_pos2 then last_pos2 = pos2[i] end
-					node2_count = node2_count + 1
+					if seed_planting and not no_soil_check[prefer] then -- checking for proper soil
+						local pos2i = pos2[i]
+						local pos2i_under = {x = pos2i.x, y = pos2i.y - 1, z = pos2i.z}
+						if minetest.get_item_group(minetest.get_node(pos2i_under).name, "soil") < 2 then
+							pos2[i] = {}
+						else
+							node2_count = node2_count + 1
+						end
+					else
+						node2_count = node2_count + 1
+					end
 				else
 					pos2[i] = {}
 				end
@@ -149,7 +146,15 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 				air_found = true
 			end
 		elseif minetest.get_node(pos2).name == "air" then
-			air_found = true
+			if seed_planting and not no_soil_check[prefer] then -- checking for proper soil
+				if minetest.get_item_group(minetest.get_node({x = pos2.x, y = pos2.y - 1, z = pos2.z}).name, "soil") < 2 then
+					air_found = false
+				else
+					air_found = true
+				end
+			else
+				air_found = true
+			end
 		end
 
 		if air_found then -- take node out of chest and place it
@@ -192,7 +197,6 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 			end
 
 			if seed_planting then
-				if not is_valid_soil(pos2) then return end -- skaapdev only plant seeds on valid soil.
 				if third_upgradetype then
 					local length_pos2 = #pos2
 
