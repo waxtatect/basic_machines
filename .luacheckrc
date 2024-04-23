@@ -15,7 +15,7 @@ read_globals = {
 }
 
 files["ball.lua"] = {globals = {"boneworld.killxp"}}
-files["grinder.lua"] = {read_globals = {"i3"}}
+files["grinder.lua"] = {read_globals = {"cg", "i3"}}
 files["keypad.lua"] = {read_globals = {"signs_lib"}}
 files["machines_configuration.lua"] = {max_line_length = 190}
 files["mark.lua"] = {globals = {"machines"}}
