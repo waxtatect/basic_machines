@@ -5,7 +5,7 @@
 basic_machines = {
 	F = minetest.formspec_escape,
 	S = minetest.get_translator("basic_machines"),
-	version = "02/27/2024 (fork)",
+	version = "04/23/2024 (fork)",
 	properties = {
 		no_clock			= false,	-- if true all continuously running activities (clockgen/keypad) are disabled
 		machines_TTL		= 16,		-- time to live for signals, how many hops before signal dissipates

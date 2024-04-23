@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -18,7 +18,7 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 	prefer = prefer or meta:get_string("prefer")
 	source_chest = source_chest or mover_chests[node1_name]
 	local third_upgradetype = upgradetype == 3
-	local node2_name, target_chest, node_def, node1_param2, new_fuel_cost, last_pos2
+	local node2_name, target_chest, node_def, node1_param2, new_fuel_cost, last_pos2, sound_def
 
 	-- checks
 	if prefer ~= "" then -- filter check
@@ -117,6 +117,8 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 					return
 				end
 
+				sound_def = (node_def.sounds or {}).place -- preparing for sound_play
+
 				if third_upgradetype then
 					if fuel_cost > 0 then
 						local length_pos2 = #pos2
@@ -190,7 +192,7 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 
 				minetest.bulk_set_node(pos1, {name = "air"})
 			else
-				minetest.set_node(pos1, {name = "air"})
+				minetest.remove_node(pos1)
 
 				local inv = minetest.get_meta(pos2):get_inventory()
 				if prefer ~= "" then
@@ -201,18 +203,19 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 				end
 			end
 		elseif node2_name == "air" and not third_upgradetype then -- move node from pos1 to pos2
-			minetest.set_node(pos1, {name = "air"})
+			sound_def = ((node_def or minetest.registered_nodes[node1_name] or {}).sounds or {}).place -- preparing for sound_play
+			minetest.remove_node(pos1)
 			minetest.set_node(pos2, node1)
 		else -- nothing to do
 			return
 		end
 	end
 
-	-- play sound
 	local activation_count = meta:get_int("activation_count")
-	-- if activation_count < 16 then
-		-- minetest.sound_play("basic_machines_transport", {pos = last_pos2 or pos2, gain = 1, max_hear_distance = 8}, true)
-	-- end
+
+	if sound_def and activation_count < 16 then -- play sound
+		minetest.sound_play(sound_def, {pitch = 0.9, pos = last_pos2 or pos2, max_hear_distance = 12}, true)
+	end
 
 	return activation_count, new_fuel_cost
 end

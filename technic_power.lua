@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -444,7 +444,7 @@ minetest.register_abm({
 
 local function generator_near_found(pos, name) -- check to prevent too many generators being placed at one place
 	if minetest.find_node_near(pos, 15, {"basic_machines:generator"}) then
-		minetest.set_node(pos, {name = "air"})
+		minetest.remove_node(pos)
 		minetest.add_item(pos, "basic_machines:generator")
 		minetest.chat_send_player(name, S("Generator: Interference from nearby generator detected"))
 		return true

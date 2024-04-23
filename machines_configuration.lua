@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -52,6 +52,7 @@ local punchable_nodes = {
 local description_translated = {
 	["DETECTOR"] = S("DETECTOR"),
 	["DISTRIBUTOR"] = S("DISTRIBUTOR"),
+	["KEYPAD"] = S("KEYPAD"),
 	["MOVER"] = S("MOVER")
 }
 
@@ -127,8 +128,9 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 
 	local self_pos = punchset[name].pos
 
-	if minetest.get_node(self_pos).name ~= punch_node then
-		punchset[name] = {state = 0, node = ""}; return
+	if minetest.get_node(self_pos).name ~= punch_node or (puncher:get_player_control() or {}).sneak	then
+		minetest.chat_send_player(name, S("@1: Aborting interactive setup.", description_translated[punchset_desc]))
+		machines.remove_markers(name, {"1", "11", "2"}); punchset[name] = {state = 0, node = ""}; return
 	end
 
 
@@ -162,24 +164,24 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 
 			punchset[name].pos1 = pos -- source1
 			punchset[name].state = 2
-			machines.mark_pos1(name, pos) -- mark pos1
+			machines.mark_pos1(name, pos, true) -- mark pos1
 			minetest.chat_send_player(name, S("MOVER: Source1 position for mover set. Punch again to set source2 position."))
 		elseif punch_state == 2 then
 			if not privs and
 				(abs(pos.x - self_pos.x) > range or abs(pos.y - self_pos.y) > range or abs(pos.z - self_pos.z) > range)
 			then
 				minetest.chat_send_player(name, S("MOVER: Punch closer to mover. Resetting."))
-				punchset[name] = {state = 0, node = ""}; return
+				machines.remove_markers(name, {"1"}); punchset[name] = {state = 0, node = ""}; return
 			end
 
 			if vector.equals(pos, self_pos) then
 				minetest.chat_send_player(name, S("MOVER: Punch something else. Aborting."))
-				punchset[name] = {state = 0, node = ""}; return
+				machines.remove_markers(name, {"1"}); punchset[name] = {state = 0, node = ""}; return
 			end
 
 			punchset[name].pos11 = pos -- source2
 			punchset[name].state = 3
-			machines.mark_pos11(name, pos) -- mark pos11
+			machines.mark_pos11(name, pos, true) -- mark pos11
 			minetest.chat_send_player(name, S("MOVER: Source2 position for mover set. Punch again to set target position."))
 		elseif punch_state == 3 then
 			local mode = meta:get_string("mode")
@@ -205,7 +207,7 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 							minetest.chat_send_player(name, S("MOVER: Elevator setup completed, upgrade level @1.", upgrade - 1))
 						else
 							minetest.chat_send_player(name, S("MOVER: Error while trying to make an elevator. Need at least @1 diamond block(s) in upgrade (1 for every 100 distance).", requirement))
-							punchset[name] = {state = 0, node = ""}; return
+							machines.remove_markers(name, {"1", "11"}); punchset[name] = {state = 0, node = ""}; return
 						end
 					end
 				end
@@ -213,10 +215,10 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 				(abs(pos.x - self_pos.x) > range or abs(pos.y - self_pos.y) > range or abs(pos.z - self_pos.z) > range)
 			then
 				minetest.chat_send_player(name, S("MOVER: Punch closer to mover. Aborting."))
-				punchset[name] = {state = 0, node = ""}; return
+				machines.remove_markers(name, {"1", "11"}); punchset[name] = {state = 0, node = ""}; return
 			end
 
-			machines.mark_pos2(name, pos) -- mark pos2
+			machines.mark_pos2(name, pos, true) -- mark pos2
 
 			local x0 = pos1.x - self_pos.x					-- source1
 			local y0 = pos1.y - self_pos.y
@@ -259,7 +261,7 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 			punchset[name] = {state = 0, node = ""}; return
 		end
 
-		machines.mark_pos1(name, pos) -- mark pos1
+		machines.mark_pos1(name, pos, true) -- mark pos1
 
 		local meta = minetest.get_meta(self_pos)
 		meta:set_int("x" .. punch_state, x); meta:set_int("y" .. punch_state, y); meta:set_int("z" .. punch_state, z)
@@ -285,11 +287,15 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 			punchset[name] = {state = 0, node = ""}; return
 		end
 
-		machines.mark_pos1(name, pos) -- mark pos1
+		machines.mark_pos1(name, pos, true) -- mark pos1
 
 		local meta = minetest.get_meta(self_pos)
 		meta:set_int("x0", x); meta:set_int("y0", y); meta:set_int("z0", z)
-		meta:set_string("infotext", S("Punch keypad to use it."))
+		if meta:get_string("pass") == "" then
+			meta:set_string("infotext", S("Punch keypad to use it."))
+		else
+			meta:set_string("infotext", S("Punch keypad to use it. Password protected."))
+		end
 		punchset[name] = {state = 0, node = ""}
 		minetest.chat_send_player(name, S("KEYPAD: Target set with coordinates @1, @2, @3.", x, y, z))
 
@@ -307,12 +313,12 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 		if punch_state == 1 then
 			punchset[name].pos1 = pos
 			punchset[name].state = 2
-			machines.mark_pos1(name, pos) -- mark pos1
+			machines.mark_pos1(name, pos, true) -- mark pos1
 			minetest.chat_send_player(name, S("DETECTOR: Now punch the target machine."))
 		elseif punch_state == 2 then
 			if vector.equals(pos, self_pos) then
 				minetest.chat_send_player(name, S("DETECTOR: Punch something else. Aborting."))
-				punchset[name] = {state = 0, node = ""}; return
+				machines.remove_markers(name, {"1"}); punchset[name] = {state = 0, node = ""}; return
 			end
 
 			machines.mark_pos2(name, pos) -- mark pos2
@@ -491,15 +497,15 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		elseif fields.show then -- display mover area defined by sources
 			local pos1 = {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")}	-- source1
 			local pos11 = {x = meta:get_int("x1"), y = meta:get_int("y1"), z = meta:get_int("z1")}	-- source2
-			local markerA = machines.mark_posA(name, vector.add(pos, vector.divide(vector.add(pos1, pos11), 2)))
-			if markerA then
-				markerA:set_properties({visual_size = {x = abs(pos11.x - pos1.x) + 1.11,
+			local markerS = machines.mark_posS(name, vector.add(pos, vector.divide(vector.add(pos1, pos11), 2)))
+			if markerS then
+				markerS:set_properties({visual_size = {x = abs(pos11.x - pos1.x) + 1.11,
 					y = abs(pos11.y - pos1.y) + 1.11, z = abs(pos11.z - pos1.z) + 1.11}})
 			end
 
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_mover", "formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" ..
-				F(S("Mover help")) .. ";" .. F(S("version @1\nSetup: For interactive setup punch the mover and then punch source1, source2, target node (follow instructions)." ..
+				F(S("Mover help")) .. ";" .. F(S("version @1\nSetup: For interactive setup punch the mover and follow chat instructions (hold sneak and punch a block to abort setup)." ..
 				" Put the mover directly next to a battery. For advanced setup right click mover." ..
 				" Positions are defined by (x, y, z) coordinates. Mover itself is at coordinates (0, 0, 0).", basic_machines.version)) ..
 				F(S("\n\nModes of operation: normal (just teleport block), dig (digs and gives you resulted node - good for harvesting farms);" ..
@@ -644,7 +650,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				F(S("Distributor help")) .. ";" .. F(S("Target: Coordinates (x, y, z) relative to the distributor." ..
 				"\n\nMode: -2=only OFF, -1=NOT input, 0/1=input, 2=only ON, output signal of the target." ..
 				"\n\nDelay: Adds delay to activations, in seconds. A negative delay activation is randomized with probability -delay/1000.")) ..
-				F(S("\n\nSetup: To select a target for activation, click \"Set\" button then click the target.\n" ..
+				F(S("\n\nSetup: To select a target for activation, click \"Set\" button then click the target (hold sneak and punch a block to abort setup).\n" ..
 				"You can add more targets with \"Add\" button. To see where the target is click \"Show\" button next to it.\n" ..
 				"4 numbers in each row represent (from left to right): first 3 numbers are target coordinates (x, y, z), last number (Mode) controls how signal is passed to target.\n" ..
 				"For example, to only pass OFF signal use -2, to only pass ON signal use 2, -1 negates the signal, 1 passes original signal, 0 blocks signal.\n" ..
@@ -729,7 +735,11 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 			local pass = fields.pass or ""
 
-			if pass ~= "" then
+			if pass == "" then
+				if meta:get_string("pass") ~= "" then
+					meta:set_string("pass", "")
+				end
+			else
 				local mpass = meta:get_string("pass")
 				if pass ~= mpass then
 					if pass:len() > 16 then -- don't replace password with hash which is longer - 27 chars
@@ -812,7 +822,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				"\n\nTarget: Coordinates (x, y, z) relative to the keypad." ..
 				" (0, 0, 0) is keypad itself, (0, 1, 0) is one node above, (0, -1, 0) one node below." ..
 				" X coordinate axes goes from east to west, Y from down to up, Z from south to north.")) ..
-				F(S("\n\nSetup: Right click or punch (left click) the keypad, then follow instructions." ..
+				F(S("\n\nSetup: Right click or punch (left click) the keypad, then follow chat instructions (hold sneak and punch a block to abort setup)." ..
 				"\n\nTo set text on other nodes (text shows when you look at node) just target the node and set nonempty text." ..
 				" Upon activation text will be set:\nWhen target node is keypad, its \"text\" field will be set.\n" ..
 				"When target is detector/mover, its \"filter\" field will be set. To clear \"filter\" set text to \"@@\".\n" ..
@@ -921,7 +931,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 		elseif fields.help then
 			minetest.show_formspec(name, "basic_machines:help_detector", "formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" ..
-				F(S("Detector help")) .. ";" .. F(S("Setup: Right click or punch and follow chat instructions." ..
+				F(S("Detector help")) .. ";" .. F(S("Setup: Right click or punch and follow chat instructions (hold sneak and punch a block to abort setup)." ..
 				" With a detector you can detect nodes, objects, players, items inside inventories, nodes information and light levels. " ..
 				"If detector activates it will trigger machine (on or off) at target position." ..
 				"\n\nThere are 6 modes of operation - node/player/object/inventory/infotext/light detection." ..
