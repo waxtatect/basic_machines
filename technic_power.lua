@@ -198,6 +198,15 @@ end
 
 -- this function will activate furnace
 local machines_activate_furnace = (minetest.registered_nodes["default:furnace"] or {}).on_metadata_inventory_put
+local vstack, vbattery -- for minetest_game furnace logging (#3141)
+if machines_activate_furnace then
+	vstack = ItemStack({name = "fuel", count = 1})
+	vbattery = {
+		is_fake_player = "basic_machines",
+		is_player = function() return false end,
+		get_player_name = function() return "Battery" end
+	}
+end
 
 minetest.register_node("basic_machines:battery_0", {
 	description = S("Battery"),
@@ -312,7 +321,9 @@ minetest.register_node("basic_machines:battery_0", {
 						energy_new = energy_new - 0.5 -- use up energy to add fuel
 
 						-- make furnace start if not already started
-						if node ~= "default:furnace_active" and machines_activate_furnace then machines_activate_furnace(fpos) end
+						if node ~= "default:furnace_active" and machines_activate_furnace then
+							machines_activate_furnace(fpos, _, _, vstack, vbattery)
+						end
 					end
 
 					-- only accelerate if we had enough energy
