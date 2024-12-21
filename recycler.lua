@@ -2,7 +2,7 @@
 -- You can select which recipe to use when recycling
 -- There is a fuel cost to recycle
 -- rnd 2015
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -152,21 +152,49 @@ local function recycler_process(pos)
 		meta:set_string("infotext", S("At least @1 of '@2' (@3) required", reqcount, description, src_item)); return
 	end
 
-	for _, item in pairs(itemlist) do
-		if math.random(1, 4) <= 3 then -- probability 3/4 = 75%
-			local addstack = ItemStack(item)
-			if inv:room_for_item("dst", addstack) then -- can item be put in ?
-				if minetest.registered_items[item] then
-					inv:add_item("dst", addstack)
-				end
-			else
-				set_fuel_and_infotext(meta, fuel, msg); return
+	-- check if output items fit in dst
+	local empty_count = 0
+	local out_items = {}
+	for i, item in pairs(itemlist) do
+		if minetest.registered_items[item] then
+			local out_stack = ItemStack(item)
+			if not out_stack:is_empty() then
+				local stack_name = out_stack:get_name()
+				out_items[stack_name] = (out_items[stack_name] or 0) + out_stack:get_count()
+			end
+		else
+			itemlist[i] = nil
+		end
+	end
+
+	for _, item in pairs(inv:get_list("dst")) do
+		if item:is_empty() then
+			empty_count = empty_count + 1
+		else
+			local name = item:get_name()
+			if out_items[name] then
+				out_items[name] = out_items[name] - item:get_free_space()
 			end
 		end
 	end
 
+	for _, count in pairs(out_items) do
+		if count > 0 then
+			empty_count = empty_count - 1
+		end
+	end
+
+	if empty_count < 0 then set_fuel_and_infotext(meta, fuel, msg); return end
+
 	-- take required items from src inventory for each activation
 	stack = stack:take_item(reqcount); inv:remove_item("src", stack)
+
+	-- add raw materials
+	for _, item in pairs(itemlist) do
+		if math.random(1, 4) <= 3 then -- probability 3/4 = 75%
+			inv:add_item("dst", ItemStack(item))
+		end
+	end
 
 	local count = meta:get_int("activation_count")
 	if count < 16 then

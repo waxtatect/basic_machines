@@ -1,7 +1,7 @@
 -- Modified and adapted from pipeworks mod by VanessaE
 -- https://github.com/mt-mods/pipeworks
 -- by rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 -- Disabled timers and on/off button, now autocrafter is only activated by signal
@@ -132,10 +132,10 @@ local function autocraft(inventory, craft)
 	local decremented_input_items = craft.decremented_input.items -- replacements
 
 	-- check if output and all replacements fit in dst
+	local empty_count = 0
 	local out_items = count_index(decremented_input_items)
 	local output_name = output:get_name()
 	out_items[output_name] = (out_items[output_name] or 0) + output:get_count()
-	local empty_count = 0
 
 	for _, item in pairs(inventory:get_list("dst")) do
 		if item:is_empty() then
