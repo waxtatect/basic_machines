@@ -61,7 +61,7 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 								end
 							end
 						end
-					elseif prefer == "bucket:bucket_empty" and detected_obj_name == "mobs_animal:cow" then -- milk cows, bucket and mobs_animals mods needed
+					elseif prefer == "bucket:bucket_empty" and detected_obj_name == "mobs_animal:cow" then -- milk cows, minetest_game bucket mod and mob_animals mods needed
 						if lua_entity and not lua_entity.child and not lua_entity.gotten then -- already milked ?
 							inv = inv or minetest.get_meta(pos2):get_inventory()
 							if inv:contains_item("main", "bucket:bucket_empty") then

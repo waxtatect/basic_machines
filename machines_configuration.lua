@@ -454,7 +454,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 						end
 						meta:set_string("mode", mode)
 					else
-						minetest.chat_send_player(name, S("MOVER: Wrong filter - must be name of existing minetest block"))
+						minetest.chat_send_player(name, S("MOVER: Wrong filter - must be the name of an existing block"))
 					end
 				end
 
@@ -469,7 +469,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 						meta:set_string("prefer", prefer)
 						meta:get_inventory():set_list("filter", {})
 					else
-						minetest.chat_send_player(name, S("MOVER: Wrong filter - must be name of existing minetest block"))
+						minetest.chat_send_player(name, S("MOVER: Wrong filter - must be the name of an existing block"))
 					end
 				end
 
@@ -552,7 +552,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
 					basic_machines.get_mover_form(pos))
 			else
-				minetest.chat_send_player(name, S("MOVER: Wrong filter - must be name of existing minetest block"))
+				minetest.chat_send_player(name, S("MOVER: Wrong filter - must be the name of an existing block"))
 			end
 		end
 
@@ -736,9 +736,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			local pass = fields.pass or ""
 
 			if pass == "" then
-				if meta:get_string("pass") ~= "" then
-					meta:set_string("pass", "")
-				end
+				meta:set_string("pass", "")
 			else
 				local mpass = meta:get_string("pass")
 				if pass ~= mpass then

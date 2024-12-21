@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2024 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -33,7 +33,7 @@ if basic_machines.settings.mover_no_large_stacks then
 	end
 end
 
--- anal retentive change in minetest 5.0.0 to minetest 5.1.0 (#7011) changing unknown node warning into crash
+-- anal retentive change in Minetest 5.0.0 to Minetest 5.1.0 (#7011) changing unknown node warning into crash
 -- forcing many checks with all possible combinations + adding many new crashes combinations
 basic_machines.check_mover_filter = function(mode, pos, meta, filter) -- mover input validation, is it correct node
 	filter = filter or meta:get_string("prefer")

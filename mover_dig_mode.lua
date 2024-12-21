@@ -8,7 +8,7 @@ local mover_dig_up_table = basic_machines.get_mover("dig_up_table")
 local mover_hardness = basic_machines.get_mover("hardness")
 local mover_harvest_table = basic_machines.get_mover("harvest_table")
 local mover_plants_table = basic_machines.get_mover("plants_table")
-local check_for_falling = minetest.check_for_falling or nodeupdate -- 1st for mt 5.0.0+, 2nd for 0.4.17.1 and older
+local check_for_falling = minetest.check_for_falling or nodeupdate -- 1st for Minetest 5.0.0+, 2nd for Minetest 0.4.17.1 and older
 local check_palette_index = basic_machines.check_palette_index
 local get_distance = basic_machines.get_distance
 local have_bucket_liquids = minetest.global_exists("bucket") and bucket.liquids
@@ -20,7 +20,7 @@ local use_farming = minetest.global_exists("farming")
 local use_x_farming = minetest.global_exists("x_farming")
 local math_min = math.min
 
--- minetest drop code emulation, other idea: minetest.get_node_drops
+-- drop code emulation, other idea: minetest.get_node_drops
 local function add_node_drops(node_name, pos, node, filter, node_def, param2)
 	local def = node_def or minetest.registered_nodes[node_name]
 	if def then
@@ -376,7 +376,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 							else
 								minetest.add_item(pos1, itemname)
 							end
-							-- borrowed and adapted from bucket mod
+							-- borrowed and adapted from minetest_game bucket mod
 							-- https://github.com/minetest/minetest_game/tree/master/mods/bucket
 							-- GNU Lesser General Public License, version 2.1
 							-- Copyright (C) 2011-2016 Kahrl <kahrl@gmx.net>

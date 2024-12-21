@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------------------------------------------------
 -- BASIC MACHINES MOD by rnd
--- Mod with basic simple automatization for minetest
--- No background processing, just two abms (clock generator, generator), no other lag causing background processing
+-- Mod with basic simple automatization for Luanti
+-- No background processing, just two abms (clock generator and generator), no other lag causing background processing
 ------------------------------------------------------------------------------------------------------------------------
 -- (c) 2015-2016 rnd
 -- Copyright (C) 2022-2024 мтест
@@ -462,7 +462,7 @@ minetest.register_node("basic_machines:mover", {
 				local filter_stack = basic_machines.itemstring_to_stack(prefer, palette_index)
 				inv:set_stack("filter", 1, filter_stack)
 			else
-				minetest.chat_send_player(name, S("MOVER: Wrong filter - must be name of existing minetest block")); return 0
+				minetest.chat_send_player(name, S("MOVER: Wrong filter - must be the name of an existing block")); return 0
 			end
 			minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
 				basic_machines.get_mover_form(pos))
