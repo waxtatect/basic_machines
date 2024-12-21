@@ -152,18 +152,21 @@ local function recycler_process(pos)
 		meta:set_string("infotext", S("At least @1 of '@2' (@3) required", reqcount, description, src_item)); return
 	end
 
+	local consume_src = false
 	for _, item in pairs(itemlist) do
 		if math.random(1, 4) <= 3 then -- probability 3/4 = 75%
 			local addstack = ItemStack(item)
 			if inv:room_for_item("dst", addstack) then -- can item be put in ?
 				if minetest.registered_items[item] then
 					inv:add_item("dst", addstack)
+					consume_src = true -- We have to consume src before return or this is duplication exploit.
 				end
 			else
-				set_fuel_and_infotext(meta, fuel, msg); return
+				set_fuel_and_infotext(meta, fuel, msg)
 			end
 		end
 	end
+	if consume_src == false then return end -- Fine return without consuming.
 
 	-- take required items from src inventory for each activation
 	stack = stack:take_item(reqcount); inv:remove_item("src", stack)
