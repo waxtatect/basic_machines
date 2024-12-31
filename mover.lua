@@ -151,7 +151,17 @@ local mover = {
 
 	-- set up nodes for plant with reverse on and filter set
 	-- for example seed -> plant, [nodename] = plant_name OR [nodename] = true
-	plants_table = {}
+	plants_table = {},
+
+	-- reverse upgrades list, as follow: [id] = upgrade_item
+	revupgrades = {},
+
+	-- list of items for the upgrade slot
+	upgrades = {
+		["default:mese"] = {id = 1, max = mover_upgrade_max},	-- for all modes
+		["default:diamondblock"] = {id = 2, max = 99},			-- object mode
+		["basic_machines:mover"] = {id = 3, max = 74}			-- normal and dig modes
+	}
 }
 
 if basic_machines.use_default then
@@ -224,6 +234,10 @@ if minetest.global_exists("x_farming") then
 	end
 end
 
+for upgrade_item, upgrade in pairs(mover.upgrades) do
+	mover.revupgrades[upgrade.id] = upgrade_item
+end
+
 -- return either content of a given setting or all settings
 basic_machines.get_mover = function(setting)
 	local def
@@ -273,11 +287,8 @@ minetest.register_chatcommand("mover_intro", {
 	end
 })
 
-local mover_upgrades = {
-	["default:mese"] = {id = 1, max = mover_upgrade_max},
-	["default:diamondblock"] = {id = 2, max = 99},
-	["basic_machines:mover"] = {id = 3, max = 74}
-}
+local mover_upgrades = mover.upgrades
+local mover_revupgrades = mover.revupgrades
 local mover_modes = mover.modes
 local get_distance = basic_machines.get_distance
 
@@ -710,9 +721,12 @@ minetest.register_node("basic_machines:mover", {
 						then
 							fuel_cost = 0
 						else
+							local upgrade_item = mover_revupgrades[2]
+							local upgrade_def = minetest.registered_items[upgrade_item]
+							local description = upgrade_def and upgrade_def.description or S("Unknown item")
 							meta:set_string("infotext",
-								S("MOVER: Elevator error. Need at least @1 diamond block(s) in upgrade (1 for every 100 distance).",
-								requirement)); return
+								S("MOVER: Elevator error. Need at least @1 of '@2' (@3) in upgrade (1 for every 100 distance).",
+								requirement, description, upgrade_item)); return
 						end
 					else
 						local hardness = mover.hardness[node1_name]

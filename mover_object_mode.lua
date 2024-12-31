@@ -61,7 +61,7 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 								end
 							end
 						end
-					elseif prefer == "bucket:bucket_empty" and detected_obj_name == "mobs_animal:cow" then -- milk cows, minetest_game bucket mod and mob_animals mods needed
+					elseif prefer == "bucket:bucket_empty" and detected_obj_name == "mobs_animal:cow" then -- milk cows, minetest_game bucket mod and mob_animals mod needed
 						if lua_entity and not lua_entity.child and not lua_entity.gotten then -- already milked ?
 							inv = inv or minetest.get_meta(pos2):get_inventory()
 							if inv:contains_item("main", "bucket:bucket_empty") then
@@ -84,10 +84,15 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 
 		for _, obj in ipairs(minetest.get_objects_inside_radius(pos1, radius)) do
 			if obj:is_player() then
-				if not minetest.is_protected(obj:get_pos(), owner) and
+				local player_pos = obj:get_pos()
+				if not minetest.is_protected(player_pos, owner) and
 					(prefer == "" or prefer == obj:get_player_name())
 				then -- move player only from owners land
-					obj:set_pos(pos2)
+					if obj.add_pos then -- for Minetest 5.9.0+
+						obj:add_pos(vector.subtract(pos2, player_pos))
+					else
+						obj:set_pos(pos2)
+					end
 				end
 			else
 				local lua_entity = obj:get_luaentity()
@@ -131,8 +136,13 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 	end
 end
 
+local upgrade_item = basic_machines.get_mover("revupgrades")[2]
+local upgrade_def = minetest.registered_items[upgrade_item]
+local description = upgrade_def and upgrade_def.description or S("Unknown item")
+
 basic_machines.add_mover_mode("object",
 	F(S("Make TELEPORTER/ELEVATOR:\n This will move any object inside a sphere (with center source1 and radius defined by distance between source1/source2) to target position\n" ..
-		" For ELEVATOR, teleport origin/destination need to be placed exactly in same coordinate line with mover, and you need to upgrade with 1 diamond block for every 100 height difference")),
+		" For ELEVATOR, teleport origin/destination need to be placed exactly in same coordinate line with mover, and you need to upgrade with 1 of '@1' (@2) for every 100 height difference",
+		description, upgrade_item)),
 	F(S("object")), object
 )

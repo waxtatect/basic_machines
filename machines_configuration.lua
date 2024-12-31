@@ -187,8 +187,8 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 			local mode = meta:get_string("mode")
 			local pos1 = punchset[name].pos1
 
-			if mode == "object" then -- check if elevator mode, only if object mode
-				if meta:get_int("elevator") == 1 then meta:set_int("elevator", 0) end
+			if mode == "object" then
+				local elevator_mode
 
 				if (pos1.x == self_pos.x and pos1.z == self_pos.z and pos.x == self_pos.x and pos.z == self_pos.z) or
 					(pos1.x == self_pos.x and pos1.y == self_pos.y and pos.x == self_pos.x and pos.y == self_pos.y) or
@@ -196,19 +196,36 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 				then
 					local ecost = abs(pos.x - self_pos.x) + abs(pos.y - self_pos.y) + abs(pos.z - self_pos.z)
 					if ecost > 3 then -- trying to make an elevator ?
-						-- count number of diamond blocks to determine if elevator can be set up with this height distance
+						-- count number of items to determine if an elevator can be set up with this height distance
 						local upgrade = meta:get_int("upgrade")
 						local requirement = math.floor(ecost / 100) + 1
 						if (upgrade - 1) >= requirement and (meta:get_int("upgradetype") == 2 or
 							meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:diamondblock") or upgrade == -1 -- for compatibility
 						then
-							meta:set_int("elevator", 1)
+							elevator_mode = true
 							meta:set_string("infotext", S("ELEVATOR: Activate to use."))
 							minetest.chat_send_player(name, S("MOVER: Elevator setup completed, upgrade level @1.", upgrade - 1))
 						else
-							minetest.chat_send_player(name, S("MOVER: Error while trying to make an elevator. Need at least @1 diamond block(s) in upgrade (1 for every 100 distance).", requirement))
+							local upgrade_item = basic_machines.get_mover("revupgrades")[2]
+							local upgrade_def = minetest.registered_items[upgrade_item]
+							local description = upgrade_def and upgrade_def.description or S("Unknown item")
+							minetest.chat_send_player(name,
+								S("MOVER: Error while attempting to make an elevator. Need at least @1 of '@2' (@3) in upgrade (1 for every 100 distance).",
+								requirement, description, upgrade_item))
 							machines.remove_markers(name, {"1", "11"}); punchset[name] = {state = 0, node = ""}; return
 						end
+					end
+				end
+
+				if elevator_mode then
+					meta:set_int("elevator", 1)
+				else
+					meta:set_string("elevator", "")
+					if not privs and
+						(abs(pos.x - self_pos.x) > range or abs(pos.y - self_pos.y) > range or abs(pos.z - self_pos.z) > range)
+					then
+						minetest.chat_send_player(name, S("MOVER: Punch closer to mover. Aborting."))
+						machines.remove_markers(name, {"1", "11"}); punchset[name] = {state = 0, node = ""}; return
 					end
 				end
 			elseif not privs and
@@ -452,6 +469,9 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 						if mover_no_large_stacks and basic_machines.check_mover_target(mode, pos, meta) then
 							prefer = basic_machines.clamp_item_count(prefer)
 						end
+						if mmode == "object" then
+							meta:set_string("elevator", "")
+						end
 						meta:set_string("mode", mode)
 					else
 						minetest.chat_send_player(name, S("MOVER: Wrong filter - must be the name of an existing block"))
@@ -545,6 +565,10 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				if prefer ~= meta:get_string("prefer") then
 					meta:set_string("prefer", prefer)
 					meta:get_inventory():set_list("filter", {})
+				end
+
+				if mmode == "object" then
+					meta:set_string("elevator", "")
 				end
 
 				meta:set_string("mode", mode)
