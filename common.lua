@@ -1,10 +1,12 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
+
+local S = minetest.get_translator("basic_machines")
 
 basic_machines = {
 	F = minetest.formspec_escape,
-	S = minetest.get_translator("basic_machines"),
+	S = S,
 	version = "12/31/2024 (fork)",
 	properties = {
 		no_clock			= false,	-- if true all continuously running activities (clockgen/keypad) are disabled
@@ -51,6 +53,12 @@ basic_machines = {
 			player_inv[i + 3] = ("image[%g,%g;1,1;[combine:1x1^[noalpha^[colorize:black^[opacity:43]"):format(x + (s + 1) * i, y)
 		end
 		return table.concat(player_inv)
+	end,
+	-- returns the item description
+	get_item_description = function(name)
+		local def = minetest.registered_items[name]
+		local description = def and def.description or S("Unknown Item")
+		return description
 	end,
 	use_default = minetest.global_exists("default"), -- require minetest_game default mod
 --[[ interfaces
@@ -106,7 +114,7 @@ basic_machines.creative = function(name)
 		{creative = true})
 end
 
--- result: float with precision up to two digits or integer number
+-- returns a float with precision up to two digits or integer number
 local modf = math.modf
 basic_machines.twodigits_float = function(number)
 	local r
@@ -126,8 +134,6 @@ if basic_machines.use_default then
 else
 	basic_machines.sound_node_machine = function(sound_table) return sound_table end
 end
-
-local S = basic_machines.S
 
 -- test: toggle machine running with clockgen/keypad repeats, useful for debugging
 -- i.e. seeing how machines running affect server performance

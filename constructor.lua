@@ -1,5 +1,5 @@
 -- rnd 2016
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -32,7 +32,7 @@ local function constructor_update_form(constructor, meta)
 	meta:set_string("formspec", "formspec_version[4]size[10.45,12.35]" ..
 		"style_type[list;spacing=0.25,0.15]" ..
 		"textlist[0.35,0.35;3.5,1.7;craft;" .. recipes_order_translated[constructor] .. ";" .. meta:get_int("selected") ..
-		"]item_image[4.75,0.35;1,1;" .. item .. "]button[4.6,1.65;1.3,0.8;CRAFT;" .. F(S("CRAFT")) ..
+		"]item_image[4.75,0.35;1,1;" .. item .. "]button[4.6,1.65;1.3,0.8;CRAFT;" .. F(S("Craft")) ..
 		"]list[context;recipe;6.6,0.35;3,2]" ..
 		"label[0.35,2.85;" .. F(description) ..
 		"]list[context;main;0.35,3.25;8,3]" ..
@@ -61,7 +61,7 @@ local function constructor_process(pos, constructor, name)
 
 					for _, v in ipairs(recipe) do
 						if not inv:contains_item("main", ItemStack(v)) then
-							meta:set_string("infotext", S("CRAFTING: You need '@1' to craft '@2'", v, item)); return
+							meta:set_string("infotext", S("Crafting: You need '@1' to craft '@2'", v, item)); return
 						end
 					end
 
@@ -75,8 +75,8 @@ local function constructor_process(pos, constructor, name)
 		end
 
 		if name or meta:get_string("infotext") == "" then
-			meta:set_string("infotext", S("CRAFTING: '@1' (@2)",
-				def and def.description or S("Unknown item"), item))
+			meta:set_string("infotext", S("Crafting: '@1' (@2)",
+				def and def.description or S("Unknown Item"), item))
 		end
 	end
 end

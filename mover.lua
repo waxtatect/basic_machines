@@ -4,7 +4,7 @@
 -- No background processing, just two abms (clock generator and generator), no other lag causing background processing
 ------------------------------------------------------------------------------------------------------------------------
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -42,7 +42,7 @@ local mover = {
 	dig_up_table = {},
 
 	-- how hard it is to move blocks, default factor 1,
-	-- note: fuel cost is this multiplied by distance and divided by machine_operations..
+	-- note: fuel cost is this multiplied by distance and divided by machines_operations
 	hardness = {
 		["bedrock2:bedrock"] = 999999,
 		["bedrock:bedrock"] = 999999,
@@ -722,8 +722,7 @@ minetest.register_node("basic_machines:mover", {
 							fuel_cost = 0
 						else
 							local upgrade_item = mover_revupgrades[2]
-							local upgrade_def = minetest.registered_items[upgrade_item]
-							local description = upgrade_def and upgrade_def.description or S("Unknown item")
+							local description = basic_machines.get_item_description(upgrade_item)
 							meta:set_string("infotext",
 								S("MOVER: Elevator error. Need at least @1 of '@2' (@3) in upgrade (1 for every 100 distance).",
 								requirement, description, upgrade_item)); return

@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -37,7 +37,7 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 	if node2 then
 		node2_name = node2.name
 	else
-		minetest.load_area(pos2)
+		minetest.load_area(pos2) -- alternative way: minetest.get_voxel_manip():read_from_map(pos2, pos2)
 		node2_name = minetest.get_node(pos2).name
 	end
 
@@ -136,13 +136,12 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 	end
 end
 
-local upgrade_item = basic_machines.get_mover("revupgrades")[2]
-local upgrade_def = minetest.registered_items[upgrade_item]
-local description = upgrade_def and upgrade_def.description or S("Unknown item")
+local name = basic_machines.get_mover("revupgrades")[2]
+local description = basic_machines.get_item_description(name)
 
 basic_machines.add_mover_mode("object",
 	F(S("Make TELEPORTER/ELEVATOR:\n This will move any object inside a sphere (with center source1 and radius defined by distance between source1/source2) to target position\n" ..
 		" For ELEVATOR, teleport origin/destination need to be placed exactly in same coordinate line with mover, and you need to upgrade with 1 of '@1' (@2) for every 100 height difference",
-		description, upgrade_item)),
+		description, name)),
 	F(S("object")), object
 )

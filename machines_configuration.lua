@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -207,8 +207,7 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 							minetest.chat_send_player(name, S("MOVER: Elevator setup completed, upgrade level @1.", upgrade - 1))
 						else
 							local upgrade_item = basic_machines.get_mover("revupgrades")[2]
-							local upgrade_def = minetest.registered_items[upgrade_item]
-							local description = upgrade_def and upgrade_def.description or S("Unknown item")
+							local description = basic_machines.get_item_description(upgrade_item)
 							minetest.chat_send_player(name,
 								S("MOVER: Error while attempting to make an elevator. Need at least @1 of '@2' (@3) in upgrade (1 for every 100 distance).",
 								requirement, description, upgrade_item))

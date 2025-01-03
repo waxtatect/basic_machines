@@ -2,7 +2,7 @@
 -- You can select which recipe to use when recycling
 -- There is a fuel cost to recycle
 -- rnd 2015
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -135,8 +135,7 @@ local function recycler_process(pos)
 			end
 			reqcount = reqcount or 1
 
-			local def = minetest.registered_items[src_item]
-			description = def and def.description or S("Unknown item")
+			description = basic_machines.get_item_description(src_item)
 
 			meta:set_string("node", src_item)
 			meta:set_string("itemlist", minetest.serialize(itemlist))
