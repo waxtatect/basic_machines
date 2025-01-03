@@ -60,6 +60,7 @@ local mover = {
 		["gloopblocks:obsidian_cooled"] = 20,
 		["gloopblocks:pumice_cooled"] = 2,
 		["itemframes:frame"] = 999999,
+		["itemframes:frame_invi"] = 999999,
 		["itemframes:pedestal"] = 999999,
 		["painting:canvasnode"] = 999999,
 		["painting:pic"] = 999999,

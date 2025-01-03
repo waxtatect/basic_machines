@@ -82,7 +82,7 @@ minetest.register_entity("basic_machines:ball", {
 
 	_speed = ball_default.speed,			-- velocity when punched
 	_energy = ball_default.energy,			-- if negative it will deactivate stuff, positive will activate, 0 wont do anything
-	_bounce = ball_default.bounce,			-- 0: absorbs in block, 1: proper bounce=lag buggy, to do: line of sight bounce
+	_bounce = ball_default.bounce,			-- 0: absorbs in block, 1: proper bounce = lag buggy, to do: line of sight bounce
 	_punchable = ball_default.punchable,	-- can be punched by players in protection
 	_hurt = ball_default.hurt,				-- how much damage it does to target entity, if 0 damage disabled
 	_lifetime = ball_default.lifetime,		-- how long it exists before disappearing
@@ -252,9 +252,10 @@ minetest.register_entity("basic_machines:ball", {
 						if lua_entity then
 							if lua_entity.itemstring == "robot" then
 								self.object:remove(); break
-							elseif lua_entity.protected ~= 2 then -- if protection (mobs_redo) is on level 2 then don't let ball harm mobs
+							-- if protection (mobs_redo) is on level 2 then don't let ball harm mobs
+							elseif lua_entity.protected ~= 2 and obj:get_armor_groups().fleshy then
 								local hp = obj:get_hp()
-								local newhp = hp - self._hurt
+								local newhp = math.min(obj:get_properties().hp_max, hp - self._hurt)
 								if newhp > 0 then
 									obj:set_hp(newhp)
 									if newhp < hp then
