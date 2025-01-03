@@ -1,6 +1,6 @@
 -- Ball: energy ball that flies around, can bounce and activate stuff
 -- rnd 2016
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 -- TO DO, move mode:
@@ -279,7 +279,7 @@ minetest.register_entity("basic_machines:ball", {
 		elseif time_from_last_punch > 0.5 then
 			if punchable == 1 then -- only those in protection
 				local obj_pos = self.object:get_pos()
-				if minetest.is_protected(obj_pos) or
+				if minetest.is_protected(obj_pos, "") or
 					puncher and minetest.is_protected(obj_pos, puncher:get_player_name())
 				then
 					self.object:set_velocity(vector.multiply(dir, self._speed))

@@ -21,7 +21,7 @@ Get the latest version of Luanti: [downloads](https://www.luanti.org/downloads/)
 ---
 (c) 2015-2016 rnd\
 textures by rnd, new textures by SaKeL (2016) and Jozet (2017)\
-Copyright (C) 2022-2024 мтест
+Copyright (C) 2022-2025 мтест
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

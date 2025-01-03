@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local S = basic_machines.S
@@ -149,7 +149,7 @@ minetest.register_globalstep(function(dtime)
 						player:set_hp(hp - 10) -- dead in 20/10 = 2 events
 						minetest.chat_send_player(name, S("WARNING: in space you must stay close to protected areas"))
 					end
-				elseif not minetest.is_protected(pos, nil) then
+				elseif not minetest.is_protected(pos, "") then
 					player:set_hp(hp - 10) -- dead in 20/10 = 2 events
 					minetest.chat_send_player(name, S("WARNING: in space you must stay close to protected areas"))
 				end
