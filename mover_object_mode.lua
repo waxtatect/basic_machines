@@ -2,6 +2,19 @@
 -- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
+local elevator_height = 100
+basic_machines.elevator_height = elevator_height
+
+-- returns the maximum range
+basic_machines.calculate_elevator_range = function(max, upgrade)
+	return math.min(max, upgrade) * elevator_height
+end
+
+-- returns the amount of upgrade required
+basic_machines.calculate_elevator_requirement = function(distance)
+	return math.ceil(distance / elevator_height)
+end
+
 local F, S = basic_machines.F, basic_machines.S
 local mover_chests = basic_machines.get_mover("chests")
 local vector_add = vector.add
@@ -141,7 +154,7 @@ local description = basic_machines.get_item_description(name)
 
 basic_machines.add_mover_mode("object",
 	F(S("Make TELEPORTER/ELEVATOR:\n This will move any object inside a sphere (with center source1 and radius defined by distance between source1/source2) to target position\n" ..
-		" For ELEVATOR, teleport origin/destination need to be placed exactly in same coordinate line with mover, and you need to upgrade with 1 of '@1' (@2) for every 100 height difference",
-		description, name)),
+		" For ELEVATOR, teleport origin/destination need to be placed exactly in same coordinate line with the mover, and you need to upgrade with 1 of '@1' (@2) for every @3 height difference",
+		description, name, elevator_height)),
 	F(S("object")), object
 )

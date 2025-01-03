@@ -75,6 +75,8 @@ basic_machines = {
 	use_keypad = function() end,
 	-- mover
 	add_mover_mode = function() end,
+	calculate_elevator_range = function() end,
+	calculate_elevator_requirement = function() end,
 	check_mover_filter = function() end,
 	check_mover_target = nil, -- function used with mover_no_large_stacks setting
 	check_palette_index = function() end,

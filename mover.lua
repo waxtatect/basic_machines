@@ -715,7 +715,7 @@ minetest.register_node("basic_machines:mover", {
 			else -- calculate fuel cost
 				if object then
 					if meta:get_int("elevator") == 1 then -- check if elevator mode
-						local requirement = math.floor(get_distance(pos, pos2) / 100) + 1
+						local requirement = basic_machines.calculate_elevator_requirement(get_distance(pos, pos2))
 						if (upgrade - 1) >= requirement and (meta:get_int("upgradetype") == 2 or
 							meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:diamondblock") -- for compatibility
 						then
@@ -724,8 +724,8 @@ minetest.register_node("basic_machines:mover", {
 							local upgrade_item = mover_revupgrades[2]
 							local description = basic_machines.get_item_description(upgrade_item)
 							meta:set_string("infotext",
-								S("MOVER: Elevator error. Need at least @1 of '@2' (@3) in upgrade (1 for every 100 distance).",
-								requirement, description, upgrade_item)); return
+								S("MOVER: Elevator error. Need at least @1 of '@2' (@3) in upgrade (1 for every @4 distance).",
+								requirement, description, upgrade_item, basic_machines.elevator_height)); return
 						end
 					else
 						local hardness = mover.hardness[node1_name]

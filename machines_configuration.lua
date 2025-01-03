@@ -77,6 +77,10 @@ local function check_keypad(pos, name) -- called only when manually activated vi
 	end
 end
 
+local function calculate_mover_range(upgrade) -- returns the maximum range
+	return math.min(mover_upgrade_max + 1, upgrade) * max_range
+end
+
 local abs = math.abs
 
 minetest.register_on_punchnode(function(pos, node, puncher)
@@ -144,7 +148,7 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 		if upgradetype == 1 or upgradetype == 3 or
 			meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:mese" -- for compatibility
 		then
-			range = math.min(mover_upgrade_max + 1, meta:get_int("upgrade")) * max_range
+			range = calculate_mover_range(meta:get_int("upgrade"))
 		else
 			range = max_range
 		end
@@ -198,7 +202,7 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 					if ecost > 3 then -- trying to make an elevator ?
 						-- count number of items to determine if an elevator can be set up with this height distance
 						local upgrade = meta:get_int("upgrade")
-						local requirement = math.floor(ecost / 100) + 1
+						local requirement = basic_machines.calculate_elevator_requirement(ecost)
 						if (upgrade - 1) >= requirement and (meta:get_int("upgradetype") == 2 or
 							meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:diamondblock") or upgrade == -1 -- for compatibility
 						then
@@ -209,8 +213,8 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 							local upgrade_item = basic_machines.get_mover("revupgrades")[2]
 							local description = basic_machines.get_item_description(upgrade_item)
 							minetest.chat_send_player(name,
-								S("MOVER: Error while attempting to make an elevator. Need at least @1 of '@2' (@3) in upgrade (1 for every 100 distance).",
-								requirement, description, upgrade_item))
+								S("MOVER: Error while attempting to make an elevator. Need at least @1 of '@2' (@3) in upgrade (1 for every @4 distance).",
+								requirement, description, upgrade_item, basic_machines.elevator_height))
 							machines.remove_markers(name, {"1", "11"}); punchset[name] = {state = 0, node = ""}; return
 						end
 					end
@@ -418,23 +422,59 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 					minetest.chat_send_player(name, S("MOVER: Position is protected. Aborting.")); return
 				end
 
-				-- did the numbers change from last time ?
-				if meta:get_int("x0") ~= x0 or meta:get_int("y0") ~= y0 or meta:get_int("z0") ~= z0 or
+				local mode = meta:get_string("mode")
+				local target_range
+
+				if mode == "object" and
+					(meta:get_int("x2") ~= x2 or meta:get_int("y2") ~= y2 or meta:get_int("z2") ~= z2) and
+					meta:get_int("x0") == x0 and meta:get_int("y0") == y0 and meta:get_int("z0") == z0 and
+					meta:get_int("x1") == x1 and meta:get_int("y1") == y1 and meta:get_int("z1") == z1
+				then -- did the target change ?
+					local upgradetype = meta:get_int("upgradetype")
+					if meta:get_int("elevator") == 1 then
+						if upgradetype == 2 and ((x2 == 0 and z2 == 0) or
+							(y2 == 0 and z2 == 0) or (x2 == 0 and y2 == 0))
+						then -- is the target in same coordinate line with the mover ?
+							local upgrade_max = basic_machines.get_mover("upgrades")[basic_machines.get_mover("revupgrades")[2]].max
+							target_range = basic_machines.calculate_elevator_range(upgrade_max, meta:get_int("upgrade") - 1)
+						else
+							local distance = abs(x2) + abs(y2) + abs(z2)
+							local requirement = basic_machines.calculate_elevator_requirement(distance)
+							local upgrade_item = basic_machines.get_mover("revupgrades")[2]
+							local description = basic_machines.get_item_description(upgrade_item)
+							minetest.chat_send_player(name,
+								S("MOVER: Elevator error. Target must be properly aligned and/or need at least @1 of '@2' (@3) in upgrade (1 for every @4 distance).",
+								requirement, description, upgrade_item, basic_machines.elevator_height)); return
+						end
+					elseif upgradetype == 1 then
+						target_range = calculate_mover_range(meta:get_int("upgrade"))
+					else
+						target_range = max_range
+					end
+				end
+
+				if target_range then
+					if not minetest.check_player_privs(name, "privs") and
+						(abs(x2) > target_range or abs(y2) > target_range or abs(z2) > target_range)
+					then -- is the target inside bounds ?
+						minetest.chat_send_player(name, S("MOVER: Target coordinates must be between @1 and @2. For increased range, upgrade with corresponding item.",
+							-target_range, target_range)); return
+					end
+				elseif meta:get_int("x0") ~= x0 or meta:get_int("y0") ~= y0 or meta:get_int("z0") ~= z0 or
 					meta:get_int("x1") ~= x1 or meta:get_int("y1") ~= y1 or meta:get_int("z1") ~= z1 or
 					meta:get_int("x2") ~= x2 or meta:get_int("y2") ~= y2 or meta:get_int("z2") ~= z2
-				then
-					-- are new numbers inside bounds ?
+				then -- did the numbers change from last time ?
 					if not minetest.check_player_privs(name, "privs") and
 						(abs(x0) > max_range or abs(y0) > max_range or abs(z0) > max_range or
 						abs(x1) > max_range or abs(y1) > max_range or abs(z1) > max_range or
 						abs(x2) > max_range or abs(y2) > max_range or abs(z2) > max_range)
-					then
-						minetest.chat_send_player(name, S("MOVER: All coordinates must be between @1 and @2. For increased range set up positions by punching.",
+					then -- are new numbers inside bounds ?
+						minetest.chat_send_player(name, S("MOVER: All coordinates must be between @1 and @2. For increased range, set up positions by punching.",
 							-max_range, max_range)); return
 					end
 				end
 
-				if meta:get_string("mode") == "object" then
+				if mode == "object" then
 					meta:set_int("dim", -1)
 				else
 					local x = x0; x0 = math.min(x, x1); x1 = math.max(x, x1)
