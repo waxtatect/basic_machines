@@ -1,15 +1,15 @@
 ## Basic Machines
 
-Lightweight automation mod for [Minetest](https://www.minetest.net)
+Lightweight automation mod for [Luanti](https://www.luanti.org/) (formerly Minetest)
 
 ![(screenshot)](screenshot.png)
 
 This is a modified version of basic_machines mod written by rnd:\
-&emsp;https://github.com/ac-minetest/basic_machines, [Minetest forum topic](https://forum.minetest.net/viewtopic.php?t=12033)
+&emsp;https://github.com/ac-minetest/basic_machines, [Luanti forum topic](https://forum.luanti.org/viewtopic.php?t=12033)
 
 Useful link: [:octocat:](https://github.com/waxtatect/basic_machines "Basic Machines repository")
 
-At least [Minetest](https://www.minetest.net) version 5.4.0 is needed
+Get the latest version of Luanti: [downloads](https://www.luanti.org/downloads/) (at least Minetest version 5.4.0 is required)
 
 ### Manual
 
@@ -21,7 +21,7 @@ At least [Minetest](https://www.minetest.net) version 5.4.0 is needed
 ---
 (c) 2015-2016 rnd\
 textures by rnd, new textures by SaKeL (2016) and Jozet (2017)\
-Copyright (C) 2022-2023 мтест
+Copyright (C) 2022-2025 мтест
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

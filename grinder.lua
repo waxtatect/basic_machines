@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -347,8 +347,7 @@ local function grinder_process(pos)
 	local steps = math.floor(stack:get_count() / def[4]) -- how many steps to process inserted stack
 
 	if steps < 1 then
-		local item_def = minetest.registered_items[src_item]
-		local description = item_def and item_def.description or S("Unknown item")
+		local description = basic_machines.get_item_description(src_item)
 		meta:set_string("infotext", S("Recipe requires at least @1 of '@2' (@3)", def[4], description, src_item))
 		return
 	end

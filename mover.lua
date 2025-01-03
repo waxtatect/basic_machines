@@ -1,10 +1,10 @@
 ------------------------------------------------------------------------------------------------------------------------
 -- BASIC MACHINES MOD by rnd
--- Mod with basic simple automatization for minetest
--- No background processing, just two abms (clock generator, generator), no other lag causing background processing
+-- Mod with basic simple automatization for Luanti
+-- No background processing, just two abms (clock generator and generator), no other lag causing background processing
 ------------------------------------------------------------------------------------------------------------------------
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -42,7 +42,7 @@ local mover = {
 	dig_up_table = {},
 
 	-- how hard it is to move blocks, default factor 1,
-	-- note: fuel cost is this multiplied by distance and divided by machine_operations..
+	-- note: fuel cost is this multiplied by distance and divided by machines_operations
 	hardness = {
 		["bedrock2:bedrock"] = 999999,
 		["bedrock:bedrock"] = 999999,
@@ -60,6 +60,7 @@ local mover = {
 		["gloopblocks:obsidian_cooled"] = 20,
 		["gloopblocks:pumice_cooled"] = 2,
 		["itemframes:frame"] = 999999,
+		["itemframes:frame_invi"] = 999999,
 		["itemframes:pedestal"] = 999999,
 		["painting:canvasnode"] = 999999,
 		["painting:pic"] = 999999,
@@ -151,7 +152,17 @@ local mover = {
 
 	-- set up nodes for plant with reverse on and filter set
 	-- for example seed -> plant, [nodename] = plant_name OR [nodename] = true
-	plants_table = {}
+	plants_table = {},
+
+	-- reverse upgrades list, as follow: [id] = upgrade_item
+	revupgrades = {},
+
+	-- list of items for the upgrade slot
+	upgrades = {
+		["default:mese"] = {id = 1, max = mover_upgrade_max},	-- for all modes
+		["default:diamondblock"] = {id = 2, max = 99},			-- object mode
+		["basic_machines:mover"] = {id = 3, max = 74}			-- normal and dig modes
+	}
 }
 
 if basic_machines.use_default then
@@ -224,6 +235,10 @@ if minetest.global_exists("x_farming") then
 	end
 end
 
+for upgrade_item, upgrade in pairs(mover.upgrades) do
+	mover.revupgrades[upgrade.id] = upgrade_item
+end
+
 -- return either content of a given setting or all settings
 basic_machines.get_mover = function(setting)
 	local def
@@ -273,11 +288,8 @@ minetest.register_chatcommand("mover_intro", {
 	end
 })
 
-local mover_upgrades = {
-	["default:mese"] = {id = 1, max = mover_upgrade_max},
-	["default:diamondblock"] = {id = 2, max = 99},
-	["basic_machines:mover"] = {id = 3, max = 74}
-}
+local mover_upgrades = mover.upgrades
+local mover_revupgrades = mover.revupgrades
 local mover_modes = mover.modes
 local get_distance = basic_machines.get_distance
 
@@ -462,7 +474,7 @@ minetest.register_node("basic_machines:mover", {
 				local filter_stack = basic_machines.itemstring_to_stack(prefer, palette_index)
 				inv:set_stack("filter", 1, filter_stack)
 			else
-				minetest.chat_send_player(name, S("MOVER: Wrong filter - must be name of existing minetest block")); return 0
+				minetest.chat_send_player(name, S("MOVER: Wrong filter - must be the name of an existing block")); return 0
 			end
 			minetest.show_formspec(name, "basic_machines:mover_" .. minetest.pos_to_string(pos),
 				basic_machines.get_mover_form(pos))
@@ -704,15 +716,17 @@ minetest.register_node("basic_machines:mover", {
 			else -- calculate fuel cost
 				if object then
 					if meta:get_int("elevator") == 1 then -- check if elevator mode
-						local requirement = math.floor(get_distance(pos, pos2) / 100) + 1
+						local requirement = basic_machines.calculate_elevator_requirement(get_distance(pos, pos2))
 						if (upgrade - 1) >= requirement and (meta:get_int("upgradetype") == 2 or
 							meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:diamondblock") -- for compatibility
 						then
 							fuel_cost = 0
 						else
+							local upgrade_item = mover_revupgrades[2]
+							local description = basic_machines.get_item_description(upgrade_item)
 							meta:set_string("infotext",
-								S("MOVER: Elevator error. Need at least @1 diamond block(s) in upgrade (1 for every 100 distance).",
-								requirement)); return
+								S("MOVER: Elevator error. Need at least @1 of '@2' (@3) in upgrade (1 for every @4 distance).",
+								requirement, description, upgrade_item, basic_machines.elevator_height)); return
 						end
 					else
 						local hardness = mover.hardness[node1_name]

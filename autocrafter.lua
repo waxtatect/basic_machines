@@ -1,7 +1,7 @@
 -- Modified and adapted from pipeworks mod by VanessaE
 -- https://github.com/mt-mods/pipeworks
 -- by rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 -- Disabled timers and on/off button, now autocrafter is only activated by signal
@@ -50,13 +50,6 @@ local function get_craft(pos, inventory, hash)
 	return craft
 end
 
-local function get_item_info(stack)
-	local name = stack:get_name()
-	local def = minetest.registered_items[name ~= "" and name or nil]
-	local description = def and def.description or S("Unknown item")
-	return description, name
-end
-
 local function after_recipe_change(pos, inventory)
 	-- if we emptied the grid, there's no point in keeping it running or cached
 	if inventory:is_empty("recipe") then
@@ -67,7 +60,8 @@ local function after_recipe_change(pos, inventory)
 		local hash = minetest.hash_node_position(pos)
 		autocrafterCache[hash] = nil
 		local output_item = get_craft(pos, inventory, hash).output.item
-		local description, name = get_item_info(output_item)
+		local name = output_item:get_name()
+		local description = basic_machines.get_item_description(name ~= "" and name or nil)
 		minetest.get_meta(pos):set_string("infotext", S("Autocrafter: '@1' (@2)", description, name))
 		inventory:set_stack("output", 1, output_item)
 	end
@@ -132,10 +126,10 @@ local function autocraft(inventory, craft)
 	local decremented_input_items = craft.decremented_input.items -- replacements
 
 	-- check if output and all replacements fit in dst
+	local empty_count = 0
 	local out_items = count_index(decremented_input_items)
 	local output_name = output:get_name()
 	out_items[output_name] = (out_items[output_name] or 0) + output:get_count()
-	local empty_count = 0
 
 	for _, item in pairs(inventory:get_list("dst")) do
 		if item:is_empty() then

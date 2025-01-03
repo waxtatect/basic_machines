@@ -1,11 +1,13 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
+
+local S = minetest.get_translator("basic_machines")
 
 basic_machines = {
 	F = minetest.formspec_escape,
-	S = minetest.get_translator("basic_machines"),
-	version = "04/23/2024 (fork)",
+	S = S,
+	version = "01/03/2025 (fork)",
 	properties = {
 		no_clock			= false,	-- if true all continuously running activities (clockgen/keypad) are disabled
 		machines_TTL		= 16,		-- time to live for signals, how many hops before signal dissipates
@@ -52,6 +54,12 @@ basic_machines = {
 		end
 		return table.concat(player_inv)
 	end,
+	-- returns the item description
+	get_item_description = function(name)
+		local def = minetest.registered_items[name]
+		local description = def and def.description or S("Unknown Item")
+		return description
+	end,
 	use_default = minetest.global_exists("default"), -- require minetest_game default mod
 --[[ interfaces
 	-- autocrafter
@@ -67,6 +75,8 @@ basic_machines = {
 	use_keypad = function() end,
 	-- mover
 	add_mover_mode = function() end,
+	calculate_elevator_range = function() end,
+	calculate_elevator_requirement = function() end,
 	check_mover_filter = function() end,
 	check_mover_target = nil, -- function used with mover_no_large_stacks setting
 	check_palette_index = function() end,
@@ -106,7 +116,7 @@ basic_machines.creative = function(name)
 		{creative = true})
 end
 
--- result: float with precision up to two digits or integer number
+-- returns a float with precision up to two digits or integer number
 local modf = math.modf
 basic_machines.twodigits_float = function(number)
 	local r
@@ -126,8 +136,6 @@ if basic_machines.use_default then
 else
 	basic_machines.sound_node_machine = function(sound_table) return sound_table end
 end
-
-local S = basic_machines.S
 
 -- test: toggle machine running with clockgen/keypad repeats, useful for debugging
 -- i.e. seeing how machines running affect server performance
