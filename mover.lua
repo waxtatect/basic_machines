@@ -357,10 +357,12 @@ local function is_pos2_protected(pos, owner, mode_third_upgradetype)
 	return minetest.is_protected(pos, owner) -- protection check
 end
 
-minetest.register_node("basic_machines:mover", {
+local machine_name = "basic_machines:mover"
+minetest.register_node(machine_name, {
 	description = S("Mover"),
 	groups = {cracky = 2},
 	tiles = {"basic_machines_mover.png"},
+	is_ground_content = false,
 	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
@@ -422,7 +424,8 @@ minetest.register_node("basic_machines:mover", {
 	on_dig = function(pos, node, digger)
 		if digger and digger:is_player() then
 			local meta = minetest.get_meta(pos)
-			if meta:get_string("owner") == digger:get_player_name() then -- owner can always remove his mover
+			local owner = meta:get_string("owner")
+			if owner == digger:get_player_name() or owner == "" then -- owner can always remove his mover
 				local inv = meta:get_inventory()
 				local inv_stack
 				if not inv:is_empty("upgrade") then
@@ -548,6 +551,10 @@ minetest.register_node("basic_machines:mover", {
 		end
 
 		return stack:get_count()
+	end,
+
+	on_blast = function(pos, intensity)
+		return basic_machines.on_blast(pos, intensity, machine_name, {"upgrade"})
 	end,
 
 	effector = {

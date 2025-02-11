@@ -218,10 +218,12 @@ local function recycler_process(pos)
 	end
 end
 
-minetest.register_node("basic_machines:recycler", {
+local machine_name = "basic_machines:recycler"
+minetest.register_node(machine_name, {
 	description = S("Recycler"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_recycler.png"},
+	is_ground_content = false,
 	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
@@ -248,15 +250,7 @@ minetest.register_node("basic_machines:recycler", {
 	end,
 
 	can_dig = function(pos, player)
-		if player then
-			local meta = minetest.get_meta(pos)
-			local inv = meta:get_inventory()
-
-			return meta:get_string("owner") == player:get_player_name() and
-				inv:is_empty("src") and inv:is_empty("dst") and inv:is_empty("fuel") -- all inv must be empty to be dug
-		else
-			return false
-		end
+		return basic_machines.can_dig(pos, player, {"src", "dst", "fuel"}) -- all inv must be empty to be dug
 	end,
 
 	on_receive_fields = function(pos, _, fields, sender)
@@ -299,6 +293,10 @@ minetest.register_node("basic_machines:recycler", {
 				meta:set_string("infotext", S("Fuel status @1", twodigits_float(meta:get_float("fuel"))))
 			end
 		end
+	end,
+
+	on_blast = function(pos, intensity)
+		return basic_machines.on_blast(pos, intensity, machine_name, {"src", "dst", "fuel"})
 	end,
 
 	effector = {

@@ -7,7 +7,7 @@ local S = minetest.get_translator("basic_machines")
 basic_machines = {
 	F = minetest.formspec_escape,
 	S = S,
-	version = "01/03/2025 (fork)",
+	version = "02/11/2025 (fork)",
 	properties = {
 		no_clock			= false,	-- if true all continuously running activities (clockgen/keypad) are disabled
 		machines_TTL		= 16,		-- time to live for signals, how many hops before signal dissipates
@@ -43,7 +43,7 @@ basic_machines = {
 		--
 		register_crafts			= false		-- machines crafts recipes
 	},
-	-- form
+	-- returns inventory player form
 	get_form_player_inventory = function(x, y, w, h, s)
 		local player_inv = {
 			("list[current_player;main;%g,%g;%i,1]"):format(x, y, w),
@@ -108,6 +108,68 @@ for k, v in pairs(basic_machines.settings) do
 		basic_machines.settings[k] = setting
 	end
 end
+
+-- machine registration fields
+basic_machines.can_dig = function(pos, player, listnames)
+	if player then
+		local meta = minetest.get_meta(pos)
+		local owner = meta:get_string("owner")
+		if owner == player:get_player_name() or owner == "" then
+			if listnames then
+				local inv = meta:get_inventory()
+				for i = 1, #listnames do
+					if not inv:is_empty(listnames[i]) then
+						return false
+					end
+				end
+			end
+			return true
+		end
+	end
+	return false
+end
+
+-- returns a table of inventory items
+local function get_inventory_items(pos, listnames)
+	local items = {}
+	local inv = minetest.get_meta(pos):get_inventory()
+	for i = 1, #listnames do
+		local listname = listnames[i]
+		if not inv:is_empty(listname) then
+			local k = #items
+			for j = 1, inv:get_size(listname) do
+				local stack = inv:get_stack(listname, j)
+				if stack:get_count() > 0 then
+					items[k + 1] = stack:to_table()
+					k = k + 1
+				end
+			end
+		end
+	end
+	return items
+end
+
+basic_machines.on_blast = function(pos, intensity, name, listnames, param2)
+	if intensity < 2.5 then return end
+	local drops
+	if listnames then
+		drops = get_inventory_items(pos, listnames)
+	end
+	if param2 and param2 > 0 then -- with paramtype2 == "color"
+		name = ItemStack(name)
+		name:get_meta():set_int("palette_index", param2)
+		name = name:to_table()
+	end
+	if drops then
+		drops[#drops + 1] = name
+	else
+		drops = {name}
+	end
+	if minetest.remove_node(pos) then
+		return drops
+	end
+end
+--
 
 -- creative check
 local creative_cache = minetest.settings:get_bool("creative_mode")

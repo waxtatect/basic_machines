@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -27,6 +27,10 @@ local function swap_battery(energy_new, energy, capacity, pos)
 			minetest.swap_node(pos, {name = "basic_machines:battery_" .. full_coef_new})
 		end
 	end
+end
+
+local function round_value(x)
+	return math.ceil(x * 10) / 10
 end
 
 local function battery_recharge(pos, energy, origin)
@@ -78,7 +82,7 @@ local function battery_recharge(pos, energy, origin)
 			if origin == "recharge_furnace" and energy_new < 1 then
 				meta:set_string("infotext", S("Furnace needs at least 1 energy"))
 			else
-				meta:set_string("infotext", S("(R) Energy: @1 / @2", math.ceil(energy_new * 10) / 10, capacity))
+				meta:set_string("infotext", S("(R) Energy: @1 / @2", round_value(energy_new), capacity))
 			end
 		end
 
@@ -101,49 +105,57 @@ local function battery_recharge(pos, energy, origin)
 		meta:set_string("infotext", S("Furnace needs at least 1 energy"))
 	elseif origin ~= "check_power" then
 		capacity = capacity or meta:get_float("capacity")
-		meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy * 10) / 10, capacity))
+		meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy), capacity))
 	end
 
 	return energy -- new battery energy level
 end
 
--- API for power distribution, mover checks power source - battery
+-- power distribution
+local battery = {
+	["basic_machines:battery_0"] = true,
+	["basic_machines:battery_1"] = true,
+	["basic_machines:battery_2"] = true
+}
+
 basic_machines.check_power = function(pos, power_draw)
-	if not (minetest.get_node(pos).name):find("basic_machines:battery") then -- check with hashtables probably faster ?
+	if not battery[minetest.get_node(pos).name] then
 		return -1 -- battery not found!
 	end
 
 	local meta = minetest.get_meta(pos)
-	local maxpower = meta:get_float("maxpower")
 
+	local maxpower = meta:get_float("maxpower")
 	if power_draw > maxpower then
 		meta:set_string("infotext", S("Power draw required: @1, maximum power output @2. Please upgrade battery.",
 			basic_machines.twodigits_float(power_draw), maxpower)); return 0
 	end
 
 	local energy = meta:get_float("energy")
-	local energy_recharge, energy_new
+	local energy_new
 
 	if power_draw > energy then
-		energy_recharge = battery_recharge(pos, energy, "check_power") -- try recharge battery and continue operation immediately
-		energy_new = energy_recharge - power_draw
+		local energy_recharge = battery_recharge(pos, energy, "check_power") -- try recharge battery and continue operation immediately
+		if energy_recharge ~= energy then
+			energy_new = energy_recharge - power_draw
+			if energy_new < 0 then
+				meta:set_float("energy", energy_recharge)
+				meta:set_string("infotext", S("Used fuel provides too little power for current power draw @1",
+					basic_machines.twodigits_float(power_draw))); return 0
+			end -- recharge wasn't enough, needs to be repeated, return 0 power available
+		else
+			meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy), meta:get_float("capacity")))
+			return 0 -- battery didn't provide more energy
+		end
 	else
 		energy_new = energy - power_draw
 	end
-
-	if energy_new < 0 then
-		if energy_recharge and energy_recharge ~= energy then
-			meta:set_float("energy", energy_recharge)
-		end
-		meta:set_string("infotext", S("Used fuel provides too little power for current power draw @1",
-			basic_machines.twodigits_float(power_draw))); return 0
-	end -- recharge wasn't enough, needs to be repeated manually, return 0 power available
 
 	meta:set_float("energy", energy_new)
 	local capacity = meta:get_float("capacity")
 	swap_battery(energy_new, energy, capacity, pos)
 	-- update energy display
-	meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy_new * 10) / 10, capacity))
+	meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy_new), capacity))
 
 	return power_draw
 end
@@ -182,7 +194,7 @@ local function battery_upgrade(meta, pos)
 
 	local energy = 0
 	local capacity = 3 + count1 * 3 -- mese for capacity
-	capacity = math.ceil(capacity * 10) / 10 -- adjust capacity
+	capacity = round_value(capacity) -- adjust capacity
 	local maxpower = 1 + count2 * 2 -- old 99 upgrade -> 200 power
 
 	if meta:get_float("energy") ~= energy then
@@ -193,7 +205,7 @@ local function battery_upgrade(meta, pos)
 	meta:set_int("upgrade", count2) -- diamond for power
 	meta:set_float("capacity", capacity)
 	meta:set_float("maxpower", maxpower)
-	meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy * 10) / 10, capacity))
+	meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy), capacity))
 end
 
 -- this function will activate furnace
@@ -208,168 +220,173 @@ if machines_activate_furnace then
 	}
 end
 
-minetest.register_node("basic_machines:battery_0", {
-	description = S("Battery"),
-	groups = {cracky = 3},
-	tiles = {"basic_machines_outlet.png", "basic_machines_battery.png", "basic_machines_battery_0.png"},
-	sounds = basic_machines.sound_node_machine(),
+local function register_battery(name, groups, tiles)
+	minetest.register_node(name, {
+		description = S("Battery"),
+		groups = groups,
+		tiles = tiles,
+		is_ground_content = false,
+		sounds = basic_machines.sound_node_machine(),
+		drop = "basic_machines:battery_0",
 
-	after_place_node = function(pos, placer)
-		if not placer then return end
+		after_place_node = function(pos, placer)
+			if not placer then return end
 
-		local meta = minetest.get_meta(pos)
-		meta:set_string("infotext", S("Battery - stores energy, generates energy from fuel, can power nearby machines," ..
-			" or accelerate/run furnace above it"))
-		meta:set_string("owner", placer:get_player_name())
-
-		meta:set_float("capacity", 3)
-		meta:set_float("maxpower", 1)
-		meta:set_float("energy", 0)
-		meta:set_int("upgrade", 0) -- upgrade level determines max energy output
-		meta:set_int("t", 0); meta:set_int("activation_count", 0)
-
-		local inv = meta:get_inventory()
-		inv:set_size("fuel", 1) -- place to put crystals
-		inv:set_size("upgrade", 2 * 2)
-
-		battery_update_form(meta)
-	end,
-
-	can_dig = function(pos, player)
-		if player then
 			local meta = minetest.get_meta(pos)
+			meta:set_string("infotext", S("Battery - stores energy, generates energy from fuel, can power nearby machines," ..
+				" or accelerate/run furnace above it"))
+			meta:set_string("owner", placer:get_player_name())
+
+			meta:set_float("capacity", 3)
+			meta:set_float("maxpower", 1)
+			meta:set_float("energy", 0)
+			meta:set_int("upgrade", 0) -- upgrade level determines max energy output
+			meta:set_int("t", 0); meta:set_int("activation_count", 0)
+
 			local inv = meta:get_inventory()
+			inv:set_size("fuel", 1) -- place to put crystals
+			inv:set_size("upgrade", 2 * 2)
 
-			return meta:get_string("owner") == player:get_player_name() and
-				inv:is_empty("upgrade") and inv:is_empty("fuel") -- fuel AND upgrade inv must be empty to be dug
-		else
-			return false
-		end
-	end,
-
-	on_receive_fields = function(_, _, fields, sender)
-		if fields.help then
-			minetest.show_formspec(sender:get_player_name(), "basic_machines:help_battery",
-				"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("Battery help")) .. ";" ..
-				F(S("Battery provides power to machines or furnace. It can either use " ..
-				"power crystals or convert ordinary furnace fuels into energy. 1 coal lump gives 1 energy." ..
-				"\n\nUpgrade with diamond blocks for more available power output or with " ..
-				"mese blocks for more power storage capacity.")) .. "]")
-		end
-	end,
-
-	allow_metadata_inventory_move = function()
-		return 0
-	end,
-
-	allow_metadata_inventory_put = function(pos, _, _, stack, player)
-		if minetest.is_protected(pos, player:get_player_name()) then return 0 end
-		return stack:get_count()
-	end,
-
-	allow_metadata_inventory_take = function(pos, _, _, stack, player)
-		if minetest.is_protected(pos, player:get_player_name()) then return 0 end
-		return stack:get_count()
-	end,
-
-	on_metadata_inventory_put = function(pos, listname)
-		if listname == "fuel" then
-			battery_recharge(pos)
-		elseif listname == "upgrade" then
-			local meta = minetest.get_meta(pos)
-			battery_upgrade(meta, pos)
 			battery_update_form(meta)
-		end
-	end,
+		end,
 
-	on_metadata_inventory_take = function(pos, listname)
-		if listname == "upgrade" then
-			local meta = minetest.get_meta(pos)
-			battery_upgrade(meta, pos)
-			battery_update_form(meta)
-		end
-	end,
+		can_dig = function(pos, player)
+			return basic_machines.can_dig(pos, player, {"upgrade", "fuel"})
+		end,
 
-	effector = {
-		action_on = function(pos, _)
-			local meta = minetest.get_meta(pos)
-			local energy = meta:get_float("energy")
+		on_receive_fields = function(_, _, fields, sender)
+			if fields.help then
+				minetest.show_formspec(sender:get_player_name(), "basic_machines:help_battery",
+					"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("Battery help")) .. ";" ..
+					F(S("Battery provides power to machines or furnace. It can either use " ..
+					"power crystals or convert ordinary furnace fuels into energy. 1 coal lump gives 1 energy." ..
+					"\n\nUpgrade with diamond blocks for more available power output or with " ..
+					"mese blocks for more power storage capacity.")) .. "]")
+			end
+		end,
 
-			-- try to power furnace on top of it
-			if energy >= 1 then -- need at least 1 energy
-				local fpos = {x = pos.x, y = pos.y + 1, z = pos.z} -- furnace pos
-				local node = minetest.get_node(fpos).name
-				if node == "default:furnace_active" or node == "default:furnace" then
-					local t0 = meta:get_int("ftime") -- furnace time
-					local t1 = minetest.get_gametime()
-					local fmeta = minetest.get_meta(fpos)
+		allow_metadata_inventory_move = function()
+			return 0
+		end,
 
-					if t1 - t0 < machines_minstep then -- to prevent too quick furnace acceleration, punishment is cooking reset
-						if t1 - t0 < 0 then meta:set_int("ftime", 0) end
-						fmeta:set_float("src_time", 0); return
-					end
-					meta:set_int("ftime", t1)
+		allow_metadata_inventory_put = function(pos, _, _, stack, player)
+			if minetest.is_protected(pos, player:get_player_name()) then return 0 end
+			return stack:get_count()
+		end,
 
-					local fuel_time = fmeta:get_float("fuel_time")
-					local fuel_totaltime = fmeta:get_float("fuel_totaltime")
-					local upgrade = meta:get_int("upgrade") * 0.1
-					local energy_new = energy - 0.25 * upgrade -- use energy to accelerate burning
+		allow_metadata_inventory_take = function(pos, _, _, stack, player)
+			if minetest.is_protected(pos, player:get_player_name()) then return 0 end
+			return stack:get_count()
+		end,
 
-					-- to add burn time: must burn for at least 40 secs or furnace out of fuel
-					if fuel_time > 40 or fuel_totaltime == 0 or node == "default:furnace" then
-						fmeta:set_float("fuel_totaltime", 60); fmeta:set_float("fuel_time", 0) -- add 60 seconds burn time to furnace
-						energy_new = energy_new - 0.5 -- use up energy to add fuel
+		on_metadata_inventory_put = function(pos, listname)
+			if listname == "fuel" then
+				battery_recharge(pos)
+			elseif listname == "upgrade" then
+				local meta = minetest.get_meta(pos)
+				battery_upgrade(meta, pos)
+				battery_update_form(meta)
+			end
+		end,
 
-						-- make furnace start if not already started
-						if node ~= "default:furnace_active" and machines_activate_furnace then
-							machines_activate_furnace(fpos, _, _, vstack, vbattery)
+		on_metadata_inventory_take = function(pos, listname)
+			if listname == "upgrade" then
+				local meta = minetest.get_meta(pos)
+				battery_upgrade(meta, pos)
+				battery_update_form(meta)
+			end
+		end,
+
+		on_blast = function(pos, intensity)
+			return basic_machines.on_blast(pos, intensity, "basic_machines:battery_0", {"upgrade", "fuel"})
+		end,
+
+		effector = {
+			action_on = function(pos, _)
+				local meta = minetest.get_meta(pos)
+				local energy = meta:get_float("energy")
+
+				-- try to power furnace on top of it
+				if energy >= 1 then -- need at least 1 energy
+					local fpos = {x = pos.x, y = pos.y + 1, z = pos.z} -- furnace pos
+					local node = minetest.get_node(fpos).name
+					if node == "default:furnace_active" or node == "default:furnace" then
+						local t0 = meta:get_int("ftime") -- furnace time
+						local t1 = minetest.get_gametime()
+						local fmeta = minetest.get_meta(fpos)
+
+						if t1 - t0 < machines_minstep then -- to prevent too quick furnace acceleration, punishment is cooking reset
+							if t1 - t0 < 0 then meta:set_int("ftime", 0) end
+							fmeta:set_float("src_time", 0); return
 						end
-					end
+						meta:set_int("ftime", t1)
 
-					-- only accelerate if we had enough energy
-					-- note: upgrade * 0.1 * 0.25 < power_rod is limit upgrade, so upgrade = 40 * 100 = 4000
-					if energy_new < 0 then
-						energy_new = 0
-					else
-						-- accelerated smelt: with 99 upgrade battery furnace works 11x faster
-						fmeta:set_float("src_time", fmeta:get_float("src_time") + machines_timer * upgrade)
-					end
+						local fuel_time = fmeta:get_float("fuel_time")
+						local fuel_totaltime = fmeta:get_float("fuel_totaltime")
+						local upgrade = meta:get_int("upgrade") * 0.1
+						local energy_new = energy - 0.25 * upgrade -- use energy to accelerate burning
 
-					if energy_new > 0 then -- no need to recharge yet, will still work next time
-						meta:set_float("energy", energy_new)
-						local capacity = meta:get_float("capacity")
-						swap_battery(energy_new, energy, capacity, pos)
-						-- update energy display
-						meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy_new * 10) / 10, capacity))
-					else
-						local energy_recharge = battery_recharge(pos, energy_new, "recharge_furnace")
-						if energy_recharge ~= energy_new then
-							meta:set_float("energy", energy_recharge)
+						-- to add burn time: must burn for at least 40 secs or furnace out of fuel
+						if fuel_time > 40 or fuel_totaltime == 0 or node == "default:furnace" then
+							fmeta:set_float("fuel_totaltime", 60); fmeta:set_float("fuel_time", 0) -- add 60 seconds burn time to furnace
+							energy_new = energy_new - 0.5 -- use up energy to add fuel
+
+							-- make furnace start if not already started
+							if node ~= "default:furnace_active" and machines_activate_furnace then
+								machines_activate_furnace(fpos, _, _, vstack, vbattery)
+							end
 						end
-					end
 
-					return
+						-- only accelerate if we had enough energy
+						-- note: upgrade * 0.1 * 0.25 < power_rod is limit upgrade, so upgrade = 40 * 100 = 4000
+						if energy_new < 0 then
+							energy_new = 0
+						else
+							-- accelerated smelt: with 99 upgrade battery furnace works 11x faster
+							fmeta:set_float("src_time", fmeta:get_float("src_time") + machines_timer * upgrade)
+						end
+
+						if energy_new > 0 then -- no need to recharge yet, will still work next time
+							meta:set_float("energy", energy_new)
+							local capacity = meta:get_float("capacity")
+							swap_battery(energy_new, energy, capacity, pos)
+							-- update energy display
+							meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy_new), capacity))
+						else
+							local energy_recharge = battery_recharge(pos, energy_new, "recharge_furnace")
+							if energy_recharge ~= energy_new then
+								meta:set_float("energy", energy_recharge)
+							end
+						end
+
+						return
+					end
+				end
+
+				local capacity = meta:get_float("capacity")
+				if energy < capacity then -- not full, try to recharge
+					battery_recharge(pos, energy) -- try to recharge by converting inserted fuel/power crystals into energy
+				else -- update energy display
+					meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy), capacity))
 				end
 			end
-
-			local capacity = meta:get_float("capacity")
-			if energy < capacity then -- not full, try to recharge
-				battery_recharge(pos, energy) -- try to recharge by converting inserted fuel/power crystals into energy
-			else -- update energy display
-				meta:set_string("infotext", S("Energy: @1 / @2", math.ceil(energy * 10) / 10, capacity))
-			end
-		end
-	}
-})
+		}
+	})
+end
 
 -- various battery levels: 0, 1, 2 (2 >= 66%, 1 >= 33%, 0>=0%)
-local batdef = table.copy(minetest.registered_nodes["basic_machines:battery_0"])
-batdef.groups.not_in_creative_inventory = 1
-
-for i = 1, 2 do
-	batdef.tiles[3] = "basic_machines_battery_" .. i .. ".png"
-	minetest.register_node("basic_machines:battery_" .. i, batdef)
-end
+register_battery("basic_machines:battery_0",
+	{cracky = 3}, -- groups
+	{"basic_machines_outlet.png", "basic_machines_battery.png", "basic_machines_battery_0.png"} -- tiles
+)
+register_battery("basic_machines:battery_1",
+	{cracky = 3, not_in_creative_inventory = 1},
+	{"basic_machines_outlet.png", "basic_machines_battery.png", "basic_machines_battery_1.png"}
+)
+register_battery("basic_machines:battery_2",
+	{cracky = 3, not_in_creative_inventory = 1},
+	{"basic_machines_outlet.png", "basic_machines_battery.png", "basic_machines_battery_2.png"}
+)
 
 
 -- GENERATOR
@@ -474,10 +491,12 @@ local function generator_upgrade(meta)
 	meta:set_int("upgrade", count)
 end
 
-minetest.register_node("basic_machines:generator", {
+local machine_name = "basic_machines:generator"
+minetest.register_node(machine_name, {
 	description = S("Generator"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_generator.png"},
+	is_ground_content = false,
 	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
@@ -503,10 +522,9 @@ minetest.register_node("basic_machines:generator", {
 	can_dig = function(pos, player) -- fuel inv is not so important as generator generates it
 		if player then
 			local meta = minetest.get_meta(pos)
-			return meta:get_inventory():is_empty("upgrade") and meta:get_string("owner") == player:get_player_name()
-		else
-			return false
+			return meta:get_string("owner") == player:get_player_name() and meta:get_inventory():is_empty("upgrade")
 		end
+		return false
 	end,
 
 	on_receive_fields = function(pos, _, fields, sender)
@@ -600,6 +618,10 @@ minetest.register_node("basic_machines:generator", {
 			generator_upgrade(meta)
 			generator_update_form(meta)
 		end
+	end,
+
+	on_blast = function(pos, intensity)
+		return basic_machines.on_blast(pos, intensity, machine_name, {"upgrade"})
 	end
 })
 

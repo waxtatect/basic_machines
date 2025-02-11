@@ -1,6 +1,6 @@
 -- ENVIRO block: change physics and skybox for players
 -- rnd 2016
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -80,13 +80,15 @@ local function toggle_visibility(player, b)
 end
 
 -- environment changer
-minetest.register_node("basic_machines:enviro", {
+local machine_name = "basic_machines:enviro"
+minetest.register_node(machine_name, {
 	description = S("Environment Changer"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_enviro.png"},
 	drawtype = "allfaces",
 	paramtype = "light",
 	param1 = 1,
+	is_ground_content = false,
 	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
@@ -111,13 +113,8 @@ minetest.register_node("basic_machines:enviro", {
 		enviro_update_form(meta)
 	end,
 
-	can_dig = function(pos, player) -- don't dig if fuel is inside, cause it will be destroyed
-		if player then
-			local meta = minetest.get_meta(pos)
-			return meta:get_inventory():is_empty("fuel") and meta:get_string("owner") == player:get_player_name()
-		else
-			return false
-		end
+	can_dig = function(pos, player)
+		return basic_machines.can_dig(pos, player, {"fuel"}) -- don't dig if fuel is inside, cause it will be destroyed
 	end,
 
 	on_receive_fields = function(pos, _, fields, sender)
@@ -192,6 +189,10 @@ Sky:		-, surface, cave or space
 	allow_metadata_inventory_take = function(pos, _, _, stack, player)
 		if minetest.is_protected(pos, player:get_player_name()) then return 0 end
 		return stack:get_count()
+	end,
+
+	on_blast = function(pos, intensity)
+		return basic_machines.on_blast(pos, intensity, machine_name, {"fuel"})
 	end,
 
 	effector = {

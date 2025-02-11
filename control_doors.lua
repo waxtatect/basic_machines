@@ -1,6 +1,6 @@
 -- Make doors open/close with signal
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 -- local S = basic_machines.S
@@ -42,73 +42,76 @@ local doors = {}
 
 -- cool_trees
 if minetest.global_exists("birch") then
-	table.insert(doors, "doors:door_birch_wood")
+	doors[#doors + 1] = "doors:door_birch_wood"
 end
 
 if minetest.get_modpath("chestnuttree") then
-	table.insert(doors, "doors:door_chestnut_wood")
+	doors[#doors + 1] = "doors:door_chestnut_wood"
 end
 
 if minetest.get_modpath("clementinetree") then
-	table.insert(doors, "doors:door_clementinetree_wood")
+	doors[#doors + 1] = "doors:door_clementinetree_wood"
 end
 
 if minetest.get_modpath("larch") then
-	table.insert(doors, "doors:door_larch_wood")
+	doors[#doors + 1] = "doors:door_larch_wood"
 end
 
 if minetest.get_modpath("maple") then
-	table.insert(doors, "doors:door_maple_wood")
+	doors[#doors + 1] = "doors:door_maple_wood"
 end
 
 if minetest.get_modpath("oak") then
-	table.insert(doors, "doors:door_oak_wood")
+	doors[#doors + 1] = "doors:door_oak_wood"
 end
 
 if minetest.get_modpath("palm") then
-	table.insert(doors, "doors:door_palm")
+	doors[#doors + 1] = "doors:door_palm"
 end
 --
 
 if use_doors then
-	table.insert(doors, "doors:door_glass")
-	table.insert(doors, "doors:door_obsidian_glass")
-	table.insert(doors, "doors:door_steel")
-	table.insert(doors, "doors:door_wood")
+	local i = #doors
+	doors[i + 1] = "doors:door_glass"
+	doors[i + 2] = "doors:door_obsidian_glass"
+	doors[i + 3] = "doors:door_steel"
+	doors[i + 4] = "doors:door_wood"
 end
 
 if minetest.get_modpath("extra_doors") then
-	table.insert(doors, "doors:door_barn1")
-	table.insert(doors, "doors:door_barn2")
-	table.insert(doors, "doors:door_castle1")
-	table.insert(doors, "doors:door_castle2")
-	table.insert(doors, "doors:door_cottage1")
-	table.insert(doors, "doors:door_cottage2")
-	table.insert(doors, "doors:door_dungeon1")
-	table.insert(doors, "doors:door_dungeon2")
-	table.insert(doors, "doors:door_french")
-	table.insert(doors, "doors:door_japanese")
-	table.insert(doors, "doors:door_mansion1")
-	table.insert(doors, "doors:door_mansion2")
-	table.insert(doors, "doors:door_steelglass1")
-	table.insert(doors, "doors:door_steelglass2")
-	table.insert(doors, "doors:door_steelpanel1")
-	table.insert(doors, "doors:door_woodglass1")
-	table.insert(doors, "doors:door_woodglass2")
-	table.insert(doors, "doors:door_woodpanel1")
+	local i = #doors
+	doors[i + 1] = "doors:door_barn1"
+	doors[i + 2] = "doors:door_barn2"
+	doors[i + 3] = "doors:door_castle1"
+	doors[i + 4] = "doors:door_castle2"
+	doors[i + 5] = "doors:door_cottage1"
+	doors[i + 6] = "doors:door_cottage2"
+	doors[i + 7] = "doors:door_dungeon1"
+	doors[i + 8] = "doors:door_dungeon2"
+	doors[i + 9] = "doors:door_french"
+	doors[i + 10] = "doors:door_japanese"
+	doors[i + 11] = "doors:door_mansion1"
+	doors[i + 12] = "doors:door_mansion2"
+	doors[i + 13] = "doors:door_steelglass1"
+	doors[i + 14] = "doors:door_steelglass2"
+	doors[i + 15] = "doors:door_steelpanel1"
+	doors[i + 16] = "doors:door_woodglass1"
+	doors[i + 17] = "doors:door_woodglass2"
+	doors[i + 18] = "doors:door_woodpanel1"
 end
 
 if minetest.global_exists("xdecor") then
-	table.insert(doors, "doors:japanese_door")
-	table.insert(doors, "doors:prison_door")
-	table.insert(doors, "doors:rusty_prison_door")
-	table.insert(doors, "doors:screen_door")
-	table.insert(doors, "doors:slide_door")
-	table.insert(doors, "doors:woodglass_door")
+	local i = #doors
+	doors[i + 1] = "doors:japanese_door"
+	doors[i + 2] = "doors:prison_door"
+	doors[i + 3] = "doors:rusty_prison_door"
+	doors[i + 4] = "doors:screen_door"
+	doors[i + 5] = "doors:slide_door"
+	doors[i + 6] = "doors:woodglass_door"
 end
 
 if use_xpanes then
-	table.insert(doors, "xpanes:door_steel_bar")
+	doors[#doors + 1] = "xpanes:door_steel_bar"
 end
 
 for _, door in ipairs(doors) do
@@ -122,12 +125,13 @@ end
 local trapdoors = {}
 
 if use_doors then
-	table.insert(trapdoors, "doors:trapdoor")
-	table.insert(trapdoors, "doors:trapdoor_steel")
+	local i = #trapdoors
+	trapdoors[i + 1] = "doors:trapdoor"
+	trapdoors[i + 2] = "doors:trapdoor_steel"
 end
 
 if use_xpanes then
-	table.insert(trapdoors, "xpanes:trapdoor_steel_bar")
+	trapdoors[#trapdoors + 1] = "xpanes:trapdoor_steel_bar"
 end
 
 for _, trapdoor in ipairs(trapdoors) do

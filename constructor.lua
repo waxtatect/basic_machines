@@ -90,6 +90,7 @@ local function add_constructor(name, items, description, recipe)
 		description = description,
 		groups = {cracky = 3, constructor = 1},
 		tiles = {name:gsub(":", "_") .. ".png"},
+		is_ground_content = false,
 		sounds = basic_machines.sound_node_machine(),
 
 		after_place_node = function(pos, placer)
@@ -110,13 +111,8 @@ local function add_constructor(name, items, description, recipe)
 			constructor_update_form(name, meta)
 		end,
 
-		can_dig = function(pos, player) -- main inv must be empty to be dug
-			if player then
-				local meta = minetest.get_meta(pos)
-				return meta:get_inventory():is_empty("main") and meta:get_string("owner") == player:get_player_name()
-			else
-				return false
-			end
+		can_dig = function(pos, player)
+			return basic_machines.can_dig(pos, player, {"main"}) -- main inv must be empty to be dug
 		end,
 
 		on_receive_fields = function(pos, _, fields, sender)
@@ -158,6 +154,10 @@ local function add_constructor(name, items, description, recipe)
 				return 0
 			end
 			return stack:get_count()
+		end,
+
+		on_blast = function(pos, intensity)
+			return basic_machines.on_blast(pos, intensity, name, {"main"})
 		end,
 
 		effector = {

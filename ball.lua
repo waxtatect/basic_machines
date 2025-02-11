@@ -322,7 +322,8 @@ local function ball_spawner_update_form(meta)
 		"]button[2.75,5.5;1,0.8;help;" .. F(S("help")) .. "]button_exit[4,5.5;1,0.8;OK;" .. F(S("OK")) .. "]")
 end
 
-minetest.register_node("basic_machines:ball_spawner", {
+local machine_name = "basic_machines:ball_spawner"
+minetest.register_node(machine_name, {
 	description = S("Ball Spawner"),
 	groups = {cracky = 3, oddly_breakable_by_hand = 1},
 	drawtype = "allfaces",
@@ -330,6 +331,7 @@ minetest.register_node("basic_machines:ball_spawner", {
 	use_texture_alpha = "clip",
 	paramtype = "light",
 	param1 = 1,
+	is_ground_content = false,
 	walkable = false,
 	sounds = basic_machines.sound_node_machine(),
 	drop = "",
@@ -497,6 +499,10 @@ Note: Hold sneak while digging to get the Ball Spawner
 ]], max_range, max_range, max_range, max_range, max_range, max_range,
 max_damage, lifetime, bounce_materials_help)) .. "]")
 		end
+	end,
+
+	on_blast = function(pos, intensity)
+		return basic_machines.on_blast(pos, intensity, machine_name)
 	end,
 
 	effector = {

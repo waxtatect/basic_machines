@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -167,10 +167,10 @@ basic_machines.add_mover_mode = function(name, description, tr_name, func) -- ju
 	})
 end
 
-basic_machines.get_palette_index = function(inventory)
+basic_machines.get_palette_index = function(stack)
 	local palette_index
-	if inventory:get_count() > 0 then
-		palette_index = tonumber(inventory:get_meta():get("palette_index"))
+	if stack:get_count() > 0 then
+		palette_index = tonumber(stack:get_meta():get("palette_index"))
 	end
 	return palette_index
 end

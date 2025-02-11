@@ -1,6 +1,6 @@
 -- Make other light blocks work with signals - can toggle on/off
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local function enable_toggle_light(name)
@@ -36,27 +36,30 @@ end
 local lights = {}
 
 if minetest.get_modpath("darkage") then
-	table.insert(lights, "darkage:lamp")
+	lights[#lights + 1] = "darkage:lamp"
 end
 
 if basic_machines.use_default then
-	table.insert(lights, "default:mese_post_light")
-	table.insert(lights, "default:mese_post_light_acacia_wood")
-	table.insert(lights, "default:mese_post_light_aspen_wood")
-	table.insert(lights, "default:mese_post_light_junglewood")
-	table.insert(lights, "default:mese_post_light_pine_wood")
-	table.insert(lights, "default:meselamp")
+	local i = #lights
+	lights[i + 1] = "default:mese_post_light"
+	lights[i + 2] = "default:mese_post_light_acacia_wood"
+	lights[i + 3] = "default:mese_post_light_aspen_wood"
+	lights[i + 4] = "default:mese_post_light_junglewood"
+	lights[i + 5] = "default:mese_post_light_pine_wood"
+	lights[i + 6] = "default:meselamp"
 end
 
 if minetest.global_exists("moreblocks") then
-	table.insert(lights, "moreblocks:slab_meselamp_1")
-	table.insert(lights, "moreblocks:slab_super_glow_glass")
+	local i = #lights
+	lights[i + 1] = "moreblocks:slab_meselamp_1"
+	lights[i + 2] = "moreblocks:slab_super_glow_glass"
 end
 
 if minetest.global_exists("xdecor") then
-	table.insert(lights, "xdecor:iron_lightbox")
-	table.insert(lights, "xdecor:wooden2_lightbox")
-	table.insert(lights, "xdecor:wooden_lightbox")
+	local i = #lights
+	lights[i + 1] = "xdecor:iron_lightbox"
+	lights[i + 2] = "xdecor:wooden2_lightbox"
+	lights[i + 3] = "xdecor:wooden_lightbox"
 end
 
 for _, light in ipairs(lights) do

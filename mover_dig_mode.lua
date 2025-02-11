@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -35,7 +35,7 @@ local function add_node_drops(node_name, pos, node, filter, node_def, param2)
 				for _, item in ipairs(drops.items) do
 					if itemlists_dropped >= max_items then break end
 					if math.random(1, item.rarity or 1) == 1 then
-						local inherit_color, palette_index = item.inherit_color
+						local inherit_color = item.inherit_color; local palette_index
 						if inherit_color then
 							if filter then
 								palette_index = param2
@@ -231,7 +231,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 			else -- try to place node as the owner would
 				sound_def = (node_def.sounds or {}).place -- preparing for sound_play
 
-				local placer, is_placed = minetest.get_player_by_name(owner)
+				local placer = minetest.get_player_by_name(owner); local is_placed
 				if placer then -- only if owner online
 					local on_place = node_def.on_place
 					if on_place then

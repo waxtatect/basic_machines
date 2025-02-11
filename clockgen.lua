@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local S = basic_machines.S
@@ -31,10 +31,12 @@ minetest.register_abm({
 	end
 })
 
-minetest.register_node("basic_machines:clockgen", {
+local machine_name = "basic_machines:clockgen"
+minetest.register_node(machine_name, {
 	description = S("Clock Generator"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_clock_generator.png"},
+	is_ground_content = false,
 	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
@@ -55,9 +57,10 @@ minetest.register_node("basic_machines:clockgen", {
 		if minetest.check_player_privs(name, "machines") then meta:set_int("machines", 1) end
 	end,
 
-	can_dig = function(pos, player)
-		local owner = minetest.get_meta(pos):get_string("owner")
-		return player and owner == player:get_player_name() or owner == ""
+	can_dig = basic_machines.can_dig,
+
+	on_blast = function(pos, intensity)
+		return basic_machines.on_blast(pos, intensity, machine_name)
 	end
 })
 

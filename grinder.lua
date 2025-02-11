@@ -416,10 +416,12 @@ local function grinder_upgrade(meta)
 	meta:set_int("upgrade", upgrade == "basic_machines:grinder" and stack:get_count() or 0)
 end
 
-minetest.register_node("basic_machines:grinder", {
+local machine_name = "basic_machines:grinder"
+minetest.register_node(machine_name, {
 	description = S("Grinder"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_grinder.png"},
+	is_ground_content = false,
 	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
@@ -443,16 +445,7 @@ minetest.register_node("basic_machines:grinder", {
 	end,
 
 	can_dig = function(pos, player)
-		if player then
-			local meta = minetest.get_meta(pos)
-			local inv = meta:get_inventory()
-
-			return meta:get_string("owner") == player:get_player_name() and
-				inv:is_empty("upgrade") and inv:is_empty("src") and -- all inv must be empty to be dug
-				inv:is_empty("dst") and inv:is_empty("fuel")
-		else
-			return false
-		end
+		return basic_machines.can_dig(pos, player, {"upgrade", "src", "dst", "fuel"}) -- all inv must be empty to be dug
 	end,
 
 	on_receive_fields = function(pos, _, fields, sender)
@@ -507,6 +500,10 @@ minetest.register_node("basic_machines:grinder", {
 			grinder_upgrade(meta)
 			grinder_update_form(meta)
 		end
+	end,
+
+	on_blast = function(pos, intensity)
+		return basic_machines.on_blast(pos, intensity, machine_name, {"upgrade", "src", "dst", "fuel"})
 	end,
 
 	effector = {

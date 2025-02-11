@@ -164,11 +164,13 @@ local function autocraft(inventory, craft)
 	end
 end
 
-minetest.register_node("basic_machines:autocrafter", {
+local machine_name = "basic_machines:autocrafter"
+minetest.register_node(machine_name, {
 	description = S("Autocrafter"),
 	groups = {cracky = 3},
 	drawtype = "normal",
 	tiles = {"basic_machines_autocrafter.png"},
+	is_ground_content = false,
 	sounds = basic_machines.sound_node_machine(),
 
 	on_destruct = function(pos)
@@ -194,15 +196,7 @@ minetest.register_node("basic_machines:autocrafter", {
 	end,
 
 	can_dig = function(pos, player)
-		if player then
-			local meta = minetest.get_meta(pos)
-			local inv = meta:get_inventory()
-
-			return meta:get_string("owner") == player:get_player_name() and
-				inv:is_empty("src") and inv:is_empty("dst")
-		else
-			return false
-		end
+		return basic_machines.can_dig(pos, player, {"src", "dst"})
 	end,
 
 	allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
@@ -277,6 +271,10 @@ minetest.register_node("basic_machines:autocrafter", {
 		end
 
 		return stack:get_count()
+	end,
+
+	on_blast = function(pos, intensity)
+		return basic_machines.on_blast(pos, intensity, machine_name, {"src", "dst"})
 	end,
 
 	effector = { -- rnd: run machine when activated by signal

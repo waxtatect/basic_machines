@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -307,10 +307,12 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 	end
 end
 
-minetest.register_node("basic_machines:keypad", {
+local machine_name = "basic_machines:keypad"
+minetest.register_node(machine_name, {
 	description = S("Keypad"),
 	groups = {cracky = 2},
 	tiles = {"basic_machines_keypad.png"},
+	is_ground_content = false,
 	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
@@ -348,7 +350,8 @@ minetest.register_node("basic_machines:keypad", {
 
 	on_dig = function(pos, node, digger)
 		if digger and digger:is_player() then
-			if minetest.get_meta(pos):get_string("owner") == digger:get_player_name() then -- owner can always remove his keypad
+			local owner = minetest.get_meta(pos):get_string("owner")
+			if owner == digger:get_player_name() or owner == "" then -- owner can always remove his keypad
 				local node_removed = minetest.remove_node(pos)
 				if node_removed then
 					minetest.handle_node_drops(pos, {node.name}, digger)
@@ -357,6 +360,10 @@ minetest.register_node("basic_machines:keypad", {
 			end
 		end
 		return minetest.node_dig(pos, node, digger)
+	end,
+
+	on_blast = function(pos, intensity)
+		return basic_machines.on_blast(pos, intensity, machine_name)
 	end,
 
 	effector = {

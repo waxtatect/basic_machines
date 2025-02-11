@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -11,10 +11,12 @@ local detector_modelist_translated = -- translations of detector_modelist keys
 	table.concat({F(S("node")), F(S("player")), F(S("object")), F(S("inventory")), F(S("infotext")), F(S("light"))}, ",")
 local vector_add = vector.add
 
-minetest.register_node("basic_machines:detector", {
+local machine_name = "basic_machines:detector"
+minetest.register_node(machine_name, {
 	description = S("Detector"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_detector.png"},
+	is_ground_content = false,
 	sounds = basic_machines.sound_node_machine(),
 
 	after_place_node = function(pos, placer)
@@ -35,9 +37,7 @@ minetest.register_node("basic_machines:detector", {
 		meta:set_int("t", 0); meta:set_int("T", 0)
 	end,
 
-	can_dig = function(pos, player)
-		return player and minetest.get_meta(pos):get_string("owner") == player:get_player_name() or false
-	end,
+	can_dig = basic_machines.can_dig,
 
 	on_rightclick = function(pos, _, player)
 		local meta, name = minetest.get_meta(pos), player:get_player_name()
@@ -99,6 +99,10 @@ minetest.register_node("basic_machines:detector", {
 			inventory_list .. "button_exit[4,7.05;1,0.8;OK;" .. F(S("OK")) .. "]")
 	end,
 
+	on_blast = function(pos, intensity)
+		return basic_machines.on_blast(pos, intensity, machine_name)
+	end,
+
 	effector = {
 		action_on = function(pos, ttl)
 			if ttl < 1 then return end -- machines_TTL prevents infinite recursion
@@ -124,7 +128,7 @@ minetest.register_node("basic_machines:detector", {
 			local mode = meta:get_string("mode")
 			local pos1 = vector_add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")}) -- source1
 			local node = meta:get_string("node") -- detection filter
-			local detected_obj, trigger = nil, false
+			local detected_obj; local trigger = false
 			local NOT = meta:get_int("NOT")
 
 			if mode == "node" then

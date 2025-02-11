@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -70,7 +70,7 @@ local function inventory(_, meta, _, prefer, pos1, _, node1_name, _, pos2, mreve
 			return
 		end
 	elseif upgrade == -1 and minetest.registered_items[stack:get_name()] then -- admin, just add stuff
-		local inv2, stack_set = minetest.get_meta(pos2):get_inventory()
+		local inv2 = minetest.get_meta(pos2):get_inventory(); local stack_set
 		for i = 1, inv2:get_size(invName2) do -- try to find an empty stack to add the new stack
 			if inv2:get_stack(invName2, i):is_empty() then
 				inv2:set_stack(invName2, i, stack); stack_set = true; break

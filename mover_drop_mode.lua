@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -70,7 +70,7 @@ local function drop(_, meta, owner, prefer, pos1, node1, node1_name, source_ches
 				return
 			end
 		elseif minetest.get_node(pos2).name == "air" then -- drop items
-			local stack, removed_items = ItemStack(prefer)
+			local stack = ItemStack(prefer); local removed_items
 
 			local inv = minetest.get_meta(pos1):get_inventory()
 			if inv:contains_item("main", stack) then

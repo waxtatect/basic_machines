@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2023 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -53,10 +53,12 @@ basic_machines.get_distributor_form = function(pos)
 	return table.concat(form)
 end
 
-minetest.register_node("basic_machines:distributor", {
+local machine_name = "basic_machines:distributor"
+minetest.register_node(machine_name, {
 	description = S("Distributor"),
 	groups = {cracky = 3},
 	tiles = {"basic_machines_distributor.png"},
+	is_ground_content = false,
 	sounds = basic_machines.sound_node_machine(),
 
 	on_secondary_use = function(_, user)
@@ -89,14 +91,16 @@ minetest.register_node("basic_machines:distributor", {
 		meta:set_int("t", 0); meta:set_int("T", 0)
 	end,
 
-	can_dig = function(pos, player)
-		return player and minetest.get_meta(pos):get_string("owner") == player:get_player_name() or false
-	end,
+	can_dig = basic_machines.can_dig,
 
 	on_rightclick = function(pos, _, player)
 		minetest.show_formspec(player:get_player_name(),
 			"basic_machines:distributor_" .. minetest.pos_to_string(pos),
 			basic_machines.get_distributor_form(pos))
+	end,
+
+	on_blast = function(pos, intensity)
+		return basic_machines.on_blast(pos, intensity, machine_name)
 	end,
 
 	effector = {
