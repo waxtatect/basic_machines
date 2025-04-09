@@ -3,11 +3,39 @@
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
-local machines_minstep = basic_machines.properties.machines_minstep
-local machines_timer = basic_machines.properties.machines_timer
 local vector_add = vector.add
 
 local function pos_to_string(pos) return ("%s, %s, %s"):format(pos.x, pos.y, pos.z) end
+
+local function check_action(pos, ttl)
+	if ttl < 1 then return false end -- machines_TTL prevents infinite recursion
+
+	local meta = minetest.get_meta(pos)
+
+	local t0, t1 = meta:get_int("t"), minetest.get_gametime()
+	local T = meta:get_int("T") -- temperature
+
+	local machines_minstep = basic_machines.properties.machines_minstep
+	local machines_timer = basic_machines.properties.machines_timer
+	if t0 > t1 - machines_minstep then -- activated before natural time
+		T = T + 1
+	elseif T > 0 then
+		if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
+			T = 0; meta:set_string("infotext", "")
+		else
+			T = T - 1
+		end
+	end
+	meta:set_int("t", t1); meta:set_int("T", T)
+
+	if T > 2 then -- overheat
+		minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+		meta:set_string("infotext", S("Overheat! Temperature: @1", T))
+		return false
+	end
+
+	return true
+end
 
 basic_machines.get_distributor_form = function(pos)
 	local meta = minetest.get_meta(pos)
@@ -105,29 +133,8 @@ minetest.register_node(machine_name, {
 
 	effector = {
 		action_on = function(pos, ttl)
-			if ttl < 1 then return end -- machines_TTL prevents infinite recursion
-
+			if not check_action(pos, ttl) then return end
 			local meta = minetest.get_meta(pos)
-
-			local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-			local T = meta:get_int("T") -- temperature
-
-			if t0 > t1 - machines_minstep then -- activated before natural time
-				T = T + 1
-			elseif T > 0 then
-				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
-					T = 0; meta:set_string("infotext", "")
-				else
-					T = T - 1
-				end
-			end
-			meta:set_int("t", t1); meta:set_int("T", T)
-
-			if T > 2 then -- overheat
-				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
-				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
-				return
-			end
 
 			local function activate()
 				for i = 1, meta:get_int("n") do
@@ -169,29 +176,8 @@ minetest.register_node(machine_name, {
 		end,
 
 		action_off = function(pos, ttl)
-			if ttl < 1 then return end -- machines_TTL prevents infinite recursion
-
+			if not check_action(pos, ttl) then return end
 			local meta = minetest.get_meta(pos)
-
-			local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-			local T = meta:get_int("T") -- temperature
-
-			if t0 > t1 - machines_minstep then -- activated before natural time
-				T = T + 1
-			elseif T > 0 then
-				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
-					T = 0; meta:set_string("infotext", "")
-				else
-					T = T - 1
-				end
-			end
-			meta:set_int("t", t1); meta:set_int("T", T)
-
-			if T > 2 then -- overheat
-				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
-				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
-				return
-			end
 
 			local function activate()
 				for i = 1, meta:get_int("n") do

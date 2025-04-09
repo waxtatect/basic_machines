@@ -9,14 +9,9 @@
 
 local F, S = basic_machines.F, basic_machines.S
 local mover_upgrade_max = basic_machines.properties.mover_upgrade_max
-local machines_minstep = basic_machines.properties.machines_minstep
 local machines_operations = basic_machines.properties.machines_operations
-local machines_timer = basic_machines.properties.machines_timer
-local mover_max_temp = math.max(1, basic_machines.settings.mover_max_temp)
 local mover_no_large_stacks = basic_machines.settings.mover_no_large_stacks
 local twodigits_float = basic_machines.twodigits_float
-local temp_80P = mover_max_temp > 12 and math.ceil(mover_max_temp * 0.8)
-local temp_15P = math.ceil(mover_max_temp * 0.15)
 local vector_add = vector.add
 local math_min = math.min
 
@@ -559,6 +554,12 @@ minetest.register_node(machine_name, {
 
 	effector = {
 		action_on = function(pos, _)
+			local machines_minstep = basic_machines.properties.machines_minstep
+			local machines_timer = basic_machines.properties.machines_timer
+			local mover_max_temp = math.max(1, basic_machines.settings.mover_max_temp)
+			local temp_80P = mover_max_temp > 12 and math.ceil(mover_max_temp * 0.8)
+			local temp_15P = math.ceil(mover_max_temp * 0.15)
+
 			local meta = minetest.get_meta(pos)
 			local upgradetype = meta:get_int("upgradetype")
 			local third_upgradetype = upgradetype == 3
