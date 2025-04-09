@@ -553,7 +553,7 @@ minetest.register_node(machine_name, {
 	end,
 
 	effector = {
-		action_on = function(pos, _)
+		action_on = function(pos, repeats)
 			local machines_minstep = basic_machines.properties.machines_minstep
 			local machines_timer = basic_machines.properties.machines_timer
 			local mover_max_temp = math.max(1, basic_machines.settings.mover_max_temp)
@@ -561,7 +561,7 @@ minetest.register_node(machine_name, {
 			local temp_15P = math.ceil(mover_max_temp * 0.15)
 
 			local meta = minetest.get_meta(pos)
-			local upgradetype = meta:get_int("upgradetype")
+			local upgradetype = repeats > 1 and 3 or meta:get_int("upgradetype")
 			local third_upgradetype = upgradetype == 3
 			local msg
 
@@ -625,7 +625,7 @@ minetest.register_node(machine_name, {
 					local pc, dim = meta:get_int("pc"), meta:get_int("dim")
 
 					upgrade = meta:get_int("upgrade")
-					for i = 1, (upgrade == -1 and 1000 or upgrade) do -- up to 1000 blocks for admin
+					for i = 1, (upgrade == -1 and 1000 or upgrade * repeats) do -- up to 1000 blocks for admin
 						pc = (pc + 1) % dim
 						local yc = y0 + (pc % y1); local xpc = (pc - (pc % y1)) / y1
 						local xc = x0 + (xpc % x1)
@@ -692,7 +692,7 @@ minetest.register_node(machine_name, {
 				local length_pos1 = #pos1
 				if length_pos1 > 0 then
 					first_pos1 = pos1[1]
-					pos_protected, pos1, node1, node1_name, nodes1_hardness = pos1list_checks(pos1, length_pos1, owner, upgrade, meta)
+					pos_protected, pos1, node1, node1_name, nodes1_hardness = pos1list_checks(pos1, length_pos1, owner, upgrade * repeats, meta)
 				else
 					pos_protected, node1, node1_name = pos1_checks(pos1, owner)
 				end

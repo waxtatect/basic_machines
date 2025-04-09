@@ -136,13 +136,39 @@ minetest.register_node(machine_name, {
 			if not check_action(pos, ttl) then return end
 			local meta = minetest.get_meta(pos)
 
+			-- batch activations for these targets
+			local repeatable = {
+				["basic_machines:mover"] = true
+			}
 			local function activate()
-				for i = 1, meta:get_int("n") do
+				local repeats = 1
+				local n = meta:get_int("n")
+				for i = 1, n do
 					local activei = meta:get_int("active" .. i)
 					if activei ~= 0 then
-						local posi = vector_add(pos, {x = meta:get_int("x" .. i), y = meta:get_int("y" .. i), z = meta:get_int("z" .. i)})
+						local posi = vector_add(pos, {
+							x = meta:get_int("x" .. i),
+							y = meta:get_int("y" .. i),
+							z = meta:get_int("z" .. i)
+						})
+
 						local node = minetest.get_node(posi)
 						local def = minetest.registered_nodes[node.name]
+
+						if i ~= n and repeatable[def.name] then
+							local j = i + 1
+							local activej = meta:get_int("active" .. j)
+							local posj = vector_add(pos, {
+								x = meta:get_int("x" .. j),
+								y = meta:get_int("y" .. j),
+								z = meta:get_int("z" .. j)
+							})
+
+							if activei == activej and posi == posj then -- found duplicate entry
+								repeats = repeats + 1
+								goto activate_next
+							end
+						end
 
 						-- check if all elements exist, safe cause it checks from left to right
 						if def and (def.effector or def.mesecons and def.mesecons.effector) then
@@ -153,12 +179,18 @@ minetest.register_node(machine_name, {
 							local param = def.effector and (ttl - 1) or node
 
 							if (activei == 1 or activei == 2) and effector.action_on then -- normal OR only forward input ON
+								if repeatable[def.name] then
+									param = repeats
+								end
+
 								effector.action_on(posi, param)
 							elseif activei == -1 and effector.action_off then
 								effector.action_off(posi, param)
 							end
 						end
 					end
+					repeats = 1
+					::activate_next::
 				end
 			end
 
