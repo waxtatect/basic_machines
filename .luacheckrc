@@ -16,6 +16,7 @@ read_globals = {
 
 files["ball.lua"] = {globals = {"boneworld.killxp"}}
 files["grinder.lua"] = {read_globals = {"cg", "i3"}}
+files["init.lua"] = {read_globals = {"mtt"}}
 files["keypad.lua"] = {read_globals = {"signs_lib"}}
 files["machines_configuration.lua"] = {max_line_length = 190}
 files["mark.lua"] = {globals = {"machines"}}
@@ -26,5 +27,6 @@ files["mover_inventory_mode.lua"] = {max_line_length = 130}
 files["mover_normal_mode.lua"] = {max_line_length = 140}
 files["mover_object_mode.lua"] = {max_line_length = 200, read_globals = {"bucket"}}
 files["mover_transport_mode.lua"] = {max_line_length = 160}
+files["specs/mtt.lua"] = {read_globals = {"VoxelArea", "mtt"}}
 files["protect.lua"] = {globals = {"minetest.is_protected"}, read_globals = {"beerchat"}}
 files["technic_power.lua"] = {max_line_length = 140}
