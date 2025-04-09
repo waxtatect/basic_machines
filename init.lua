@@ -61,3 +61,8 @@ dofile(MP .. "control_doors.lua")			-- if you want open/close doors/trapdoors wi
 dofile(MP .. "control_lights.lua")			-- ability to toggle light for other light blocks
 
 print("[MOD] basic_machines " .. basic_machines.version .. " loaded.")
+
+-- TESTS and benchmarks
+if minetest.get_modpath("mtt") and mtt.enabled then
+	dofile(MP .. "specs/mtt.lua")
+end
