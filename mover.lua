@@ -9,16 +9,18 @@
 
 local F, S = basic_machines.F, basic_machines.S
 local mover_upgrade_max = basic_machines.properties.mover_upgrade_max
-local machines_minstep = basic_machines.properties.machines_minstep
 local machines_operations = basic_machines.properties.machines_operations
-local machines_timer = basic_machines.properties.machines_timer
 local mover_max_temp = math.max(1, basic_machines.settings.mover_max_temp)
+local mover_modes_temp = basic_machines.settings.mover_modes_temp
+if mover_modes_temp ~= "" then
+	mover_modes_temp = mover_modes_temp:split()
+	for i, temp in ipairs(mover_modes_temp) do
+		mover_modes_temp[i] = math.max(0, tonumber(temp))
+	end
+else
+	mover_modes_temp = nil
+end
 local mover_no_large_stacks = basic_machines.settings.mover_no_large_stacks
-local twodigits_float = basic_machines.twodigits_float
-local temp_80P = mover_max_temp > 12 and math.ceil(mover_max_temp * 0.8)
-local temp_15P = math.ceil(mover_max_temp * 0.15)
-local vector_add = vector.add
-local math_min = math.min
 
 -- *** MOVER SETTINGS *** --
 local mover = {
@@ -122,6 +124,7 @@ local mover = {
 		["basic_machines:generator"] = {["upgrade"] = 1},
 		["basic_machines:grinder"] = {["upgrade"] = 1},
 		["basic_machines:mover"] = true,
+		["basic_machines:recycler"] = {["upgrade"] = 1},
 		["moreblocks:circular_saw"] = true,
 		["smartshop:shop"] = true,
 		["xdecor:workbench"] = {["forms"] = 1, ["input"] = 1}
@@ -161,7 +164,7 @@ local mover = {
 	upgrades = {
 		["default:mese"] = {id = 1, max = mover_upgrade_max},	-- for all modes
 		["default:diamondblock"] = {id = 2, max = 99},			-- object mode
-		["basic_machines:mover"] = {id = 3, max = 74}			-- normal and dig modes
+		["basic_machines:mover"] = {id = 3, max = 55}			-- normal and dig modes
 	}
 }
 
@@ -288,13 +291,16 @@ minetest.register_chatcommand("mover_intro", {
 	end
 })
 
-local mover_upgrades = mover.upgrades
-local mover_revupgrades = mover.revupgrades
+local is_protected = minetest.is_protected
+local vector_add, math_min = vector.add, math.min
 local mover_modes = mover.modes
 local get_distance = basic_machines.get_distance
+local temp_10P = math.ceil(mover_max_temp * 0.1)
+local temp_80P = mover_max_temp > 12 and math.ceil(mover_max_temp * 0.8) or nil
+local twodigits_float = basic_machines.twodigits_float
 
 local function pos1_checks(pos, owner)
-	if minetest.is_protected(pos, owner) then -- protection check
+	if is_protected(pos, owner) then -- protection check
 		return true
 	end
 	local node = minetest.get_node(pos)
@@ -302,7 +308,6 @@ local function pos1_checks(pos, owner)
 end
 
 local function pos1list_checks(pos, length_pos, owner, upgrade, meta)
-	local is_protected = minetest.is_protected
 	local node, node_name, count = {}, {}, 0
 	local mover_hardness, hardness = mover.hardness, 0
 	local maxpower -- battery maximum power output
@@ -345,7 +350,6 @@ local function is_pos2_protected(pos, owner, mode_third_upgradetype)
 	if mode_third_upgradetype then
 		local length_pos = #pos
 		if length_pos > 0 then
-			local is_protected = minetest.is_protected
 			for i = 1, length_pos do
 				if is_protected(pos[i], owner) then
 					return true
@@ -354,7 +358,7 @@ local function is_pos2_protected(pos, owner, mode_third_upgradetype)
 			return false, length_pos
 		end
 	end
-	return minetest.is_protected(pos, owner) -- protection check
+	return is_protected(pos, owner) -- protection check
 end
 
 local machine_name = "basic_machines:mover"
@@ -381,7 +385,6 @@ minetest.register_node(machine_name, {
 		meta:set_string("mode", "normal")
 		meta:set_int("upgradetype", 0); meta:set_int("upgrade", 1)
 		meta:set_int("seltab", 1) -- 0: undefined, 1: mode tab, 2: positions tab
-		meta:set_int("t", 0); meta:set_int("T", 0); meta:set_int("activation_count", 0)
 
 		basic_machines.find_and_connect_battery(pos, meta) -- try to find battery early
 		if minetest.check_player_privs(name, "privs") then
@@ -450,7 +453,7 @@ minetest.register_node(machine_name, {
 
 	allow_metadata_inventory_put = function(pos, listname, _, stack, player)
 		local name = player:get_player_name()
-		if minetest.is_protected(pos, name) then return 0 end
+		if is_protected(pos, name) then return 0 end
 		local meta = minetest.get_meta(pos)
 
 		if listname == "filter" then
@@ -483,7 +486,7 @@ minetest.register_node(machine_name, {
 				basic_machines.get_mover_form(pos))
 		elseif listname == "upgrade" then
 			local stack_name = stack:get_name()
-			local mover_upgrade = mover_upgrades[stack_name]
+			local mover_upgrade = mover.upgrades[stack_name]
 			if mover_upgrade then
 				local inv_stack = meta:get_inventory():get_stack("upgrade", 1)
 				local inv_stack_is_empty = inv_stack:is_empty()
@@ -510,7 +513,7 @@ minetest.register_node(machine_name, {
 
 	allow_metadata_inventory_take = function(pos, listname, _, stack, player)
 		local name = player:get_player_name()
-		if minetest.is_protected(pos, name) then return 0 end
+		if is_protected(pos, name) then return 0 end
 		local meta = minetest.get_meta(pos)
 
 		if listname == "filter" then
@@ -536,7 +539,7 @@ minetest.register_node(machine_name, {
 				meta:set_int("upgrade", -1) -- means operations will be for free
 			else
 				local stack_name = stack:get_name()
-				local mover_upgrade = mover_upgrades[stack_name]
+				local mover_upgrade = mover.upgrades[stack_name]
 				if mover_upgrade then
 					local inv_stack = meta:get_inventory():get_stack("upgrade", 1)
 					if stack_name == inv_stack:get_name() then
@@ -560,37 +563,37 @@ minetest.register_node(machine_name, {
 	effector = {
 		action_on = function(pos, _)
 			local meta = minetest.get_meta(pos)
+			local mode = meta:get_string("mode")
 			local upgradetype = meta:get_int("upgradetype")
 			local third_upgradetype = upgradetype == 3
-			local msg
 
 			-- temperature
-			local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-			local tn, T = t1 - machines_minstep, meta:get_int("T") -- temperature
+			local mode_max_temp
+			if mover_modes_temp then -- override mode temperature from settings
+				mode_max_temp = mover_modes_temp[mover_modes[mode].id] or mover_max_temp
+			else
+				mode_max_temp = mover_modes[mode].temp or mover_max_temp
+			end
 
-			if t0 <= tn and T < mover_max_temp then
+			local T_MAX, T
+
+			if third_upgradetype or mode_max_temp < 5 then
+				T_MAX = third_upgradetype and 2 or mode_max_temp
+				T = basic_machines.check_action(pos, true)
+			else
+				T_MAX = mode_max_temp
+				T = basic_machines.check_action(pos, nil, nil, T_MAX, true)
+			end
+
+			if T > T_MAX then -- overheat
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, gain = 0.25, max_hear_distance = 16}, true)
+				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
+				return
+			elseif T == -1 then -- reset
 				T = 0
 			end
 
-			if t0 > tn then -- activated before natural time
-				T = T + 1
-			elseif T > mover_max_temp or third_upgradetype and T > 0 then
-				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
-					T = 0; msg = ""
-				else
-					T = T - 1
-				end
-			end
-			meta:set_int("t", t1); meta:set_int("T", T)
-
-			if T > mover_max_temp or third_upgradetype and T > 2 then
-				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
-				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
-				return
-			end
-
 			-- variables
-			local mode = meta:get_string("mode")
 			local object = mode == "object"
 			local mreverse = meta:get_int("reverse")
 			local mode_third_upgradetype = third_upgradetype and (mode == "normal" or mode == "dig")
@@ -624,7 +627,8 @@ minetest.register_node(machine_name, {
 					local pc, dim = meta:get_int("pc"), meta:get_int("dim")
 
 					upgrade = meta:get_int("upgrade")
-					for i = 1, (upgrade == -1 and 1000 or upgrade) do -- up to 1000 blocks for admin
+					local n = upgrade == -1 and 1000 or upgrade
+					for i = 1, n do -- up to 1000 blocks for admin
 						pc = (pc + 1) % dim
 						local yc = y0 + (pc % y1); local xpc = (pc - (pc % y1)) / y1
 						local xc = x0 + (xpc % x1)
@@ -661,7 +665,7 @@ minetest.register_node(machine_name, {
 					pos1 = vector_add(pos, {x = xc, y = yc, z = zc})
 
 					local markerN = machines.markerN[owner]
-					if markerN and T < temp_15P then
+					if markerN and T < temp_10P then
 						local lua_entity = markerN:get_luaentity()
 						if lua_entity and vector.equals(pos, lua_entity._origin or {}) then
 							markerN:set_pos(pos1) -- mark current position
@@ -700,22 +704,22 @@ minetest.register_node(machine_name, {
 			end
 
 			if pos_protected then -- protection check
-				meta:set_int("T", T + math.ceil(mover_max_temp * 0.2))
+				basic_machines.set_machines_cache(pos, nil, T + math.ceil(T_MAX * 0.2))
 				meta:set_string("infotext", S("Mover block. Protection fail.")); return
 			elseif not object and node1_name == "air" or node1_name == "ignore" then -- node check
-				return -- nothing to move
+				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: -.", T)); return -- nothing to move
 			end
 
 			-- check pos2
 			local length_pos2
 			pos_protected, length_pos2 = is_pos2_protected(pos2, owner, mode_third_upgradetype)
 			if pos_protected then -- protection check
-				meta:set_int("T", T + math.ceil(mover_max_temp * 0.2))
+				basic_machines.set_machines_cache(pos, nil, T + math.ceil(T_MAX * 0.2))
 				meta:set_string("infotext", S("Mover block. Protection fail.")); return
 			end
 
 			-- fuel
-			local fuel_cost
+			local fuel_cost, msg
 			local fuel = meta:get_float("fuel")
 
 			if upgrade == -1 then
@@ -723,13 +727,14 @@ minetest.register_node(machine_name, {
 			else -- calculate fuel cost
 				if object then
 					if meta:get_int("elevator") == 1 then -- check if elevator mode
-						local requirement = basic_machines.calculate_elevator_requirement(get_distance(pos, pos2))
+						local posn; if mreverse == 1 then posn = pos1 else posn = pos2 end
+						local requirement = basic_machines.calculate_elevator_requirement(get_distance(pos, posn)) -- distance mover-target
 						if (upgrade - 1) >= requirement and (meta:get_int("upgradetype") == 2 or
 							meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:diamondblock") -- for compatibility
 						then
 							fuel_cost = 0
 						else
-							local upgrade_item = mover_revupgrades[2]
+							local upgrade_item = mover.revupgrades[2]
 							local description = basic_machines.get_item_description(upgrade_item)
 							meta:set_string("infotext",
 								S("MOVER: Elevator error. Need at least @1 of '@2' (@3) in upgrade (1 for every @4 distance).",
@@ -780,9 +785,9 @@ minetest.register_node(machine_name, {
 					end
 
 					if temp_80P and not third_upgradetype then
-						if T > temp_80P then
-							fuel_cost = fuel_cost + (0.2 / mover_max_temp) * T * fuel_cost
-						elseif T < temp_15P then
+						if T > mode_max_temp * 0.8 or T > temp_80P then
+							fuel_cost = fuel_cost + (1 / mover_max_temp) * T * fuel_cost
+						elseif T < temp_10P then
 							fuel_cost = fuel_cost * 0.97
 						end
 					end
@@ -829,26 +834,21 @@ minetest.register_node(machine_name, {
 			end
 
 			-- do the thing
-			local activation_count, new_fuel_cost = (mover_modes[mode] or {}).task(pos, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2, mreverse, upgradetype, upgrade, fuel_cost)
+			local done, new_fuel_cost = mover_modes[mode].task(pos, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2, mreverse, upgradetype, upgrade, fuel_cost, T)
 
-			if activation_count then -- something happened
-				if t0 > tn then
-					meta:set_int("activation_count", activation_count + 1)
-				elseif activation_count > 0 then
-					meta:set_int("activation_count", 0)
-				end
+			if done then -- something happened
 				fuel_cost = new_fuel_cost or fuel_cost
 				if fuel_cost ~= 0 then
 					fuel = fuel - fuel_cost; meta:set_float("fuel", fuel) -- fuel remaining
 				end
-				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
 			elseif fuel_cost > 1.5 then
 				fuel = fuel - fuel_cost * 0.03; meta:set_float("fuel", fuel) -- 3% fuel cost if no task done
-				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
 			elseif msg then -- mover refueled
 				meta:set_float("fuel", fuel)
 				meta:set_string("infotext", msg)
 			end
+			-- update infotext
+			meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
 		end,
 
 		action_off = function(pos, _) -- this toggles reverse option of mover

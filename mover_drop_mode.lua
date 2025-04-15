@@ -19,7 +19,7 @@ local function create_virtual_player(name)
 		get_player_control = function() return {} end}
 end
 
-local function drop(_, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2, mreverse)
+local function drop(_, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2, mreverse) -- , _, _, _, T)
 	prefer = prefer or meta:get_string("prefer")
 	source_chest = source_chest or mover_chests[node1_name]
 	local bonemeal, node1_param2
@@ -102,16 +102,14 @@ local function drop(_, meta, owner, prefer, pos1, node1, node1_name, source_ches
 		return
 	end
 
-	-- play sound
-	local activation_count = meta:get_int("activation_count")
-	-- if activation_count < 16 then
-		-- minetest.sound_play("basic_machines_transport", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
+	-- if T % 8 == 0 then -- play sound
+		-- minetest.sound_play("basic_machines_transport", {pos = pos2, max_hear_distance = 8}, true)
 	-- end
 
-	return activation_count
+	return true
 end
 
 basic_machines.add_mover_mode("drop",
 	F(S("This will take block/item out of chest (you need to set filter) and will drop it")),
-	F(S("drop")), drop
+	F(S("drop")), 32, drop
 )

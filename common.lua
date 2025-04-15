@@ -7,9 +7,9 @@ local S = minetest.get_translator("basic_machines")
 basic_machines = {
 	F = minetest.formspec_escape,
 	S = S,
-	version = "02/11/2025 (fork)",
+	version = "04/15/2025 (fork)",
 	properties = {
-		no_clock			= false,	-- if true all continuously running activities (clockgen/keypad) are disabled
+		no_clock			= false,	-- if true all continuously running activities (clock generators, keypads and balls) are disabled
 		machines_TTL		= 16,		-- time to live for signals, how many hops before signal dissipates
 		machines_minstep	= 1,		-- minimal allowed activation timestep, if faster machines overheat
 		machines_operations	= 10,		-- 1 coal will provide 10 mover basic operations (moving dirt 1 block distance)
@@ -32,6 +32,8 @@ basic_machines = {
 		mover_add_removed_items	= false,	-- always add the removed items in normal mode with target chest
 		mover_no_large_stacks	= false,	-- limit the stack count to its max in normal, drop and inventory mode
 		mover_max_temp			= 176,		-- overheat above this temperature, minimum 1
+		mover_modes_temp		= "",		-- modes maximum temperature override, minimum 0 for each
+											-- "<normal>,<dig>,<drop>,<object>,<inventory>,<transport>" (default: "88,88,32,2,80,48")
 		-- technic_power
 		generator_upgrade		= 0,		-- upgrade available in addition to the current limit (50)
 		-- space
@@ -41,6 +43,7 @@ basic_machines = {
 		exclusion_height		= 6666,		-- above, without "include" priv, player is teleported to a random location
 		space_effects			= false,	-- enable damage mechanism
 		--
+		machines_limit			= 2048,		-- number of machines allowed to run, above this limit, overheat, minimum 0
 		register_crafts			= false		-- machines crafts recipes
 	},
 	-- returns inventory player form
@@ -62,6 +65,9 @@ basic_machines = {
 	end,
 	use_default = minetest.global_exists("default"), -- require minetest_game default mod
 --[[ interfaces
+	-- actions_dampener
+	check_action = function() end,
+	set_machines_cache = function() end,
 	-- autocrafter
 	change_autocrafter_recipe = function() end,
 	-- distributor
@@ -116,8 +122,9 @@ basic_machines.can_dig = function(pos, player, listnames)
 		local owner = meta:get_string("owner")
 		if owner == player:get_player_name() or owner == "" then
 			if listnames then
+				local listnames_length = #listnames
 				local inv = meta:get_inventory()
-				for i = 1, #listnames do
+				for i = 1, listnames_length do
 					if not inv:is_empty(listnames[i]) then
 						return false
 					end
@@ -132,12 +139,14 @@ end
 -- returns a table of inventory items
 local function get_inventory_items(pos, listnames)
 	local items = {}
+	local listnames_length = #listnames
 	local inv = minetest.get_meta(pos):get_inventory()
-	for i = 1, #listnames do
+	for i = 1, listnames_length do
 		local listname = listnames[i]
 		if not inv:is_empty(listname) then
+			local inv_size = inv:get_size(listname)
 			local k = #items
-			for j = 1, inv:get_size(listname) do
+			for j = 1, inv_size do
 				local stack = inv:get_stack(listname, j)
 				if stack:get_count() > 0 then
 					items[k + 1] = stack:to_table()

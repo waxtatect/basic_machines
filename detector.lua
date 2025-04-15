@@ -3,7 +3,6 @@
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
-local machines_minstep = basic_machines.properties.machines_minstep
 local detector_oplist = {["-"] = 1, ["AND"] = 2, ["OR"] = 3}
 local detector_modelist = {["node"] = 1, ["player"] = 2, ["object"] = 3, ["inventory"] = 4,
 	["infotext"] = 5, ["light"] = 6}
@@ -34,7 +33,6 @@ minetest.register_node(machine_name, {
 		meta:set_string("node", ""); meta:set_int("NOT", 2)
 		meta:set_string("mode", "node")
 		meta:set_int("state", 0)
-		meta:set_int("t", 0); meta:set_int("T", 0)
 	end,
 
 	can_dig = basic_machines.can_dig,
@@ -109,20 +107,13 @@ minetest.register_node(machine_name, {
 
 			local meta = minetest.get_meta(pos)
 
-			local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-			local T = meta:get_int("T") -- temperature
-
-			if t0 > t1 - machines_minstep then -- activated before natural time
-				T = T + 1
-			elseif T > 0 then
-				T = T - 1
-			end
-			meta:set_int("t", t1); meta:set_int("T", T)
-
-			if T > 2 then -- overheat
-				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+			local T = basic_machines.check_action(pos, true)
+			if T > 1 then -- overheat
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, gain = 0.25, max_hear_distance = 16}, true)
 				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
+			elseif T == -1 then -- reset
+				meta:set_string("infotext", ""); return
 			end
 
 			local mode = meta:get_string("mode")
@@ -174,7 +165,8 @@ minetest.register_node(machine_name, {
 						trigger = false
 					else -- nonempty
 						trigger = true
-						for i = 1, inv:get_size(inv1m) do -- find item to move in inventory
+						local inv_size = inv:get_size(inv1m)
+						for i = 1, inv_size do -- find item to move in inventory
 							local stack = inv:get_stack(inv1m, i)
 							if not stack:is_empty() then detected_obj = stack:to_string(); break end
 						end

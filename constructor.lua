@@ -162,6 +162,8 @@ local function add_constructor(name, items, description, recipe)
 
 		effector = {
 			action_on = function(pos, _)
+				-- activation limiter: 16/s
+				if basic_machines.check_action(pos, nil, nil, 16) > 15 then return end
 				constructor_process(pos, name, nil)
 			end
 		}

@@ -3,8 +3,6 @@
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
-local machines_minstep = basic_machines.properties.machines_minstep
-local machines_timer = basic_machines.properties.machines_timer
 local vector_add = vector.add
 
 local function pos_to_string(pos) return ("%s, %s, %s"):format(pos.x, pos.y, pos.z) end
@@ -88,7 +86,6 @@ minetest.register_node(machine_name, {
 		end
 		meta:set_int("n", 2) -- how many targets initially
 		meta:set_float("delay", 0) -- delay when transmitting signal
-		meta:set_int("t", 0); meta:set_int("T", 0)
 	end,
 
 	can_dig = basic_machines.can_dig,
@@ -109,28 +106,18 @@ minetest.register_node(machine_name, {
 
 			local meta = minetest.get_meta(pos)
 
-			local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-			local T = meta:get_int("T") -- temperature
-
-			if t0 > t1 - machines_minstep then -- activated before natural time
-				T = T + 1
-			elseif T > 0 then
-				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
-					T = 0; meta:set_string("infotext", "")
-				else
-					T = T - 1
-				end
-			end
-			meta:set_int("t", t1); meta:set_int("T", T)
-
+			local T = basic_machines.check_action(pos, true)
 			if T > 2 then -- overheat
-				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, gain = 0.25, max_hear_distance = 16}, true)
 				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
+			elseif T == -1 then -- reset
+				meta:set_string("infotext", "")
 			end
 
 			local function activate()
-				for i = 1, meta:get_int("n") do
+				local n = meta:get_int("n")
+				for i = 1, n do
 					local activei = meta:get_int("active" .. i)
 					if activei ~= 0 then
 						local posi = vector_add(pos, {x = meta:get_int("x" .. i), y = meta:get_int("y" .. i), z = meta:get_int("z" .. i)})
@@ -173,28 +160,18 @@ minetest.register_node(machine_name, {
 
 			local meta = minetest.get_meta(pos)
 
-			local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-			local T = meta:get_int("T") -- temperature
-
-			if t0 > t1 - machines_minstep then -- activated before natural time
-				T = T + 1
-			elseif T > 0 then
-				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
-					T = 0; meta:set_string("infotext", "")
-				else
-					T = T - 1
-				end
-			end
-			meta:set_int("t", t1); meta:set_int("T", T)
-
+			local T = basic_machines.check_action(pos, true)
 			if T > 2 then -- overheat
-				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, gain = 0.25, max_hear_distance = 16}, true)
 				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
+			elseif T == -1 then -- reset
+				meta:set_string("infotext", "")
 			end
 
 			local function activate()
-				for i = 1, meta:get_int("n") do
+				local n = meta:get_int("n")
+				for i = 1, n do
 					local activei = meta:get_int("active" .. i)
 					if activei ~= 0 then
 						local posi = vector_add(pos, {x = meta:get_int("x" .. i), y = meta:get_int("y" .. i), z = meta:get_int("z" .. i)})

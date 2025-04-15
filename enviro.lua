@@ -197,6 +197,9 @@ Sky:		-, surface, cave or space
 
 	effector = {
 		action_on = function(pos, _)
+			-- activation limiter: 1/s
+			if basic_machines.check_action(pos) > 0 then return end
+
 			local meta = minetest.get_meta(pos)
 
 			if meta:get_int("admin") ~= 1 then -- fuel needed for nonadmin

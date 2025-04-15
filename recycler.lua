@@ -6,7 +6,6 @@
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
-local machines_minstep = basic_machines.properties.machines_minstep
 local twodigits_float = basic_machines.twodigits_float
 local no_recycle_list = { -- prevent unrealistic recycling
 	["default:bronze_ingot"] = 1, ["default:coal_lump"] = 1,
@@ -22,31 +21,31 @@ local no_recycle_list = { -- prevent unrealistic recycling
 	["moreores:mithril_ingot"] = 1, ["moreores:silver_ingot"] = 1
 }
 
-local function set_fuel_and_infotext(meta, fuel, msg)
-	if msg then
-		meta:set_float("fuel", fuel)
-		meta:set_string("infotext", msg)
-	end
-end
-
 local function recycler_update_form(meta)
 	meta:set_string("formspec", "formspec_version[4]size[10.25,9.5]" ..
 		"style_type[list;spacing=0.25,0.15]" ..
 		"label[0.25,0.3;" .. F(S("In")) .. "]list[context;src;0.25,0.5;1,1]" ..
 		"label[1.5,0.3;" .. F(S("Out")) .. "]list[context;dst;1.5,0.5;3,3]" ..
 		"field[5.75,0.9;2,0.8;recipe;" .. F(S("Select recipe:")) .. ";" .. meta:get_int("recipe") ..
-		"]button[8.38,0.5;1,0.8;OK;" .. F(S("OK")) ..
+		"]label[6.5,1.95;" .. F(S("Upgrade")) .. "]list[context;upgrade;6.5,2.15;1,1]" ..
+		"button[8.38,0.5;1,0.8;OK;" .. F(S("OK")) ..
+		"]button[8.38,1.75;1,0.8;help;" .. F(S("help")) ..
 		"]label[0.25,2.6;" .. F(S("Fuel")) .. "]list[context;fuel;0.25,2.8;1,1]" ..
 		basic_machines.get_form_player_inventory(0.25, 4.55, 8, 4, 0.25) ..
 		"listring[context;dst]" ..
 		"listring[current_player;main]" ..
 		"listring[context;src]" ..
 		"listring[current_player;main]" ..
+		"listring[context;upgrade]" ..
+		"listring[current_player;main]" ..
 		"listring[context;fuel]" ..
 		"listring[current_player;main]")
 end
 
 local function recycler_process(pos)
+	-- activation limiter: 1/s
+	if basic_machines.check_action(pos) > 0 then return end
+
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 
@@ -58,16 +57,68 @@ local function recycler_process(pos)
 		meta:set_string("node", ""); return
 	end
 
-	local admin = meta:get_int("admin")
+	local itemlist, reqcount, description
+
+	if src_item == meta:get_string("node") then -- did we already handle this ? if yes read from cache
+		itemlist = minetest.deserialize(meta:get_string("itemlist")) -- read cached itemlist
+		if itemlist == nil then
+			meta:set_string("node", ""); return
+		end
+		reqcount = meta:get_int("reqcount")
+		description = meta:get_string("description")
+	else
+		local recipe = minetest.get_all_craft_recipes(src_item)
+		if recipe then
+			local recipe_id = meta:get_int("recipe")
+			itemlist = recipe[recipe_id]
+			if not itemlist then
+				meta:set_string("node", ""); return
+			end
+			itemlist = itemlist.items
+			-- clean out unknown items and groups
+			for i, item in pairs(itemlist) do
+				if not minetest.registered_items[item] then
+					itemlist[i] = nil
+				end
+			end
+			if #itemlist == 0 then return end
+
+			local output = recipe[recipe_id].output or ""
+			local par = output:find(" ")
+			if par then
+				reqcount = tonumber(output:sub(par + 1))
+			end
+			reqcount = reqcount or 1
+
+			description = basic_machines.get_item_description(src_item)
+
+			meta:set_string("node", src_item)
+			meta:set_string("itemlist", minetest.serialize(itemlist))
+			meta:set_int("reqcount", reqcount)
+			meta:set_string("description", description)
+		else
+			return
+		end
+	end
+
+	local steps = math.floor(stack:get_count() / reqcount) -- how many steps to process inserted stack
+
+	if steps < 1 then
+		meta:set_string("infotext", S("At least @1 of '@2' (@3) required", reqcount, description, src_item))
+		return
+	end
+
+	local upgrade = meta:get_int("upgrade") + 1; if steps > upgrade then steps = upgrade end
 
 	-- FUEL CHECK
+	local admin = meta:get_int("admin")
 	local fuel = meta:get_float("fuel")
 	local fuel_req, msg
 
 	if admin == 1 then
 		fuel_req = 0
 	else
-		fuel_req = (stack:to_string():len() + 5) * 0.16
+		fuel_req = (stack:to_string():len() + 5) * 0.16 * steps
 
 		if fuel < fuel_req then -- we need new fuel
 			local fuellist = inv:get_list("fuel"); if not fuellist then return end
@@ -101,56 +152,6 @@ local function recycler_process(pos)
 		end
 	end
 
-	-- RECYCLING
-	local itemlist, reqcount, description
-
-	if src_item == meta:get_string("node") then -- did we already handle this ? if yes read from cache
-		itemlist = minetest.deserialize(meta:get_string("itemlist")) -- read cached itemlist
-		if itemlist == nil then
-			meta:set_string("node", ""); set_fuel_and_infotext(meta, fuel, msg); return
-		end
-		reqcount = meta:get_int("reqcount")
-		description = meta:get_string("description")
-	else
-		local recipe = minetest.get_all_craft_recipes(src_item)
-		if recipe then
-			local recipe_id = meta:get_int("recipe")
-			itemlist = recipe[recipe_id]
-			if not itemlist then
-				meta:set_string("node", ""); set_fuel_and_infotext(meta, fuel, msg); return
-			end
-			itemlist = itemlist.items
-			-- clean out unknown items and groups
-			for i, item in pairs(itemlist) do
-				if not minetest.registered_items[item] then
-					itemlist[i] = nil
-				end
-			end
-			if #itemlist == 0 then set_fuel_and_infotext(meta, fuel, msg); return end
-
-			local output = recipe[recipe_id].output or ""
-			local par = output:find(" ")
-			if par then
-				reqcount = tonumber(output:sub(par + 1))
-			end
-			reqcount = reqcount or 1
-
-			description = basic_machines.get_item_description(src_item)
-
-			meta:set_string("node", src_item)
-			meta:set_string("itemlist", minetest.serialize(itemlist))
-			meta:set_int("reqcount", reqcount)
-			meta:set_string("description", description)
-		else
-			set_fuel_and_infotext(meta, fuel, msg); return
-		end
-	end
-
-	if stack:get_count() < reqcount then
-		if msg then meta:set_float("fuel", fuel) end
-		meta:set_string("infotext", S("At least @1 of '@2' (@3) required", reqcount, description, src_item)); return
-	end
-
 	-- check if output items fit in dst
 	local empty_count = 0
 	local out_items = {}
@@ -159,7 +160,7 @@ local function recycler_process(pos)
 			local out_stack = ItemStack(item)
 			if not out_stack:is_empty() then
 				local stack_name = out_stack:get_name()
-				out_items[stack_name] = (out_items[stack_name] or 0) + out_stack:get_count()
+				out_items[stack_name] = (out_items[stack_name] or 0) + out_stack:get_count() * steps
 			end
 		else
 			itemlist[i] = nil
@@ -183,30 +184,28 @@ local function recycler_process(pos)
 		end
 	end
 
-	if empty_count < 0 then set_fuel_and_infotext(meta, fuel, msg); return end
+	if empty_count < 0 then
+		if msg then
+			meta:set_float("fuel", fuel); meta:set_string("infotext", msg)
+		end
+		return
+	end
 
-	-- take required items from src inventory for each activation
-	stack = stack:take_item(reqcount); inv:remove_item("src", stack)
+	-- take 'steps' items from src inventory for each activation
+	stack = stack:take_item(reqcount * steps); inv:remove_item("src", stack)
 
 	-- add raw materials
 	for _, item in pairs(itemlist) do
 		if math.random(1, 4) <= 3 then -- probability 3/4 = 75%
-			inv:add_item("dst", ItemStack(item))
+			local addstack = ItemStack(item)
+			if steps > 1 then -- multiply stack
+				addstack:set_count(addstack:get_count() * steps)
+			end
+			inv:add_item("dst", addstack)
 		end
 	end
 
-	local count = meta:get_int("activation_count")
-	if count < 16 then
-		minetest.sound_play("basic_machines_recycler", {pos = pos, gain = 0.5, max_hear_distance = 16}, true)
-	end
-
-	local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-	if t0 > t1 - machines_minstep then
-		meta:set_int("activation_count", count + 1)
-	elseif count > 0 then
-		meta:set_int("activation_count", 0)
-	end
-	meta:set_int("t", t1)
+	minetest.sound_play("basic_machines_recycler", {pos = pos, gain = 0.5, max_hear_distance = 16}, true)
 
 	if admin ~= 1 then
 		fuel = fuel - fuel_req; meta:set_float("fuel", fuel) -- burn fuel on successful operation
@@ -216,6 +215,12 @@ local function recycler_process(pos)
 	else
 		meta:set_string("infotext", S("Fuel status @1, recycling '@2' (@3)", twodigits_float(fuel), description, src_item))
 	end
+end
+
+local function recycler_upgrade(meta)
+	local stack = meta:get_inventory():get_stack("upgrade", 1)
+	local upgrade = stack:get_name()
+	meta:set_int("upgrade", upgrade == "basic_machines:recycler" and stack:get_count() or 0)
 end
 
 local machine_name = "basic_machines:recycler"
@@ -231,29 +236,32 @@ minetest.register_node(machine_name, {
 
 		local meta, name = minetest.get_meta(pos), placer:get_player_name()
 		meta:set_string("infotext",
-			S("Recycler: Put one item in 'In' (src) and obtain 75% of raw materials in 'Out' (dst)." ..
+			S("Recycler: Put items in 'In' (src) and obtain 75% of raw materials in 'Out' (dst)." ..
 			" To operate it insert fuel, then insert item to recycle or activate with signal."))
 		meta:set_string("owner", name)
 
 		if minetest.check_player_privs(name, "privs") then meta:set_int("admin", 1) end
 
 		meta:set_int("recipe", 1)
+		meta:set_int("upgrade", 0)
 		meta:set_float("fuel", 0)
-		meta:set_int("t", 0); meta:set_int("activation_count", 0)
 
 		local inv = meta:get_inventory()
 		inv:set_size("src", 1)
 		inv:set_size("dst", 9)
+		inv:set_size("upgrade", 1)
 		inv:set_size("fuel", 1)
 
 		recycler_update_form(meta)
 	end,
 
 	can_dig = function(pos, player)
-		return basic_machines.can_dig(pos, player, {"src", "dst", "fuel"}) -- all inv must be empty to be dug
+		return basic_machines.can_dig(pos, player, {"upgrade", "src", "dst", "fuel"}) -- all inv must be empty to be dug
 	end,
 
 	on_receive_fields = function(pos, _, fields, sender)
+		if fields.quit then return end
+
 		if fields.OK then
 			if minetest.is_protected(pos, sender:get_player_name()) then return end
 
@@ -261,10 +269,15 @@ minetest.register_node(machine_name, {
 			if fields.recipe ~= meta:get_string("recipe") then
 				meta:set_string("node", "") -- this will force to reread recipe on next use
 				meta:set_int("recipe", tonumber(fields.recipe) or 1)
-				recycler_update_form(meta)
 			end
 
 			recycler_process(pos)
+
+		elseif fields.help then
+			minetest.show_formspec(sender:get_player_name(), "basic_machines:help_recycler",
+				"formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" .. F(S("Recycler help")) .. ";" ..
+				F(S("To upgrade recycler, put recyclers in upgrade slot." ..
+				" Each upgrade adds ability to process additional materials.")) .. "]")
 		end
 	end,
 
@@ -283,7 +296,13 @@ minetest.register_node(machine_name, {
 	end,
 
 	on_metadata_inventory_put = function(pos, listname)
-		if listname == "src" then recycler_process(pos) end
+		if listname == "src" then
+			recycler_process(pos)
+		elseif listname == "upgrade" then
+			local meta = minetest.get_meta(pos)
+			recycler_upgrade(meta)
+			recycler_update_form(meta)
+		end
 	end,
 
 	on_metadata_inventory_take = function(pos, listname)
@@ -292,11 +311,15 @@ minetest.register_node(machine_name, {
 			if meta:get_inventory():is_empty("src") then
 				meta:set_string("infotext", S("Fuel status @1", twodigits_float(meta:get_float("fuel"))))
 			end
+		elseif listname == "upgrade" then
+			local meta = minetest.get_meta(pos)
+			recycler_upgrade(meta)
+			recycler_update_form(meta)
 		end
 	end,
 
 	on_blast = function(pos, intensity)
-		return basic_machines.on_blast(pos, intensity, machine_name, {"src", "dst", "fuel"})
+		return basic_machines.on_blast(pos, intensity, machine_name, {"upgrade", "src", "dst", "fuel"})
 	end,
 
 	effector = {

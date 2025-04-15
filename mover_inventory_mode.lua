@@ -6,7 +6,7 @@ local F, S = basic_machines.F, basic_machines.S
 local mover_limit_inventory_table = basic_machines.get_mover("limit_inventory_table")
 local get_palette_index = basic_machines.get_palette_index
 
-local function inventory(_, meta, _, prefer, pos1, _, node1_name, _, pos2, mreverse, _, upgrade)
+local function inventory(_, meta, _, prefer, pos1, _, node1_name, _, pos2, mreverse, _, upgrade) -- , _, T)
 	local invName1, invName2
 
 	if mreverse == 1 then -- reverse inventory names too
@@ -56,7 +56,8 @@ local function inventory(_, meta, _, prefer, pos1, _, node1_name, _, pos2, mreve
 		end
 
 		local i = 1
-		while i <= inv1:get_size(invName1) do -- find items to move
+		local inv1_size = inv1:get_size(invName1)
+		while i <= inv1_size do -- find items to move
 			stack = inv1:get_stack(invName1, i)
 			if stack:is_empty() then i = i + 1 else item_found = true; break end
 		end
@@ -70,8 +71,10 @@ local function inventory(_, meta, _, prefer, pos1, _, node1_name, _, pos2, mreve
 			return
 		end
 	elseif upgrade == -1 and minetest.registered_items[stack:get_name()] then -- admin, just add stuff
-		local inv2 = minetest.get_meta(pos2):get_inventory(); local stack_set
-		for i = 1, inv2:get_size(invName2) do -- try to find an empty stack to add the new stack
+		local inv2 = minetest.get_meta(pos2):get_inventory()
+		local inv2_size = inv2:get_size(invName2)
+		local stack_set
+		for i = 1, inv2_size do -- try to find an empty stack to add the new stack
 			if inv2:get_stack(invName2, i):is_empty() then
 				inv2:set_stack(invName2, i, stack); stack_set = true; break
 			end
@@ -83,16 +86,14 @@ local function inventory(_, meta, _, prefer, pos1, _, node1_name, _, pos2, mreve
 		return
 	end
 
-	-- play sound
-	local activation_count = meta:get_int("activation_count")
-	-- if activation_count < 16 then
-		-- minetest.sound_play("basic_machines_inventory_move", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
+	-- if T % 8 == 0 then -- play sound
+		-- minetest.sound_play("basic_machines_inventory_move", {pos = pos2, max_hear_distance = 8}, true)
 	-- end
 
-	return activation_count
+	return true
 end
 
 basic_machines.add_mover_mode("inventory",
 	F(S("This will move items from inventory of any block at source position to any inventory of block at target position")),
-	F(S("inventory")), inventory
+	F(S("inventory")), 80, inventory
 )

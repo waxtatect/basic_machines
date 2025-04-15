@@ -17,9 +17,12 @@ end
 
 local F, S = basic_machines.F, basic_machines.S
 local mover_chests = basic_machines.get_mover("chests")
-local vector_add = vector.add
 local max_range = basic_machines.properties.max_range
 local mover_no_teleport_table = basic_machines.get_mover("no_teleport_table")
+
+local function calculate_radius(pos1, pos2)
+	return math.min(vector.distance(pos1, pos2), max_range)
+end
 
 local function vector_velocity(pos1, pos2, times)
 	if times > 20 then times = 20 elseif times < 0.2 then times = 0.2 end
@@ -32,19 +35,7 @@ local function vector_velocity(pos1, pos2, times)
 	return velocity
 end
 
-local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
-	local x1, y1, z1
-
-	if mreverse == 1 then
-		x1, y1, z1 = meta:get_int("x0"), meta:get_int("y0"), meta:get_int("z0") -- source1
-	else
-		x1, y1, z1 = meta:get_int("x1"), meta:get_int("y1"), meta:get_int("z1") -- source2
-	end
-
-	local radius = math.min(vector.distance(pos1, vector_add(pos, {x = x1, y = y1, z = z1})), max_range) -- distance source1-source2
-	local elevator = meta:get_int("elevator"); if elevator == 1 and radius == 0 then radius = 1 end -- for compatibility
-	local no_sound
-
+local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse) -- , _, _, _, T)
 	local node2 = minetest.get_node_or_nil(pos2)
 	local node2_name
 	if node2 then
@@ -54,8 +45,14 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 		node2_name = minetest.get_node(pos2).name
 	end
 
+	local elevator = meta:get_int("elevator")
+	local no_sound
+
 	-- object move
 	if mover_chests[node2_name] and elevator == 0 then -- put objects in target chest
+		local posn; if mreverse == 1 then posn = pos2 else posn = pos1 end
+		local x1, y1, z1 = meta:get_int("x1"), meta:get_int("y1"), meta:get_int("z1") -- source2
+		local radius = calculate_radius(posn, vector.add(pos, {x = x1, y = y1, z = z1})) -- distance source1-source2
 		prefer = prefer or meta:get_string("prefer")
 		local inv
 
@@ -92,6 +89,10 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 			end
 		end
 	elseif node2_name ~= "ignore" then -- move objects to another location
+		local posn; if mreverse == 1 then posn = pos2 else posn = pos1 end
+		local x1, y1, z1 = meta:get_int("x1"), meta:get_int("y1"), meta:get_int("z1") -- source2
+		local radius = calculate_radius(posn, vector.add(pos, {x = x1, y = y1, z = z1})) -- distance source1-source2
+		if elevator == 1 and radius == 0 then radius = 1 end -- for compatibility
 		prefer = prefer or meta:get_string("prefer")
 		local times = tonumber(prefer) or 0
 
@@ -139,13 +140,12 @@ local function object(pos, meta, owner, prefer, pos1, _, _, _, pos2, mreverse)
 	end
 
 	if no_sound then
-		return meta:get_int("activation_count")
-	else -- play sound
-		local activation_count = meta:get_int("activation_count")
-		-- if activation_count < 16 then -- play sound
-			-- minetest.sound_play("basic_machines_object_move", {pos = pos2, gain = 1, max_hear_distance = 8}, true)
+		return true
+	else
+		-- if T % 8 == 0 then -- play sound
+			-- minetest.sound_play("basic_machines_object_move", {pos = pos2, max_hear_distance = 8}, true)
 		-- end
-		return activation_count
+		return true
 	end
 end
 
@@ -156,5 +156,5 @@ basic_machines.add_mover_mode("object",
 	F(S("Make TELEPORTER/ELEVATOR:\n This will move any object inside a sphere (with center source1 and radius defined by distance between source1/source2) to target position\n" ..
 		" For ELEVATOR, teleport origin/destination need to be placed exactly in same coordinate line with the mover, and you need to upgrade with 1 of '@1' (@2) for every @3 height difference",
 		description, name, elevator_height)),
-	F(S("object")), object
+	F(S("object")), 2, object
 )

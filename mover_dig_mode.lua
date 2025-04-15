@@ -64,7 +64,7 @@ local function add_node_drops(node_name, pos, node, filter, node_def, param2)
 	return true
 end
 
-local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2, mreverse, upgradetype, upgrade, fuel_cost)
+local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2, mreverse, upgradetype, upgrade, fuel_cost, T)
 	prefer = prefer or meta:get_string("prefer")
 	source_chest = source_chest or mover_chests[node1_name]
 	local third_upgradetype = upgradetype == 3
@@ -121,8 +121,9 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 		local air_found, node2_count
 
 		if third_upgradetype then
+			local length_pos2 = #pos2
 			node2_count = 0
-			for i = #pos2, 1, -1 do
+			for i = length_pos2, 1, -1 do
 				if minetest.get_node(pos2[i]).name == "air" then
 					if not last_pos2 then last_pos2 = pos2[i] end
 					node2_count = node2_count + 1
@@ -353,6 +354,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 					end
 
 					local i, inv = 1, minetest.get_meta(pos2):get_inventory()
+					local stacks_length = #stacks
 					repeat
 						local item = node1_name .. " " .. stacks[i]
 						if inv:room_for_item("main", item) then
@@ -361,7 +363,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 							minetest.add_item(pos1, item)
 						end
 						i = i + 1
-					until(i > #stacks)
+					until(i > stacks_length)
 				else
 					local liquiddef = have_bucket_liquids and bucket.liquids[node1_name]
 					local harvest_node1 = mover_harvest_table[node1_name]
@@ -421,16 +423,14 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 		end
 	end
 
-	local activation_count = meta:get_int("activation_count")
-
-	if sound_def and activation_count < 16 then -- play sound
+	if sound_def and T % 8 == 0 then -- play sound
 		minetest.sound_play(sound_def, {pitch = 0.9, pos = last_pos2 or pos2, max_hear_distance = 12}, true)
 	end
 
-	return activation_count, new_fuel_cost
+	return true, new_fuel_cost
 end
 
 basic_machines.add_mover_mode("dig",
 	F(S("This will transform blocks as if player dug them\nUpgrade with movers to process additional blocks")),
-	F(S("dig")), dig
+	F(S("dig")), 88, dig
 )

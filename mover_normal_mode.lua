@@ -1,5 +1,5 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
@@ -14,7 +14,7 @@ local mover_add_removed_items = basic_machines.settings.mover_add_removed_items
 local node_to_stack = basic_machines.node_to_stack
 local math_min = math.min
 
-local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2, mreverse, upgradetype, upgrade, fuel_cost)
+local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2, mreverse, upgradetype, upgrade, fuel_cost, T)
 	prefer = prefer or meta:get_string("prefer")
 	source_chest = source_chest or mover_chests[node1_name]
 	local third_upgradetype = upgradetype == 3
@@ -85,8 +85,9 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 			if node2_name == "air" then
 				air_found = true
 			else
+				local length_pos2 = #pos2
 				node2_count = 0
-				for i = #pos2, 1, -1 do
+				for i = length_pos2, 1, -1 do
 					if minetest.get_node(pos2[i]).name == "air" then
 						if not last_pos2 then last_pos2 = pos2[i] end
 						node2_count = node2_count + 1
@@ -211,16 +212,14 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 		end
 	end
 
-	local activation_count = meta:get_int("activation_count")
-
-	if sound_def and activation_count < 16 then -- play sound
+	if sound_def and T % 8 == 0 then -- play sound
 		minetest.sound_play(sound_def, {pitch = 0.9, pos = last_pos2 or pos2, max_hear_distance = 12}, true)
 	end
 
-	return activation_count, new_fuel_cost
+	return true, new_fuel_cost
 end
 
 basic_machines.add_mover_mode("normal",
 	F(S("This will move blocks as they are - without change\nUpgrade with movers to process additional blocks")),
-	F(S("normal")), normal
+	F(S("normal")), 88, normal
 )

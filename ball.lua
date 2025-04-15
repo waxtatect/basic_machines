@@ -10,7 +10,6 @@
 local F, S = basic_machines.F, basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local machines_minstep = basic_machines.properties.machines_minstep
-local machines_timer = basic_machines.properties.machines_timer
 local max_balls = math.max(0, basic_machines.settings.max_balls)
 local max_range = basic_machines.properties.max_range
 local max_damage = minetest.PLAYER_MAX_HP_DEFAULT / 4 -- player health 20
@@ -113,10 +112,11 @@ minetest.register_entity("basic_machines:ball", {
 			node_name = minetest.get_node(pos).name
 			if node_name == "air" then
 				if bounce > 0 then self._in_air = true end
-			elseif energy ~= 0 and node_name == "basic_machines:ball_spawner" and dist > 0.5 then
-				-- ball can activate spawner, just not originating one
-				def = minetest.registered_nodes[node_name]
-				walkable = true
+			elseif energy ~= 0 and node_name == "basic_machines:ball_spawner" then
+				if dist > 0.5 then -- ball can activate spawner, just not originating one
+					walkable = true
+					def = minetest.registered_nodes[node_name]
+				end
 			elseif node_name == "ignore" then
 				self.object:remove(); return
 			else
@@ -222,7 +222,7 @@ minetest.register_entity("basic_machines:ball", {
 				self.object:set_pos(new_pos) -- ball placed a bit further away from box
 				self.object:set_velocity(v)
 
-				minetest.sound_play(basic_machines.sound_ball_bounce, {pos = pos, gain = 1, max_hear_distance = 8}, true)
+				minetest.sound_play(basic_machines.sound_ball_bounce, {pos = pos, max_hear_distance = 8}, true)
 			else
 				self.object:remove(); return
 			end
@@ -362,7 +362,6 @@ minetest.register_node(machine_name, {
 		meta:set_string("texture", ball_default.texture)
 		meta:set_int("scale", ball_default.scale)
 		meta:set_string("visual", ball_default.visual)		-- cube or sprite
-		meta:set_int("t", 0); meta:set_int("T", 0)
 
 		ball_spawner_update_form(meta)
 	end,
@@ -472,7 +471,7 @@ minetest.register_node(machine_name, {
 		elseif fields.help then
 			local lifetime = minetest.get_meta(pos):get_int("admin") == 1 and S("\nLifetime:		[1,   +∞[") or ""
 			minetest.show_formspec(name, "basic_machines:help_ball",
-				"formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" .. F(S("Ball spawner help")) .. ";" ..
+				"formspec_version[4]size[8,9.3]textarea[0,0.35;8,8.95;help;" .. F(S("Ball Spawner help")) .. ";" ..
 F(S([[Values:
 
 Target*:		Direction of velocity
@@ -509,24 +508,13 @@ max_damage, lifetime, bounce_materials_help)) .. "]")
 		action_on = function(pos, _)
 			local meta = minetest.get_meta(pos)
 
-			local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-			local T = meta:get_int("T") -- temperature
-
-			if t0 > t1 - 2 * machines_minstep then -- activated before natural time
-				T = T + 1
-			elseif T > 0 then
-				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
-					T = 0; meta:set_string("infotext", "")
-				else
-					T = T - 1
-				end
-			end
-			meta:set_int("t", t1); meta:set_int("T", T)
-
-			if T > 2 then -- overheat
-				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+			local T = basic_machines.check_action(pos, true, 2 * machines_minstep)
+			if T > 1 then -- overheat
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, gain = 0.25, max_hear_distance = 16}, true)
 				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
+			elseif T == -1 then -- reset
+				meta:set_string("infotext", "")
 			end
 
 			local owner = meta:get_string("owner"); if owner == "" then return end
@@ -536,7 +524,7 @@ max_damage, lifetime, bounce_materials_help)) .. "]")
 				if not count or count < 0 then count = 0 end
 
 				if count >= max_balls then
-					if max_balls > 0 and t1 - t0 > 10 then count = 0 else return end
+					return
 				end
 
 				ballcount[owner] = count + 1
@@ -561,8 +549,12 @@ max_damage, lifetime, bounce_materials_help)) .. "]")
 
 				-- energy
 				local energy = meta:get_int("energy") -- if positive activates, negative deactivates, 0 does nothing
-				if energy ~= 0 then -- make the ball glow
-					obj:set_properties({glow = 9})
+				if energy ~= 0 then
+					if basic_machines.properties.no_clock then
+						energy = 0
+					else
+						obj:set_properties({glow = 9}) -- make the ball glow
+					end
 				end
 				local colorize = energy < 0 and "^[colorize:blue:120" or ""
 				lua_entity._energy = energy
@@ -615,24 +607,13 @@ max_damage, lifetime, bounce_materials_help)) .. "]")
 		action_off = function(pos, _)
 			local meta = minetest.get_meta(pos)
 
-			local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-			local T = meta:get_int("T") -- temperature
-
-			if t0 > t1 - 2 * machines_minstep then -- activated before natural time
-				T = T + 1
-			elseif T > 0 then
-				if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
-					T = 0; meta:set_string("infotext", "")
-				else
-					T = T - 1
-				end
-			end
-			meta:set_int("t", t1); meta:set_int("T", T)
-
-			if T > 2 then -- overheat
-				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+			local T = basic_machines.check_action(pos, true, 2 * machines_minstep)
+			if T > 1 then -- overheat
+				minetest.sound_play(basic_machines.sound_overheat, {pos = pos, gain = 0.25, max_hear_distance = 16}, true)
 				meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 				return
+			elseif T == -1 then -- reset
+				meta:set_string("infotext", "")
 			end
 
 			local owner = meta:get_string("owner"); if owner == "" then return end
@@ -642,7 +623,7 @@ max_damage, lifetime, bounce_materials_help)) .. "]")
 				if not count or count < 0 then count = 0 end
 
 				if count >= max_balls then
-					if max_balls > 0 and t1 - t0 > 10 then count = 0 else return end
+					return
 				end
 
 				ballcount[owner] = count + 1
@@ -666,8 +647,10 @@ max_damage, lifetime, bounce_materials_help)) .. "]")
 				lua_entity._speed = speed
 
 				-- energy
-				obj:set_properties({glow = 9}) -- make the ball glow
-				obj:get_luaentity()._energy = -1
+				if not basic_machines.properties.no_clock then
+					obj:set_properties({glow = 9}) -- make the ball glow
+					obj:get_luaentity()._energy = -1
+				end
 
 				-- hp
 				obj:set_hp(meta:get_float("hp"))

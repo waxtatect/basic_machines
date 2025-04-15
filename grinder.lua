@@ -4,7 +4,6 @@
 
 local F, S = basic_machines.F, basic_machines.S
 local grinder_dusts_legacy = basic_machines.settings.grinder_dusts_legacy
-local machines_minstep = basic_machines.properties.machines_minstep
 local twodigits_float = basic_machines.twodigits_float
 local use_unified_inventory = minetest.global_exists("unified_inventory")
 local use_i3 = minetest.global_exists("i3")
@@ -323,16 +322,10 @@ local function grinder_update_form(meta)
 end
 
 local function grinder_process(pos)
-	local meta = minetest.get_meta(pos)
-
 	-- activation limiter: 1/s
-	local t0, t1 = meta:get_int("t"), minetest.get_gametime()
+	if basic_machines.check_action(pos) > 0 then return end
 
-	if t1 - t0 < machines_minstep then
-		if t1 - t0 < 0 then meta:set_int("t", 0) end; return
-	end
-	meta:set_int("t", t1)
-
+	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 
 	-- PROCESS: check out inserted items
@@ -397,8 +390,11 @@ local function grinder_process(pos)
 	end
 	if inv:room_for_item("dst", addstack) then
 		inv:add_item("dst", addstack)
-	elseif msg then
-		meta:set_float("fuel", fuel); meta:set_string("infotext", msg); return
+	else
+		if msg then
+			meta:set_float("fuel", fuel); meta:set_string("infotext", msg)
+		end
+		return
 	end
 
 	-- take 'steps' items from src inventory for each activation
@@ -432,8 +428,8 @@ minetest.register_node(machine_name, {
 			S("Grinder: to operate it insert fuel, then insert item to grind or activate with signal"))
 		meta:set_string("owner", placer:get_player_name())
 
+		meta:set_int("upgrade", 0)
 		meta:set_float("fuel", 0)
-		meta:set_int("t", 0)
 
 		local inv = meta:get_inventory()
 		inv:set_size("src", 1)

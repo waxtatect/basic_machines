@@ -279,6 +279,9 @@ minetest.register_node(machine_name, {
 
 	effector = { -- rnd: run machine when activated by signal
 		action_on = function(pos, _)
+			-- activation limiter: 99/s
+			if basic_machines.check_action(pos, nil, nil, 99) > 98 then return end
+
 			local meta = minetest.get_meta(pos)
 			local inventory = meta:get_inventory()
 			local craft = get_craft(pos, inventory, nil)

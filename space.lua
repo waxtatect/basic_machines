@@ -118,7 +118,7 @@ minetest.register_globalstep(function(dtime)
 				local spos = pos_to_string(vector.round(pos))
 				minetest.chat_send_player(name, S("Exclusion zone alert, current position: @1. Teleporting to @2.",
 					spos, pos_to_string(spawn_pos)))
-				minetest.log("action", "Exclusion zone alert: " .. name .. " at " .. spos)
+				minetest.log("action", "[basic_machines] Exclusion zone alert: " .. name .. " at " .. spos)
 				if player.add_pos then -- for Minetest 5.9.0+
 					player:add_pos(vector.subtract(spawn_pos, pos))
 				else

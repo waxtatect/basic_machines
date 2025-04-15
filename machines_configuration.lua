@@ -204,7 +204,7 @@ minetest.register_on_punchnode(function(pos, node, puncher)
 						local upgrade = meta:get_int("upgrade")
 						local requirement = basic_machines.calculate_elevator_requirement(ecost)
 						if (upgrade - 1) >= requirement and (meta:get_int("upgradetype") == 2 or
-							meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:diamondblock") or upgrade == -1 -- for compatibility
+							meta:get_inventory():get_stack("upgrade", 1):get_name() == "default:diamondblock") -- for compatibility
 						then
 							elevator_mode = true
 							meta:set_string("infotext", S("ELEVATOR: Activate to use."))
@@ -625,8 +625,9 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		if fields.OK then
 			if minetest.is_protected(pos, name) then return end
 
+			local n = meta:get_int("n")
 			local not_view = meta:get_int("view") == 0
-			for i = 1, meta:get_int("n") do
+			for i = 1, n do
 				local xi, yi, zi = meta:get_int("x" .. i), meta:get_int("y" .. i), meta:get_int("z" .. i)
 				local posfi = {
 					x = tonumber(fields["x" .. i]) or xi,

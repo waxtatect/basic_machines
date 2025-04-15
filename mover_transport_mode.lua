@@ -1,12 +1,12 @@
 -- (c) 2015-2016 rnd
--- Copyright (C) 2022-2024 мтест
+-- Copyright (C) 2022-2025 мтест
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
 local mover_chests = basic_machines.get_mover("chests")
 local check_palette_index = basic_machines.check_palette_index
 
-local function transport(pos, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2)
+local function transport(pos, meta, owner, prefer, pos1, node1, node1_name, source_chest, pos2, _, _, _, _, T)
 	prefer = prefer or meta:get_string("prefer")
 	local node_def, sound_def
 
@@ -55,17 +55,15 @@ local function transport(pos, meta, owner, prefer, pos1, node1, node1_name, sour
 		return
 	end
 
-	local activation_count = meta:get_int("activation_count")
-
-	if sound_def and activation_count < 16 then -- play sound
+	if sound_def and T % 8 == 0 then -- play sound
 		minetest.sound_play(sound_def, {pitch = 0.9, pos = pos2, max_hear_distance = 12}, true)
 	end
 
-	return activation_count
+	return true
 end
 
 basic_machines.add_mover_mode("transport",
 	F(S("This will move all blocks at source area to new area starting at target position\nThis mode preserves all inventories and other metadata\n" ..
 		"Make chest items transport: define the filter with the needed type of chest")),
-	F(S("transport")), transport
+	F(S("transport")), 48, transport
 )

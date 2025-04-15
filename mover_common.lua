@@ -152,7 +152,7 @@ basic_machines.get_mover_form = function(pos)
 end
 
 local predefined_id = {["normal"] = 1, ["dig"] = 2, ["drop"] = 3, ["object"] = 4, ["inventory"] = 5, ["transport"] = 6}
-basic_machines.add_mover_mode = function(name, description, tr_name, func) -- just add a mode
+basic_machines.add_mover_mode = function(name, description, tr_name, temperature, func) -- just add a mode
 	local modes = basic_machines.get_mover("modes")
 	if modes.name then return end
 
@@ -163,7 +163,7 @@ basic_machines.add_mover_mode = function(name, description, tr_name, func) -- ju
 	basic_machines.set_mover("modes", {
 		_count = count,
 		_tr_table = tr_table,
-		[name] = {id = id, desc = description, task = func}
+		[name] = {id = id, desc = description, temp = temperature, task = func}
 	})
 end
 

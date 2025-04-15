@@ -4,7 +4,6 @@
 
 local F, S = basic_machines.F, basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
-local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
 local mover_no_large_stacks = basic_machines.settings.mover_no_large_stacks
 local string_byte = string.byte
@@ -36,30 +35,19 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 	local msg
 
 	-- temperature
-	local t0, t1 = meta:get_int("t"), minetest.get_gametime()
-	local T = meta:get_int("T") -- temperature
-
-	if t0 > t1 - machines_minstep then -- activated before natural time
-		T = T + 1
-	elseif T > 0 then
-		if t1 - t0 > machines_timer then -- reset temperature if more than 5s (by default) elapsed since last activation
-			T = 0; msg = ""
-		else
-			T = T - 1
-		end
-	end
-	meta:set_int("t", t1); meta:set_int("T", T)
-
+	local T = basic_machines.check_action(pos, true)
 	if T > 2 then -- overheat
-		minetest.sound_play(basic_machines.sound_overheat, {pos = pos, max_hear_distance = 16, gain = 0.25}, true)
+		minetest.sound_play(basic_machines.sound_overheat, {pos = pos, gain = 0.25, max_hear_distance = 16}, true)
 		meta:set_string("infotext", S("Overheat! Temperature: @1", T))
 		return
+	elseif T == -1 then -- reset
+		msg = ""
 	end
 
 	-- protection check
 	if minetest.is_protected(pos, meta:get_string("owner")) then
 		meta:set_int("count", 0)
-		meta:set_int("T", T + 2)
+		basic_machines.set_machines_cache(pos, nil, T + 2)
 		meta:set_string("infotext", S("Protection fail. Reset."))
 		return
 	end
@@ -75,7 +63,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 
 		if reset and count > 0 or count == iter then
 			meta:set_int("count", 0)
-			meta:set_int("T", 4)
+			basic_machines.set_machines_cache(pos, nil, 4)
 			meta:set_string("infotext", reset_msg or
 				S("KEYPAD: Resetting. Punch again after @1s to activate.", machines_timer))
 			return
@@ -328,7 +316,6 @@ minetest.register_node(machine_name, {
 		meta:set_string("text", "")
 		meta:set_int("x0", 0); meta:set_int("y0", 0); meta:set_int("z0", 0) -- target
 		meta:set_int("input", 0); meta:set_int("state", 0)
-		meta:set_int("t", 0); meta:set_int("T", 0)
 	end,
 
 	on_rightclick = function(pos, _, player)
