@@ -3,7 +3,7 @@
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
-local vector_add = vector.add
+local vector_add, minetest_after = vector.add, minetest.after
 
 local function pos_to_string(pos) return ("%s, %s, %s"):format(pos.x, pos.y, pos.z) end
 
@@ -145,7 +145,7 @@ minetest.register_node(machine_name, {
 			local delay = meta:get_float("delay")
 
 			if delay > 0 then
-				minetest.after(delay, activate)
+				minetest_after(delay, activate)
 			elseif delay == 0 then
 				activate()
 			else -- delay < 0 - do random activation: delay = -500 means 500/1000 chance to activate
@@ -193,7 +193,7 @@ minetest.register_node(machine_name, {
 			end
 
 			local delay = meta:get_float("delay")
-			if delay > 0 then minetest.after(delay, activate) else activate() end
+			if delay > 0 then minetest_after(delay, activate) else activate() end
 		end
 	}
 })

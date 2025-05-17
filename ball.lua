@@ -10,6 +10,7 @@
 local F, S = basic_machines.F, basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local machines_minstep = basic_machines.properties.machines_minstep
+local machines_timer = basic_machines.properties.machines_timer
 local max_balls = math.max(0, basic_machines.settings.max_balls)
 local max_range = basic_machines.properties.max_range
 local max_damage = minetest.PLAYER_MAX_HP_DEFAULT / 4 -- player health 20
@@ -520,11 +521,18 @@ max_damage, lifetime, bounce_materials_help)) .. "]")
 			local owner = meta:get_string("owner"); if owner == "" then return end
 
 			if meta:get_int("machines") ~= 1 then -- no machines priv, limit ball count
-				local count = ballcount[owner]
-				if not count or count < 0 then count = 0 end
+				if max_balls == 0 then return end
+
+				local count = ballcount[owner] or 0
+				if count < 0 then count = 0 end
 
 				if count >= max_balls then
-					return
+					local t = basic_machines.get_machines_cache_or_nil(pos)
+					if t and math.abs(os.time() - t) > 4 * machines_timer then
+						count = 0
+					else
+						basic_machines.set_machines_cache(pos, nil, T + 1); return
+					end
 				end
 
 				ballcount[owner] = count + 1
@@ -619,11 +627,18 @@ max_damage, lifetime, bounce_materials_help)) .. "]")
 			local owner = meta:get_string("owner"); if owner == "" then return end
 
 			if meta:get_int("machines") ~= 1 then -- no machines priv, limit ball count
-				local count = ballcount[owner]
-				if not count or count < 0 then count = 0 end
+				if max_balls == 0 then return end
+
+				local count = ballcount[owner] or 0
+				if count < 0 then count = 0 end
 
 				if count >= max_balls then
-					return
+					local t = basic_machines.get_machines_cache_or_nil(pos)
+					if t and math.abs(os.time() - t) > 4 * machines_timer then
+						count = 0
+					else
+						basic_machines.set_machines_cache(pos, nil, T + 1); return
+					end
 				end
 
 				ballcount[owner] = count + 1

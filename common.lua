@@ -7,7 +7,7 @@ local S = minetest.get_translator("basic_machines")
 basic_machines = {
 	F = minetest.formspec_escape,
 	S = S,
-	version = "04/15/2025 (fork)",
+	version = "05/17/2025 (fork)",
 	properties = {
 		no_clock			= false,	-- if true all continuously running activities (clock generators, keypads and balls) are disabled
 		machines_TTL		= 16,		-- time to live for signals, how many hops before signal dissipates
@@ -35,7 +35,7 @@ basic_machines = {
 		mover_modes_temp		= "",		-- modes maximum temperature override, minimum 0 for each
 											-- "<normal>,<dig>,<drop>,<object>,<inventory>,<transport>" (default: "88,88,32,2,80,48")
 		-- technic_power
-		generator_upgrade		= 0,		-- upgrade available in addition to the current limit (50)
+		generator_upgrade		= 40,		-- generator maximum upgrade level
 		-- space
 		space_start_eff			= 1500,		-- space efficiency height
 		space_start				= 1100,		-- space height, set to false to disable
@@ -67,6 +67,7 @@ basic_machines = {
 --[[ interfaces
 	-- actions_dampener
 	check_action = function() end,
+	get_machines_cache_or_nil = function () end,
 	set_machines_cache = function() end,
 	-- autocrafter
 	change_autocrafter_recipe = function() end,

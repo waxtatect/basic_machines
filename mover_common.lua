@@ -7,7 +7,7 @@ local math_abs = math.abs
 local mover_chests = basic_machines.get_mover("chests")
 local mover_modes
 local mover_plants_table = basic_machines.get_mover("plants_table")
-local vector_add = vector.add
+local vector_add, vector_subtract = vector.add, vector.subtract
 
 basic_machines.get_distance = function(pos1, pos2)
 	return (math_abs(pos2.x - pos1.x) + math_abs(pos2.y - pos1.y) + math_abs(pos2.z - pos1.z))
@@ -54,7 +54,7 @@ end
 basic_machines.find_and_connect_battery = function(pos, meta)
 	for i = 0, 2 do
 		local positions = minetest.find_nodes_in_area( -- find battery
-			vector.subtract(pos, 1), vector_add(pos, 1), "basic_machines:battery_" .. i)
+			vector_subtract(pos, 1), vector_add(pos, 1), "basic_machines:battery_" .. i)
 		if #positions > 0 then
 			local fpos = positions[1] -- pick first battery found
 			meta:set_int("batx", fpos.x); meta:set_int("baty", fpos.y); meta:set_int("batz", fpos.z)

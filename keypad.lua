@@ -6,7 +6,8 @@ local F, S = basic_machines.F, basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local machines_timer = basic_machines.properties.machines_timer
 local mover_no_large_stacks = basic_machines.settings.mover_no_large_stacks
-local string_byte = string.byte
+local is_protected, minetest_after = minetest.is_protected, minetest.after
+local string_byte, vector_add = string.byte, vector.add
 local signs -- when activated with keypad their text will be updated
 local use_signs_lib = minetest.global_exists("signs_lib")
 local use_default = basic_machines.use_default
@@ -45,7 +46,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 	end
 
 	-- protection check
-	if minetest.is_protected(pos, meta:get_string("owner")) then
+	if is_protected(pos, meta:get_string("owner")) then
 		meta:set_int("count", 0)
 		basic_machines.set_machines_cache(pos, nil, T + 2)
 		meta:set_string("infotext", S("Protection fail. Reset."))
@@ -70,7 +71,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 		end
 
 		if count < iter - 1 then
-			minetest.after(machines_timer, function()
+			minetest_after(machines_timer, function()
 				basic_machines.use_keypad(pos, machines_TTL)
 			end)
 		end
@@ -114,7 +115,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 				if iter > 1 then meta:set_int("count", iter); count = 0 end -- send text only once
 				meta:set_string("infotext", S("Keypad operation: @1 cycle left", count))
 				local math_sqrt = math.sqrt
-				local tpos = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
+				local tpos = vector_add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
 				for _, player in ipairs(minetest.get_connected_players()) do
 					local pos1 = player:get_pos()
 					if math_sqrt((pos1.x - tpos.x)^2 + (pos1.y - tpos.y)^2 + (pos1.z - tpos.z)^2) <= 5 then
@@ -125,7 +126,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 			end
 		end
 
-		local tpos = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
+		local tpos = vector_add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
 		local node = minetest.get_node_or_nil(tpos); if not node then return end -- error
 		local name = node.name
 
@@ -273,7 +274,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 		end
 
 		local mode = meta:get_int("mode"); if mode == 0 then return end -- do nothing
-		local tpos = vector.add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
+		local tpos = vector_add(pos, {x = meta:get_int("x0"), y = meta:get_int("y0"), z = meta:get_int("z0")})
 		local node = minetest.get_node_or_nil(tpos); if not node then return end -- error
 		local def = minetest.registered_nodes[node.name]
 		if def and (def.effector or def.mesecons and def.mesecons.effector) then -- activate target
@@ -322,7 +323,7 @@ minetest.register_node(machine_name, {
 		local meta, name = minetest.get_meta(pos), player:get_player_name()
 		local x0, y0, z0 = meta:get_int("x0"), meta:get_int("y0"), meta:get_int("z0")
 
-		machines.mark_pos1(name, vector.add(pos, {x = x0, y = y0, z = z0})) -- mark pos1
+		machines.mark_pos1(name, vector_add(pos, {x = x0, y = y0, z = z0})) -- mark pos1
 		minetest.show_formspec(name, "basic_machines:keypad_" .. minetest.pos_to_string(pos),
 			"formspec_version[4]size[6,5.3]no_prepend[]bgcolor[#888888BB;false]set_focus[text]" ..
 			"field[0.25,0.5;1,0.8;mode;" .. F(S("Mode")) .. ";" .. meta:get_int("mode") ..

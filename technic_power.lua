@@ -4,7 +4,7 @@
 
 local F, S = basic_machines.F, basic_machines.S
 local energy_multiplier = basic_machines.settings.energy_multiplier
-local generator_upgrade_max = 50 + math.max(0, basic_machines.settings.generator_upgrade)
+local generator_upgrade_max = basic_machines.settings.generator_upgrade
 local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
 local power_stackmax = basic_machines.settings.power_stackmax
@@ -212,6 +212,15 @@ if machines_activate_furnace then
 end
 
 local function register_battery(name, groups, tiles)
+	local infotext
+
+	if basic_machines.use_default then
+		infotext = S("Battery - stores energy, generates energy from fuel, can power nearby machines," ..
+				" or accelerate/run furnace above it")
+	else
+		infotext = S("Battery - stores energy, generates energy from fuel, can power nearby machines")
+	end
+
 	minetest.register_node(name, {
 		description = S("Battery"),
 		groups = groups,
@@ -224,8 +233,7 @@ local function register_battery(name, groups, tiles)
 			if not placer then return end
 
 			local meta = minetest.get_meta(pos)
-			meta:set_string("infotext", S("Battery - stores energy, generates energy from fuel, can power nearby machines," ..
-				" or accelerate/run furnace above it"))
+			meta:set_string("infotext", infotext)
 			meta:set_string("owner", placer:get_player_name())
 
 			meta:set_float("capacity", 3)
@@ -246,12 +254,23 @@ local function register_battery(name, groups, tiles)
 
 		on_receive_fields = function(_, _, fields, sender)
 			if fields.help then
+				local help_battery_text
+
+				if basic_machines.use_default then
+					help_battery_text = S("Battery provides power to machines or furnace. It can either use " ..
+					"power crystals or convert ordinary furnace fuels into energy. 1 coal lump gives 1 energy." ..
+					"\n\nUpgrade with diamond blocks for more available power output / accelerate furnace or with " ..
+					"mese blocks for more power storage capacity.")
+				else
+					help_battery_text = S("Battery provides power to machines. It can either use " ..
+					"power crystals or convert ordinary fuels into energy. 1 coal lump gives 1 energy." ..
+					"\n\nUpgrade with diamond blocks for more available power output or with " ..
+					"mese blocks for more power storage capacity.")
+				end
+
 				minetest.show_formspec(sender:get_player_name(), "basic_machines:help_battery",
 					"formspec_version[4]size[7.4,7.4]textarea[0,0.35;7.4,7.05;help;" .. F(S("Battery help")) .. ";" ..
-					F(S("Battery provides power to machines or furnace. It can either use " ..
-					"power crystals or convert ordinary furnace fuels into energy. 1 coal lump gives 1 energy." ..
-					"\n\nUpgrade with diamond blocks for more available power output or with " ..
-					"mese blocks for more power storage capacity.")) .. "]")
+					F(help_battery_text) .. "]")
 			end
 		end,
 
@@ -311,13 +330,11 @@ local function register_battery(name, groups, tiles)
 						end
 						meta:set_int("ftime", t1)
 
-						local fuel_time = fmeta:get_float("fuel_time")
-						local fuel_totaltime = fmeta:get_float("fuel_totaltime")
 						local upgrade = meta:get_int("upgrade") * 0.1
 						local energy_new = energy - 0.25 * upgrade -- use energy to accelerate burning
 
 						-- to add burn time: must burn for at least 40 secs or furnace out of fuel
-						if fuel_time > 40 or fuel_totaltime == 0 or node == "default:furnace" then
+						if fmeta:get_float("fuel_time") > 40 or fmeta:get_float("fuel_totaltime") == 0 or node == "default:furnace" then
 							fmeta:set_float("fuel_totaltime", 60); fmeta:set_float("fuel_time", 0) -- add 60 seconds burn time to furnace
 							energy_new = energy_new - 0.5 -- use up energy to add fuel
 
