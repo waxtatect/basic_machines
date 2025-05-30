@@ -7,7 +7,7 @@ local S = minetest.get_translator("basic_machines")
 basic_machines = {
 	F = minetest.formspec_escape,
 	S = S,
-	version = "05/17/2025 (fork)",
+	version = "05/30/2025 (fork)",
 	properties = {
 		no_clock			= false,	-- if true all continuously running activities (clock generators, keypads and balls) are disabled
 		machines_TTL		= 16,		-- time to live for signals, how many hops before signal dissipates
@@ -93,9 +93,12 @@ basic_machines = {
 	get_mover = function() end,
 	get_mover_form = function() end,
 	get_palette_index = function() end,
+	is_protected = nil, -- function used with both optional protection mods: areas and protector
 	itemstring_to_stack = function() end,
 	node_to_stack = function() end,
 	set_mover = function() end,
+	-- protect
+	get_event_distributor_near = function() end
 	-- technic_power
 	check_power = function() end
 --]]
@@ -159,6 +162,8 @@ local function get_inventory_items(pos, listnames)
 	return items
 end
 
+basic_machines.get_inventory_items = get_inventory_items
+
 basic_machines.on_blast = function(pos, intensity, name, listnames, param2)
 	if intensity < 2.5 then return end
 	local drops
@@ -188,18 +193,9 @@ basic_machines.creative = function(name)
 		{creative = true})
 end
 
--- returns a float with precision up to two digits or integer number
-local modf = math.modf
-basic_machines.twodigits_float = function(number)
-	local r
-	if number ~= 0 then
-		local i, f = modf(number)
-		if f ~= 0 then r = i + ("%.2f"):format(f) else r = number end
-	else
-		r = 0
-	end
-	return r
-end
+-- returns a float with two decimals precision or an integer
+local math_floor = math.floor
+basic_machines.truncate_to_two_decimals = function(x) return math_floor(x * 100) / 100 end
 
 if basic_machines.use_default then
 	basic_machines.sound_node_machine = default.node_sound_wood_defaults
@@ -209,11 +205,11 @@ else
 	basic_machines.sound_node_machine = function(sound_table) return sound_table end
 end
 
--- test: toggle machine running with clockgen/keypad repeats, useful for debugging
+-- test: toggle machines running with clock generators, keypads and balls repeats, useful for debugging
 -- i.e. seeing how machines running affect server performance
 minetest.register_chatcommand("clockgen", {
-	description = S("Toggle clock generator/keypad repeats"),
-	privs = {privs = true},
+	description = S("Toggle clock clock generators, keypads and balls repeats"),
+	privs = {debug = true, privs = true},
 	func = function(name, _)
 		basic_machines.properties.no_clock = not basic_machines.properties.no_clock
 		minetest.chat_send_player(name, S("No clock set to @1", tostring(basic_machines.properties.no_clock)))

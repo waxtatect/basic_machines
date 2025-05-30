@@ -6,6 +6,7 @@ local F, S = basic_machines.F, basic_machines.S
 local vector_add, minetest_after = vector.add, minetest.after
 
 local function pos_to_string(pos) return ("%s, %s, %s"):format(pos.x, pos.y, pos.z) end
+local function round_to_half_integer(x) return math.floor(x * 2 + 0.5) / 2 end
 
 basic_machines.get_distributor_form = function(pos)
 	local meta = minetest.get_meta(pos)
@@ -44,7 +45,7 @@ basic_machines.get_distributor_form = function(pos)
 
 	local y = 0.75 + n * 0.85
 	form[#form + 1] = "label[0.5," .. (1.15 + n * 0.85) .. ";" .. F(S("Delay")) ..
-		"]field[1.5," .. y .. ";1,0.8;delay;;" .. basic_machines.twodigits_float(meta:get_float("delay")) ..
+		"]field[1.5," .. y .. ";1,0.8;delay;;" .. basic_machines.truncate_to_two_decimals(meta:get_float("delay")) ..
 		"]button_exit[4," .. y .. ";1,0.8;OK;" .. F(S("OK")) .. "]button[5.55," .. y .. ";1,0.8;ADD;" .. F(S("Add")) ..
 		"]button[6.8," .. y .. ";1,0.8;view;" .. F(S("view")) .. "]button[8.1," .. y .. ";1,0.8;help;" .. F(S("help")) .. "]"
 
@@ -61,15 +62,25 @@ minetest.register_node(machine_name, {
 
 	on_secondary_use = function(_, user)
 		if user then
-			local round = math.floor
-			local pos, r, name = user:get_pos(), 20, user:get_player_name()
-			local p = {x = round(pos.x / r + 0.5) * r, y = round(pos.y / r + 0.5) * r + 1, z = round(pos.z / r + 0.5) * r}
+			local user_pos, name = user:get_pos(), user:get_player_name()
+			local pos = basic_machines.get_event_distributor_near(user_pos)
 
-			if minetest.is_protected(p, name) then return end
+			if minetest.is_protected(pos, name) then return end
 
-			minetest.chat_send_player(name, S("DISTRIBUTOR: Position found at @1 (@2) - displaying mark 1",
-				pos_to_string(vector.round(vector.subtract(p, pos))), pos_to_string(p)))
-			machines.mark_pos1(name, p)
+			local user_pos_y = math.floor(user_pos.y + 0.5)
+			local up_or_down
+			if user_pos_y > pos.y then
+				up_or_down = "▼"
+			elseif user_pos_y < pos.y and user_pos_y + 1 < pos.y then
+				up_or_down = "▲"
+			else
+				up_or_down = "–"
+			end
+
+			minetest.chat_send_player(name,
+				S("DISTRIBUTOR: Position found at @1 (distance: @2, vertical: @3) - displaying mark 1",
+				pos_to_string(pos), round_to_half_integer(vector.distance(user_pos, pos)), up_or_down))
+			machines.mark_pos1(name, pos)
 		end
 	end,
 

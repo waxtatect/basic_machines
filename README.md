@@ -38,10 +38,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
+#### Sound
+
+basic_machines_explode.ogg\
+&emsp;TumeniNodes, [Minetest Game mod: tnt](https://github.com/luanti-org/minetest_game/blob/master/mods/tnt/sounds/tnt_explode.ogg), [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+
 #### Textures
 
 basic_machines_charcoal.png\
 &emsp;Nova_Wostra, [Pixel Perfection Legacy](https://www.curseforge.com/minecraft/texture-packs/pixel-perfection-legacy), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
+basic_machines_smoke.png\
+&emsp;Nova_Wostra, [Pixel Perfection Legacy](https://www.curseforge.com/minecraft/texture-packs/pixel-perfection-legacy), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
 basic_machines_wool_black.png\
-&emsp;Cisoun, [Minetest Game mod: wool](https://github.com/minetest/minetest_game/tree/master/mods/wool), [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)
+&emsp;Cisoun, [Minetest Game mod: wool](https://github.com/luanti-org/minetest_game/blob/master/mods/wool/textures/wool_black.png), [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)

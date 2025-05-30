@@ -104,3 +104,73 @@ basic_machines.check_action = function(pos, cooldown, step, limit, reset)
 
 	return count
 end
+
+-- machines_stats chat command
+local S = basic_machines.S
+local machines_stats, summary_displayed, machine_count
+
+local function add_machine_count(data, machine_name, meta)
+	if machine_name == "basic_machines:mover" then
+		 -- 0: no upgrade, 1: mese blocks, 2: diamond blocks, 3: movers
+		 -- see mover.lua, mover.upgrades table
+		local upgrade_type = meta:get_int("upgradetype")
+
+		data[machine_name] = data[machine_name] or {}
+		local movers_stats = data[machine_name]
+		data[machine_name][upgrade_type] = (movers_stats[upgrade_type] or 0) + 1
+		data[machine_name]["count"] = (movers_stats["count"] or 0) + 1
+	else
+		data[machine_name] = (data[machine_name] or 0) + 1
+	end
+end
+
+minetest.register_chatcommand("machines_stats", {
+	params = "[<owner>]",
+	description = S("Build and display the number of machines from the cache, grouped by owner"),
+	privs = {debug = true, privs = true},
+	func = function(name, param)
+		local machines_summary
+
+		if param == "" and summary_displayed then
+			machines_stats, summary_displayed, machine_count = nil, nil, nil
+		end
+
+		if machines_stats == nil then
+			machines_stats, machines_summary, machine_count = {}, {}, 0
+			local string_to_pos = minetest.string_to_pos
+			for pos_str, _ in pairs(machines_cache) do
+				local pos = string_to_pos(pos_str)
+				local machine_name = minetest.get_node(pos).name
+
+				if (machine_name):sub(1, 15) == "basic_machines:" then
+					local meta = minetest.get_meta(pos)
+					local owner = meta:get_string("owner")
+
+					machines_stats[owner] = machines_stats[owner] or {}
+
+					add_machine_count(machines_stats[owner], machine_name, meta)
+					add_machine_count(machines_summary, machine_name, meta)
+
+					machines_stats[owner]["count"] = (machines_stats[owner]["count"] or 0) + 1
+					machines_summary["owners"] = machines_summary["owners"] or {}
+					machines_summary["owners"][owner] = true
+					machine_count = machine_count + 1
+				end
+			end
+		end
+
+		if param == "" then
+			minetest.chat_send_player(name, dump(machines_summary)); summary_displayed = true
+		elseif machines_stats and machines_stats[param] then
+			local owner_stats = machines_stats[param]
+			minetest.chat_send_player(name, dump(owner_stats))
+			local owner_machine_count = owner_stats["count"]
+			minetest.chat_send_player(name, S("Owner: '@1', Machines number: @2" ..
+				", Part of the total machines number: @3%", param, owner_machine_count, owner_machine_count / machine_count * 100))
+		else
+			minetest.chat_send_player(name, S("Owner '@1' not found", param))
+		end
+		minetest.chat_send_player(name, S("Cache size: @1, Total machines number: @2" ..
+			"\nDifference (unloaded/removed machines / outdated stats): @3", size, machine_count, size - machine_count))
+	end
+})

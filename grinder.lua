@@ -4,7 +4,7 @@
 
 local F, S = basic_machines.F, basic_machines.S
 local grinder_dusts_legacy = basic_machines.settings.grinder_dusts_legacy
-local twodigits_float = basic_machines.twodigits_float
+local truncate_to_two_decimals = basic_machines.truncate_to_two_decimals
 local use_unified_inventory = minetest.global_exists("unified_inventory")
 local use_i3 = minetest.global_exists("i3")
 local use_cg_plus = minetest.global_exists("cg") -- Skaapdev add support for cg_plus mod
@@ -376,10 +376,10 @@ local function grinder_process(pos)
 		if fuel < fuel_req then
 			meta:set_float("fuel", fuel)
 			meta:set_string("infotext",
-				S("Need at least @1 fuel to complete operation", twodigits_float(fuel_req - fuel))); return
+				S("Need at least @1 fuel to complete operation", truncate_to_two_decimals(fuel_req - fuel))); return
 		else
 			msg = S("Added fuel furnace burn time @1, fuel status @2",
-				twodigits_float(add_fuel), twodigits_float(fuel))
+				truncate_to_two_decimals(add_fuel), truncate_to_two_decimals(fuel))
 		end
 	end
 
@@ -403,7 +403,7 @@ local function grinder_process(pos)
 	minetest.sound_play("basic_machines_grinder", {pos = pos, gain = 0.5, max_hear_distance = 16}, true)
 
 	fuel = fuel - fuel_req; meta:set_float("fuel", fuel) -- burn fuel
-	meta:set_string("infotext", S("Fuel status @1", twodigits_float(fuel)))
+	meta:set_string("infotext", S("Fuel status @1", truncate_to_two_decimals(fuel)))
 end
 
 local function grinder_upgrade(meta)

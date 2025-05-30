@@ -6,7 +6,7 @@ local F, S = basic_machines.F, basic_machines.S
 local machines_TTL = basic_machines.properties.machines_TTL
 local machines_timer = basic_machines.properties.machines_timer
 local mover_no_large_stacks = basic_machines.settings.mover_no_large_stacks
-local is_protected, minetest_after = minetest.is_protected, minetest.after
+local minetest_after = minetest.after
 local string_byte, vector_add = string.byte, vector.add
 local signs -- when activated with keypad their text will be updated
 local use_signs_lib = minetest.global_exists("signs_lib")
@@ -46,7 +46,7 @@ basic_machines.use_keypad = function(pos, ttl, reset, reset_msg)
 	end
 
 	-- protection check
-	if is_protected(pos, meta:get_string("owner")) then
+	if minetest.is_protected(pos, meta:get_string("owner")) then
 		meta:set_int("count", 0)
 		basic_machines.set_machines_cache(pos, nil, T + 2)
 		meta:set_string("infotext", S("Protection fail. Reset."))

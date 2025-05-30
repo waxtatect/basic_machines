@@ -6,7 +6,7 @@
 -- See README.md for license details
 
 local F, S = basic_machines.F, basic_machines.S
-local twodigits_float = basic_machines.twodigits_float
+local truncate_to_two_decimals = basic_machines.truncate_to_two_decimals
 local no_recycle_list = { -- prevent unrealistic recycling
 	["default:bronze_ingot"] = 1, ["default:coal_lump"] = 1,
 	["default:copper_ingot"] = 1, ["default:diamond"] = 1,
@@ -128,7 +128,7 @@ local function recycler_process(pos)
 			if add_fuel == 0 then -- no fuel inserted, try look for outlet
 				local supply = basic_machines.check_power({x = pos.x, y = pos.y - 1, z = pos.z}, fuel_req)
 				if supply > 0 then
-					add_fuel = supply * 2 -- * 40, same as 10 coal
+					add_fuel = supply * 1.25 -- * 2, * 40, same as 10 coal
 				else
 					meta:set_string("infotext", S("Please insert fuel")); return
 				end
@@ -144,10 +144,10 @@ local function recycler_process(pos)
 			if fuel < fuel_req then
 				meta:set_float("fuel", fuel)
 				meta:set_string("infotext",
-					S("Need at least @1 fuel to complete operation", twodigits_float(fuel_req - fuel))); return
+					S("Need at least @1 fuel to complete operation", truncate_to_two_decimals(fuel_req - fuel))); return
 			else
 				msg = S("Added fuel furnace burn time @1, fuel status @2",
-					twodigits_float(add_fuel), twodigits_float(fuel))
+					truncate_to_two_decimals(add_fuel), truncate_to_two_decimals(fuel))
 			end
 		end
 	end
@@ -196,7 +196,7 @@ local function recycler_process(pos)
 
 	-- add raw materials
 	for _, item in pairs(itemlist) do
-		if math.random(1, 4) <= 3 then -- probability 3/4 = 75%
+		if math.random(4) <= 3 then -- probability 3/4 = 75%
 			local addstack = ItemStack(item)
 			if steps > 1 then -- multiply stack
 				addstack:set_count(addstack:get_count() * steps)
@@ -211,9 +211,10 @@ local function recycler_process(pos)
 		fuel = fuel - fuel_req; meta:set_float("fuel", fuel) -- burn fuel on successful operation
 	end
 	if inv:is_empty("src") then
-		meta:set_string("infotext", S("Fuel status @1", twodigits_float(fuel)))
+		meta:set_string("infotext", S("Fuel status @1", truncate_to_two_decimals(fuel)))
 	else
-		meta:set_string("infotext", S("Fuel status @1, recycling '@2' (@3)", twodigits_float(fuel), description, src_item))
+		meta:set_string("infotext", S("Fuel status @1, recycling '@2' (@3)",
+			truncate_to_two_decimals(fuel), description, src_item))
 	end
 end
 
@@ -309,7 +310,7 @@ minetest.register_node(machine_name, {
 		if listname == "src" then
 			local meta = minetest.get_meta(pos)
 			if meta:get_inventory():is_empty("src") then
-				meta:set_string("infotext", S("Fuel status @1", twodigits_float(meta:get_float("fuel"))))
+				meta:set_string("infotext", S("Fuel status @1", truncate_to_two_decimals(meta:get_float("fuel"))))
 			end
 		elseif listname == "upgrade" then
 			local meta = minetest.get_meta(pos)

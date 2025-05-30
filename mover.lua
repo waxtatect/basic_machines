@@ -291,15 +291,15 @@ minetest.register_chatcommand("mover_intro", {
 	end
 })
 
-local is_protected = minetest.is_protected
 local vector_add, math_min = vector.add, math.min
 local mover_modes = mover.modes
 local get_distance = basic_machines.get_distance
 local temp_10P = math.ceil(mover_max_temp * 0.1)
 local temp_80P = mover_max_temp > 12 and math.ceil(mover_max_temp * 0.8) or nil
-local twodigits_float = basic_machines.twodigits_float
+local truncate_to_two_decimals = basic_machines.truncate_to_two_decimals
 
 local function pos1_checks(pos, owner)
+	local is_protected = basic_machines.is_protected or minetest.is_protected
 	if is_protected(pos, owner) then -- protection check
 		return true
 	end
@@ -308,6 +308,7 @@ local function pos1_checks(pos, owner)
 end
 
 local function pos1list_checks(pos, length_pos, owner, upgrade, meta)
+	local is_protected = basic_machines.is_protected or minetest.is_protected
 	local node, node_name, count = {}, {}, 0
 	local mover_hardness, hardness = mover.hardness, 0
 	local maxpower -- battery maximum power output
@@ -350,6 +351,7 @@ local function is_pos2_protected(pos, owner, mode_third_upgradetype)
 	if mode_third_upgradetype then
 		local length_pos = #pos
 		if length_pos > 0 then
+			local is_protected = basic_machines.is_protected or minetest.is_protected
 			for i = 1, length_pos do
 				if is_protected(pos[i], owner) then
 					return true
@@ -358,6 +360,7 @@ local function is_pos2_protected(pos, owner, mode_third_upgradetype)
 			return false, length_pos
 		end
 	end
+	local is_protected = basic_machines.is_protected or minetest.is_protected
 	return is_protected(pos, owner) -- protection check
 end
 
@@ -453,7 +456,7 @@ minetest.register_node(machine_name, {
 
 	allow_metadata_inventory_put = function(pos, listname, _, stack, player)
 		local name = player:get_player_name()
-		if is_protected(pos, name) then return 0 end
+		if minetest.is_protected(pos, name) then return 0 end
 		local meta = minetest.get_meta(pos)
 
 		if listname == "filter" then
@@ -513,7 +516,7 @@ minetest.register_node(machine_name, {
 
 	allow_metadata_inventory_take = function(pos, listname, _, stack, player)
 		local name = player:get_player_name()
-		if is_protected(pos, name) then return 0 end
+		if minetest.is_protected(pos, name) then return 0 end
 		local meta = minetest.get_meta(pos)
 
 		if listname == "filter" then
@@ -826,9 +829,9 @@ minetest.register_node(machine_name, {
 					if fuel < fuel_cost then
 						meta:set_float("fuel", fuel)
 						meta:set_string("infotext", S("Mover block. Energy @1, needed energy @2. Put nonempty battery next to mover.",
-							twodigits_float(fuel), twodigits_float(fuel_cost))); return
+							truncate_to_two_decimals(fuel), truncate_to_two_decimals(fuel_cost))); return
 					else
-						msg = S("Mover block refueled. Fuel status @1.", twodigits_float(fuel))
+						msg = S("Mover block refueled. Fuel status @1.", truncate_to_two_decimals(fuel))
 					end
 				end
 			end
@@ -848,7 +851,7 @@ minetest.register_node(machine_name, {
 				meta:set_string("infotext", msg)
 			end
 			-- update infotext
-			meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, twodigits_float(fuel)))
+			meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: @2.", T, truncate_to_two_decimals(fuel)))
 		end,
 
 		action_off = function(pos, _) -- this toggles reverse option of mover

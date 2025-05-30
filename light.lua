@@ -127,7 +127,7 @@ minetest.register_node("basic_machines:light_on", {
 			local deactivate = tonumber(fields.deactivate) or 0
 			if deactivate >= 0 and deactivate <= 600 then
 				local meta = minetest.get_meta(pos)
-				deactivate = basic_machines.twodigits_float(deactivate)
+				deactivate = basic_machines.truncate_to_two_decimals(deactivate)
 				meta:set_string("formspec", "formspec_version[4]size[2.5,2.5]" ..
 					"field[0.25,0.5;2,0.8;deactivate;" .. F(S("Deactivate after:")) .. ";" .. deactivate ..
 					"]button_exit[0.25,1.45;1,0.8;OK;" .. F(S("OK")) .. "]")

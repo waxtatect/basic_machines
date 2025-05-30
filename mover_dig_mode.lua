@@ -34,7 +34,8 @@ local function add_node_drops(node_name, pos, node, filter, node_def, param2)
 				local itemlists_dropped = 0
 				for _, item in ipairs(drops.items) do
 					if itemlists_dropped >= max_items then break end
-					if math.random(1, item.rarity or 1) == 1 then
+					local item_rarity = item.rarity or 1
+					if item_rarity == 1 or math.random(item_rarity) == 1 then
 						local inherit_color = item.inherit_color; local palette_index
 						if inherit_color then
 							if filter then
@@ -329,7 +330,7 @@ local function dig(pos, meta, owner, prefer, pos1, node1, node1_name, source_che
 					local count = #positions
 
 					if count > 1 then
-						local is_protected = minetest.is_protected
+						local is_protected = basic_machines.is_protected or minetest.is_protected
 						for i = 1, count do
 							if is_protected(positions[i], owner) then
 								return

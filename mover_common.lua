@@ -9,6 +9,16 @@ local mover_modes
 local mover_plants_table = basic_machines.get_mover("plants_table")
 local vector_add, vector_subtract = vector.add, vector.subtract
 
+if minetest.global_exists("areas") and minetest.global_exists("protector") then
+	basic_machines.is_protected = function(pos, machine_owner)
+		if areas:canInteract(pos, machine_owner) and protector.can_dig(protector.radius, pos, machine_owner, false, 3) then
+			return false
+		end
+
+		return true
+	end
+end
+
 basic_machines.get_distance = function(pos1, pos2)
 	return (math_abs(pos2.x - pos1.x) + math_abs(pos2.y - pos1.y) + math_abs(pos2.z - pos1.z))
 end

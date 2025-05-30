@@ -9,6 +9,8 @@ local machines_minstep = basic_machines.properties.machines_minstep
 local machines_timer = basic_machines.properties.machines_timer
 local power_stackmax = basic_machines.settings.power_stackmax
 local space_start_eff = basic_machines.settings.space_start_eff
+local math_floor = math.floor
+local use_fire = minetest.global_exists("fire")
 
 -- BATTERY
 local energy_crystals = { -- [power crystal name] = energy provided
@@ -18,33 +20,33 @@ local energy_crystals = { -- [power crystal name] = energy provided
 }
 
 local function swap_battery(energy_new, energy, capacity, pos)
-	if capacity > 0 then
-		local full_coef_new = math.floor(energy_new / capacity * 3) -- 0, 1, 2
-		local full_coef = math.floor(energy / capacity * 3)
+	if capacity == 0 then return end
+	local full_coef_new = math_floor(energy_new / capacity * 3) -- 0, 1, 2
+	local full_coef = math_floor(energy / capacity * 3)
 
-		if full_coef_new > 2 then full_coef_new = 2 end
-		if full_coef_new ~= full_coef then -- graphic energy level display
-			minetest.swap_node(pos, {name = "basic_machines:battery_" .. full_coef_new})
-		end
+	if full_coef_new > 2 then full_coef_new = 2 end
+	if full_coef_new ~= full_coef then -- graphic energy level display
+		minetest.swap_node(pos, {name = "basic_machines:battery_" .. full_coef_new})
 	end
 end
 
 local function round_value(x)
-	return math.ceil(x * 10) / 10
+	if x < 100 then -- round to the nearest tenth
+		return math_floor(x * 10 + 0.5) / 10
+	end
+	return math_floor(x + 0.5) -- round to the nearest integer
 end
 
-local function battery_recharge(pos, energy, origin)
+local function battery_recharge(pos, energy, capacity, origin)
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 	local stack = inv:get_stack("fuel", 1)
-	local capacity
-	energy = energy or meta:get_float("energy")
 
 	local add_energy = energy_crystals[stack:get_name()]
 
 	if add_energy and add_energy > 0 then
 		if pos.y > space_start_eff then add_energy = 2 * add_energy end -- in space recharge is more efficient
-		capacity = meta:get_float("capacity")
+		capacity = capacity or meta:get_float("capacity")
 		if add_energy <= capacity then
 			stack:take_item(1); inv:set_stack("fuel", 1, stack)
 		else
@@ -57,7 +59,7 @@ local function battery_recharge(pos, energy, origin)
 		if fueladd.time > 0 then
 			add_energy = fueladd.time / 40
 			local energy_new = energy + add_energy
-			capacity = meta:get_float("capacity")
+			capacity = capacity or meta:get_float("capacity")
 			if energy_new <= capacity then
 				inv:set_stack("fuel", 1, afterfuel.items[1])
 			else
@@ -94,7 +96,7 @@ local function battery_recharge(pos, energy, origin)
 	elseif origin == "recharge_furnace" and energy < 1 then
 		minetest.swap_node(pos, {name = "basic_machines:battery_0"})
 		meta:set_string("infotext", S("Furnace needs at least 1 energy"))
-	elseif origin ~= "check_power" then
+	else
 		capacity = capacity or meta:get_float("capacity")
 		meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy), capacity))
 	end
@@ -103,52 +105,86 @@ local function battery_recharge(pos, energy, origin)
 end
 
 -- power distribution
-local battery = {
-	["basic_machines:battery_0"] = true,
-	["basic_machines:battery_1"] = true,
-	["basic_machines:battery_2"] = true
-}
+local battery = {}
 
-basic_machines.check_power = function(pos, power_draw)
+local smoke_particle_texture = minetest.features.particle_blend_clip and -- for Luanti 5.11.0+
+	{name = "basic_machines_smoke.png", blend = "clip"} or "basic_machines_smoke.png"
+
+local function battery_boom(pos)
 	if not battery[minetest.get_node(pos).name] then
-		return -1 -- battery not found!
+		return
 	end
 
-	local meta = minetest.get_meta(pos)
+	local drops = basic_machines.get_inventory_items(pos, {"upgrade"})
+	drops[#drops + 1] = "basic_machines:battery_0"
 
-	local maxpower = meta:get_float("maxpower")
-	if power_draw > maxpower then
-		meta:set_string("infotext", S("Power draw required: @1, maximum power output @2. Please upgrade battery.",
-			basic_machines.twodigits_float(power_draw), maxpower)); return 0
-	end
+	minetest.remove_node(pos)
 
-	local energy = meta:get_float("energy")
-	local energy_new
-
-	if power_draw > energy then
-		local energy_recharge = battery_recharge(pos, energy, "check_power") -- try recharge battery and continue operation immediately
-		if energy_recharge ~= energy then
-			energy_new = energy_recharge - power_draw
-			if energy_new < 0 then
-				meta:set_float("energy", energy_recharge)
-				meta:set_string("infotext", S("Used fuel provides too little power for current power draw @1",
-					basic_machines.twodigits_float(power_draw))); return 0
-			end -- recharge wasn't enough, needs to be repeated, return 0 power available
-		else
-			meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy), meta:get_float("capacity")))
-			return 0 -- battery didn't provide more energy
+	local drops_length = #drops
+	local math_random = math.random
+	for i = 1, drops_length do
+		local obj = minetest.add_item({
+			x = pos.x + math_random(-15, 15) * 0.1,
+			y = pos.y + 0.5,
+			z = pos.z + math_random(-15, 15) * 0.1
+		}, drops[i])
+		if obj then
+			obj:set_velocity({x = math_random(-3, 3), y = math_random(6), z = math_random(-3, 3)})
 		end
-	else
-		energy_new = energy - power_draw
 	end
 
-	meta:set_float("energy", energy_new)
-	local capacity = meta:get_float("capacity")
-	swap_battery(energy_new, energy, capacity, pos)
-	-- update energy display
-	meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy_new), capacity))
+	minetest.sound_play("basic_machines_explode", {pos = pos, max_hear_distance = 24}, true)
 
-	return power_draw
+	minetest.add_particlespawner({
+		amount = 20,
+		time = 0.2,
+		texture = smoke_particle_texture,
+		minpos = {x = pos.x - 0.5, y = pos.y - 0.5, z = pos.z - 0.5},
+		maxpos = {x = pos.x + 0.5, y = pos.y + 0.5, z = pos.z + 0.5},
+		minvel = {x = -2, y = 0, z = -2},
+		maxvel = {x = 2, y = 2, z = 2},
+		minacc = {x = 0, y = 0, z = 0},
+		maxacc = {x = 0, y = 0, z = 0},
+		minexptime = 0.5,
+		maxexptime = 2.5,
+		minsize = 2,
+		maxsize = 5
+	})
+end
+
+local function battery_upgrade(meta, pos, update)
+	local count1, count2 = 0, 0
+
+	local inv = meta:get_inventory()
+	local inv_size = inv:get_size("upgrade")
+	for i = 1, inv_size do
+		local stack = inv:get_stack("upgrade", i)
+		local item = stack:get_name()
+		if item == "default:mese" then
+			count1 = count1 + stack:get_count()
+		elseif item == "default:diamondblock" then
+			count2 = count2 + stack:get_count()
+		end
+	end
+
+	if pos.y > space_start_eff then count1, count2 = 2 * count1, 2 * count2 end -- space increases efficiency
+
+	local energy = 0
+	local capacity = 3 + count1 * 3 -- mese for capacity
+	capacity = round_value(capacity) -- adjust capacity
+	local maxpower = 1 + count2 * 2 -- old 99 upgrade -> 200 power
+
+	if update then
+		if meta:get_float("energy") ~= energy then
+			meta:set_float("energy", energy)
+			minetest.swap_node(pos, {name = "basic_machines:battery_0"}) -- battery level 0
+		end
+		meta:set_string("infotext", S("Energy: @1 / @2", energy, capacity))
+	end
+
+	meta:set_int("upgrade", count2) -- diamond for power
+	meta:set_float("capacity", capacity)
+	meta:set_float("maxpower", maxpower)
 end
 
 local function battery_update_form(meta)
@@ -167,36 +203,106 @@ local function battery_update_form(meta)
 		"listring[current_player;main]")
 end
 
-local function battery_upgrade(meta, pos)
-	local inv = meta:get_inventory()
-	local count1, count2 = 0, 0
+basic_machines.check_power = function(pos, power_draw)
+	if not battery[minetest.get_node(pos).name] then
+		return -1 -- battery not found!
+	end
 
-	for i = 1, 4 do
-		local stack = inv:get_stack("upgrade", i)
-		local item = stack:get_name()
-		if item == "default:mese" then
-			count1 = count1 + stack:get_count()
-		elseif item == "default:diamondblock" then
-			count2 = count2 + stack:get_count()
+	local meta = minetest.get_meta(pos)
+
+	local maxpower = meta:get_float("maxpower")
+	if power_draw > maxpower then
+		meta:set_string("infotext", S("Power problem: power draw required @1, maximum power output @2. Please upgrade battery.",
+			round_value(power_draw), maxpower)); return 0
+	end
+
+	local energy, capacity = meta:get_float("energy"), meta:get_float("capacity")
+	local energy_new
+
+	if power_draw > energy then
+		if power_draw > capacity and energy > 9 then
+			local energy_battery, msg
+
+			if math.random(20) <= 3 then -- probability 3/20 = 15%
+				if math.random(10) == 1 then -- probability 1/10 = 10%
+					battery_boom(pos); return 0 -- 1.5% chance something will explode
+				end
+
+				if use_fire and math.random(3) == 1 then -- probability 1/3 = 33%
+					local positions = minetest.find_nodes_in_area( -- find air
+						vector.subtract(pos, 1), vector.add(pos, 1), "air")
+					local positions_length = #positions
+					if positions_length > 0 then
+						minetest.set_node(positions[math.random(positions_length)], {name = "fire:basic_flame"}) -- 5% chance to set fire
+					end
+				end
+
+				local item_dropped
+
+				local inv = meta:get_inventory()
+				local inv_size = inv:get_size("upgrade")
+				local math_random = math.random
+				for i = 1, inv_size do
+					local stack = inv:get_stack("upgrade", i)
+					local stack_count = stack:get_count()
+					if stack_count > 0 then
+						local random_item_count = math_random(0, math_floor(stack_count * 0.05 + 0.5))
+						if random_item_count > 0 then -- drop upgrade to reduce power/capacity
+							local item_taken = stack:take_item(random_item_count); inv:set_stack("upgrade", i, stack)
+							minetest.add_item({
+								x = pos.x + math_random(-10, 10) * 0.1,
+								y = pos.y + 0.5,
+								z = pos.z + math_random(-10, 10) * 0.1
+							}, item_taken)
+							item_dropped = true
+						end
+					end
+				end
+
+				if item_dropped then
+					battery_upgrade(meta, pos)
+					battery_update_form(meta)
+
+					energy_battery = energy * 0.6
+					msg = S("Energy: @1 / @2", round_value(energy_battery), capacity)
+				else
+					energy_battery = energy * 0.8
+				end
+			end
+
+			energy_battery = energy_battery or energy * 0.9
+			meta:set_float("energy", energy_battery)
+			swap_battery(energy_battery, energy, capacity, pos)
+			meta:set_string("infotext", msg or S("Energy: @1 / @2\n\nWarning: high power draw @3",
+				round_value(energy_battery), capacity, round_value(power_draw)))
+			return 0
 		end
+
+		local energy_recharge = battery_recharge(pos, energy, capacity, "check_power") -- try recharge battery and continue operation immediately
+
+		if energy_recharge == energy then
+			return 0 -- battery didn't provide more energy, return 0 power available
+		end
+
+		if power_draw > energy_recharge then
+			meta:set_float("energy", energy_recharge)
+			swap_battery(energy_recharge, energy, capacity, pos)
+			meta:set_string("infotext", S("(R) Energy: @1 / @2\n\nUsed fuel provides too little power for current power draw @3",
+				round_value(energy_recharge), capacity, round_value(power_draw)))
+			return 0
+		end -- recharge wasn't enough, needs to be repeated, return 0 power available
+
+		energy_new = energy_recharge - power_draw
+	else
+		energy_new = energy - power_draw
 	end
 
-	if pos.y > space_start_eff then count1, count2 = 2 * count1, 2 * count2 end -- space increases efficiency
+	meta:set_float("energy", energy_new)
+	swap_battery(energy_new, energy, capacity, pos)
+	-- update energy display
+	meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy_new), capacity))
 
-	local energy = 0
-	local capacity = 3 + count1 * 3 -- mese for capacity
-	capacity = round_value(capacity) -- adjust capacity
-	local maxpower = 1 + count2 * 2 -- old 99 upgrade -> 200 power
-
-	if meta:get_float("energy") ~= energy then
-		minetest.swap_node(pos, {name = "basic_machines:battery_0"}) -- battery level 0
-		meta:set_float("energy", energy)
-	end
-
-	meta:set_int("upgrade", count2) -- diamond for power
-	meta:set_float("capacity", capacity)
-	meta:set_float("maxpower", maxpower)
-	meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy), capacity))
+	return power_draw
 end
 
 -- this function will activate furnace
@@ -212,6 +318,8 @@ if machines_activate_furnace then
 end
 
 local function register_battery(name, groups, tiles)
+	battery[name] = true
+
 	local infotext
 
 	if basic_machines.use_default then
@@ -290,10 +398,16 @@ local function register_battery(name, groups, tiles)
 
 		on_metadata_inventory_put = function(pos, listname)
 			if listname == "fuel" then
-				battery_recharge(pos)
+				local meta = minetest.get_meta(pos)
+				local energy, capacity = meta:get_float("energy"), meta:get_float("capacity")
+				if energy < capacity then -- not full, try to recharge
+					battery_recharge(pos, energy, capacity)
+				else -- update energy display
+					meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy), capacity))
+				end
 			elseif listname == "upgrade" then
 				local meta = minetest.get_meta(pos)
-				battery_upgrade(meta, pos)
+				battery_upgrade(meta, pos, true)
 				battery_update_form(meta)
 			end
 		end,
@@ -301,7 +415,7 @@ local function register_battery(name, groups, tiles)
 		on_metadata_inventory_take = function(pos, listname)
 			if listname == "upgrade" then
 				local meta = minetest.get_meta(pos)
-				battery_upgrade(meta, pos)
+				battery_upgrade(meta, pos, true)
 				battery_update_form(meta)
 			end
 		end,
@@ -360,7 +474,7 @@ local function register_battery(name, groups, tiles)
 							-- update energy display
 							meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy_new), capacity))
 						else
-							local energy_recharge = battery_recharge(pos, energy_new, "recharge_furnace")
+							local energy_recharge = battery_recharge(pos, energy_new, nil, "recharge_furnace")
 							if energy_recharge ~= energy_new then
 								meta:set_float("energy", energy_recharge)
 							end
@@ -372,7 +486,7 @@ local function register_battery(name, groups, tiles)
 
 				local capacity = meta:get_float("capacity")
 				if energy < capacity then -- not full, try to recharge
-					battery_recharge(pos, energy) -- try to recharge by converting inserted fuel/power crystals into energy
+					battery_recharge(pos, energy, capacity) -- try to recharge by converting inserted fuel / power crystals into energy
 				else -- update energy display
 					meta:set_string("infotext", S("Energy: @1 / @2", round_value(energy), capacity))
 				end
@@ -381,7 +495,7 @@ local function register_battery(name, groups, tiles)
 	})
 end
 
--- various battery levels: 0, 1, 2 (2 >= 66%, 1 >= 33%, 0>=0%)
+-- various battery levels: 0, 1, 2 (0 >= 0%, 1 >= 33%, 2 >= 66%)
 register_battery("basic_machines:battery_0",
 	{cracky = 3}, -- groups
 	{"basic_machines_outlet.png", "basic_machines_battery.png", "basic_machines_battery_0.png"} -- tiles
@@ -401,7 +515,7 @@ local minenergy = 17500 -- amount of energy required to initialize a generator
 
 local function generator_update_form(meta, not_init)
 	if not_init then
-		local upgrade = basic_machines.twodigits_float(meta:get_float("upgrade"))
+		local upgrade = round_value(meta:get_float("upgrade"))
 		meta:set_string("formspec", "formspec_version[4]size[10.25,7.2]" ..
 			"style_type[list;spacing=0.25,0.15]" ..
 			"label[0.25,0.3;" .. F(S("Fuel")) .. "]list[context;fuel;0.25,0.5;1,1]" ..
@@ -461,13 +575,13 @@ minetest.register_abm({
 		local crystal, text
 
 		if upgrade >= 20 then
-			crystal = "basic_machines:power_rod " .. math.floor(1 + (upgrade - 20) * 9 / 178)
+			crystal = "basic_machines:power_rod " .. math_floor(1 + (upgrade - 20) * 9 / 178)
 			text = S("High upgrade: power rod")
 		elseif upgrade >= 5 then
-			crystal = "basic_machines:power_block " .. math.floor(1 + (upgrade - 5) * 9 / 15)
+			crystal = "basic_machines:power_block " .. math_floor(1 + (upgrade - 5) * 9 / 15)
 			text = S("Medium upgrade: power block")
 		else
-			crystal = "basic_machines:power_cell " .. math.floor(1 + 2 * upgrade)
+			crystal = "basic_machines:power_cell " .. math_floor(1 + 2 * upgrade)
 			text = S("Low upgrade: power cell")
 		end
 

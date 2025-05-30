@@ -661,7 +661,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 				end
 			end
 
-			meta:set_float("delay", basic_machines.twodigits_float(tonumber(fields.delay) or 0))
+			meta:set_float("delay", basic_machines.truncate_to_two_decimals(tonumber(fields.delay) or 0))
 
 		elseif fields.ADD then
 			if minetest.is_protected(pos, name) then return end

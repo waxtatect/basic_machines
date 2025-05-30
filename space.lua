@@ -90,13 +90,14 @@ end)
 
 local stimer = 0
 local function pos_to_string(pos) return ("%s, %s, %s"):format(pos.x, pos.y, pos.z) end
-local round, random = math.floor, math.random
+local function protector_position() return {x = 0, y = 0, z = 0} end
 
-local function protector_position(pos)
+if use_basic_protect then
+	local math_floor = math.floor
+	local function round(x, r) return math_floor(x / r + 0.5) * r end
 	local r = 20; local ry = 2 * r
-	return {x = round(pos.x / r + 0.5) * r,
-		y = round(pos.y / ry + 0.5) * ry,
-		z = round(pos.z / r + 0.5) * r}
+	local function protector_vector_round(v) return {x = round(v.x, r), y = round(v.y, ry), z = round(v.z, r)} end
+	protector_position = function(pos) return protector_vector_round(pos) end
 end
 
 minetest.register_globalstep(function(dtime)
@@ -110,11 +111,7 @@ minetest.register_globalstep(function(dtime)
 		if pos.y > space_start then
 			inspace = 1
 			if pos.y > exclusion_height and not minetest.check_player_privs(name, "include") then
-				local spawn_pos = {
-					x = random(0, 100) * (random(2) == 1 and 1 or -1),
-					y = 1,
-					z = random(0, 100) * (random(2) == 1 and 1 or -1)
-				}
+				local spawn_pos = {x = math.random(-100, 100), y = math.random(10), z = math.random(-100, 100)}
 				local spos = pos_to_string(vector.round(pos))
 				minetest.chat_send_player(name, S("Exclusion zone alert, current position: @1. Teleporting to @2.",
 					spos, pos_to_string(spawn_pos)))
@@ -142,8 +139,8 @@ minetest.register_globalstep(function(dtime)
 				elseif use_basic_protect then
 					local ppos = protector_position(pos)
 					local populated = minetest.get_node(ppos).name == "basic_protect:protector"
-					if populated then
-						if minetest.get_meta(ppos):get_int("space") == 1 then populated = false end
+					if populated and minetest.get_meta(ppos):get_int("space") == 1 then
+						populated = false
 					end
 					if not populated then -- do damage if player found not close to protectors
 						player:set_hp(hp - 10) -- dead in 20/10 = 2 events
