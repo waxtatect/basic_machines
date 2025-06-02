@@ -32,8 +32,11 @@ local function add_node_drops(node_name, pos, node, filter, node_def, param2)
 					max_items = #drops.items or 0
 				end
 				local itemlists_dropped = 0
-				for _, item in ipairs(drops.items) do
+				local drops_items = drops.items
+				local length_drops_items = #drops_items
+				for i = 1, length_drops_items do
 					if itemlists_dropped >= max_items then break end
+					local item = drops_items[i]
 					local item_rarity = item.rarity or 1
 					if item_rarity == 1 or math.random(item_rarity) == 1 then
 						local inherit_color = item.inherit_color; local palette_index
@@ -44,7 +47,10 @@ local function add_node_drops(node_name, pos, node, filter, node_def, param2)
 								palette_index = minetest.strip_param2_color(node.param2, def.paramtype2)
 							end
 						end
-						for _, drop_item in ipairs(item.items) do -- pick all items from list
+						local item_items = item.items
+						local length_item_items = #item_items
+						for j = 1, length_item_items do -- pick all items from list
+							local drop_item = item_items[j]
 							if inherit_color and palette_index then
 								drop_item = itemstring_to_stack(drop_item, palette_index)
 							end

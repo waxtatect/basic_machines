@@ -123,7 +123,7 @@ Grinder: to operate it insert fuel, then insert item to grind or activate with s
 Grinder help=
 To upgrade grinder, put grinders in upgrade slot. Each upgrade adds ability to process additional materials.@n=
 Grinder=
-Toggle clock clock generators, keypads and balls repeats=
+Toggle clock generators, keypads and balls repeats=
 No clock set to @1=
 Player is expert basic_machines user: his machines work while not present on server, can spawn more than @1 balls at once=
 Machines and Components=

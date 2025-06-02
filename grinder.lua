@@ -84,7 +84,8 @@ local function register_recipe(name, def)
 
 	if grinder_recipes_help ~= nil then
 		if is_recipe then
-			for i = 2, #grinder_recipes_translated do
+			local length_grinder_recipes_translated = #grinder_recipes_translated
+			for i = 2, length_grinder_recipes_translated do
 				if grinder_recipes_translated[i]:match("In.-(" .. name .. ").-Out") then
 					table.remove(grinder_recipes_translated, i); break
 				end
@@ -151,7 +152,8 @@ if basic_machines.settings.grinder_register_dusts then
 	if farming_table[grinder_extractors_type] then
 		farming_mod = farming_table[grinder_extractors_type]
 	else
-		for i = 1, #farming_table do
+		local length_farming_table = #farming_table
+		for i = 1, length_farming_table do
 			if farming_table[i] then farming_mod = farming_table[i]; break end
 		end
 	end

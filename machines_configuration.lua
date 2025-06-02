@@ -367,8 +367,10 @@ local fnames = {
 	"basic_machines:detector_"
 }
 
+local length_fnames = #fnames
+
 local function check_fname(formname)
-	for i = 1, #fnames do
+	for i = 1, length_fnames do
 		local fname = fnames[i]; local fname_len = fname:len()
 		if formname:sub(1, fname_len) == fname then
 			return fname:sub(("basic_machines:"):len() + 1, fname_len - 1), formname:sub(fname_len + 1)

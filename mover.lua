@@ -298,45 +298,30 @@ local temp_10P = math.ceil(mover_max_temp * 0.1)
 local temp_80P = mover_max_temp > 12 and math.ceil(mover_max_temp * 0.8) or nil
 local truncate_to_two_decimals = basic_machines.truncate_to_two_decimals
 
-local function pos1_checks(pos, owner)
-	local is_protected = basic_machines.is_protected or minetest.is_protected
-	if is_protected(pos, owner) then -- protection check
-		return true
-	end
-	local node = minetest.get_node(pos)
-	return false, node, node.name
-end
-
-local function pos1list_checks(pos, length_pos, owner, upgrade, meta)
-	local is_protected = basic_machines.is_protected or minetest.is_protected
-	local node, node_name, count = {}, {}, 0
-	local mover_hardness, hardness = mover.hardness, 0
+local function prepare_pos1_lists_and_hardness(pos, node, length_pos, upgrade, meta)
+	local node_name, count, mover_hardness, hardness = {}, 0, mover.hardness, 0
 	local maxpower -- battery maximum power output
 	for i = 1, length_pos do
 		local posi = pos[i]
-		if is_protected(posi, owner) then -- protection check
-			return true
+		local nodei = minetest.get_node(posi)
+		local nodei_name = nodei.name
+		if nodei_name == "air" or nodei_name == "ignore" then
+			pos[i] = nil; count = count + 1
+		elseif upgrade == -1 then -- admin, just add nodes
+			node[i], node_name[i] = nodei, nodei_name
 		else
-			local nodei = minetest.get_node(posi)
-			local nodei_name = nodei.name
-			if nodei_name == "air" or nodei_name == "ignore" then
-				pos[i] = {}; count = count + 1
-			elseif upgrade == -1 then -- admin, just add nodes
+			local nodei_hardness = mover_hardness[nodei_name] or 1
+			if nodei_hardness < 596 then -- (3 * 99 diamond blocks + 1)
 				node[i], node_name[i] = nodei, nodei_name
+				hardness = hardness + nodei_hardness
 			else
-				local nodei_hardness = mover_hardness[nodei_name] or 1
-				if nodei_hardness < 596 then -- (3 * 99 diamond blocks + 1)
+				maxpower = maxpower or minetest.get_meta( -- battery must be already connected
+					{x = meta:get_int("batx"), y = meta:get_int("baty"), z = meta:get_int("batz")}):get_float("maxpower")
+				if nodei_hardness > maxpower then -- ignore nodes too hard to move for the battery current upgrade
+					pos[i] = nil; count = count + 1
+				else
 					node[i], node_name[i] = nodei, nodei_name
 					hardness = hardness + nodei_hardness
-				else
-					maxpower = maxpower or minetest.get_meta( -- battery must be already connected
-						{x = meta:get_int("batx"), y = meta:get_int("baty"), z = meta:get_int("batz")}):get_float("maxpower")
-					if nodei_hardness > maxpower then -- ignore nodes too hard to move for the battery current upgrade
-						pos[i] = {}; count = count + 1
-					else
-						node[i], node_name[i] = nodei, nodei_name
-						hardness = hardness + nodei_hardness
-					end
 				end
 			end
 		end
@@ -344,24 +329,7 @@ local function pos1list_checks(pos, length_pos, owner, upgrade, meta)
 	if count == length_pos then -- only air/ignore/hard nodes, nothing to move
 		node_name = "air"
 	end
-	return false, pos, node, node_name, hardness
-end
-
-local function is_pos2_protected(pos, owner, mode_third_upgradetype)
-	if mode_third_upgradetype then
-		local length_pos = #pos
-		if length_pos > 0 then
-			local is_protected = basic_machines.is_protected or minetest.is_protected
-			for i = 1, length_pos do
-				if is_protected(pos[i], owner) then
-					return true
-				end
-			end
-			return false, length_pos
-		end
-	end
-	local is_protected = basic_machines.is_protected or minetest.is_protected
-	return is_protected(pos, owner) -- protection check
+	return node_name, hardness
 end
 
 local machine_name = "basic_machines:mover"
@@ -692,30 +660,61 @@ minetest.register_node(machine_name, {
 			end
 
 			-- check pos1
-			upgrade = upgrade or meta:get_int("upgrade")
-			local first_pos1, pos_protected, node1, node1_name, nodes1_hardness
-			if mode_third_upgradetype then
-				local length_pos1 = #pos1
-				if length_pos1 > 0 then
-					first_pos1 = pos1[1]
-					pos_protected, pos1, node1, node1_name, nodes1_hardness = pos1list_checks(pos1, length_pos1, owner, upgrade, meta)
-				else
-					pos_protected, node1, node1_name = pos1_checks(pos1, owner)
-				end
+			local first_pos1, node1, node1_name, nodes1_hardness
+			if mode_third_upgradetype and #pos1 > 0 then
+				first_pos1 = pos1[1]
+				node1 = {}
+				node1_name, nodes1_hardness = prepare_pos1_lists_and_hardness(pos1, node1, #pos1, upgrade, meta)
 			else
-				pos_protected, node1, node1_name = pos1_checks(pos1, owner)
+				node1 = minetest.get_node(pos1)
+				node1_name = node1.name
+			end
+
+			if not object and node1_name == "air" or node1_name == "ignore" then -- node check before protection check
+				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: -.", T)); return -- nothing to move
+			end
+
+			upgrade = upgrade or meta:get_int("upgrade")
+			local pos_protected
+			local is_protected = basic_machines.is_protected or minetest.is_protected
+
+			if nodes1_hardness then
+				local length_pos1 = #pos1
+				for i = 1, length_pos1 do
+					local posi = pos1[i]
+					if posi then
+						if upgrade ~= -1 then -- no protection check for admin or costly check_player_privs calls every time
+							pos_protected = is_protected(posi, owner)
+							if pos_protected then break end
+						end
+					else
+						pos1[i] = {}
+					end
+				end
+			elseif upgrade ~= -1 then -- no protection check for admin or costly check_player_privs calls every time
+				pos_protected = is_protected(pos1, owner)
 			end
 
 			if pos_protected then -- protection check
 				basic_machines.set_machines_cache(pos, nil, T + math.ceil(T_MAX * 0.2))
 				meta:set_string("infotext", S("Mover block. Protection fail.")); return
-			elseif not object and node1_name == "air" or node1_name == "ignore" then -- node check
-				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: -.", T)); return -- nothing to move
 			end
 
 			-- check pos2
 			local length_pos2
-			pos_protected, length_pos2 = is_pos2_protected(pos2, owner, mode_third_upgradetype)
+
+			if upgrade ~= -1 then -- no protection check for admin or costly check_player_privs calls every time
+				if mode_third_upgradetype and #pos2 > 0 then
+					length_pos2 = #pos2
+					for i = 1, length_pos2 do
+						pos_protected = is_protected(pos2[i], owner)
+						if pos_protected then break end
+					end
+				else
+					pos_protected = is_protected(pos2, owner)
+				end
+			end
+
 			if pos_protected then -- protection check
 				basic_machines.set_machines_cache(pos, nil, T + math.ceil(T_MAX * 0.2))
 				meta:set_string("infotext", S("Mover block. Protection fail.")); return

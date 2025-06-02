@@ -712,19 +712,17 @@ minetest.register_tool("basic_machines:ball_spell", {
 
 	on_use = function(itemstack, user)
 		if not user then return end
-		local pos = user:get_pos(); pos.y = pos.y + 1
-		local meta = minetest.deserialize(itemstack:get_meta():get_string("")) or {}
 		local owner = user:get_player_name()
-		local privs = minetest.check_player_privs(owner, "privs")
-
-		-- if minetest.is_protected(pos, owner) then return end
 
 		local t1 = minetest.get_gametime()
 		if t1 - (spelltime[owner] or 0) < 2 then return end -- too soon
 		spelltime[owner] = t1
 
+		local pos = user:get_pos(); pos.y = pos.y + 1
 		local obj = minetest.add_entity(pos, "basic_machines:ball")
 		if obj then
+			local meta = minetest.deserialize(itemstack:get_meta():get_string("")) or {}
+			local privs = minetest.check_player_privs(owner, "privs")
 			local lua_entity = obj:get_luaentity(); lua_entity._origin, lua_entity._owner = pos, owner
 
 			-- speed

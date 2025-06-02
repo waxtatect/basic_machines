@@ -7,7 +7,7 @@ local S = minetest.get_translator("basic_machines")
 basic_machines = {
 	F = minetest.formspec_escape,
 	S = S,
-	version = "05/30/2025 (fork)",
+	version = "06/02/2025 (fork)",
 	properties = {
 		no_clock			= false,	-- if true all continuously running activities (clock generators, keypads and balls) are disabled
 		machines_TTL		= 16,		-- time to live for signals, how many hops before signal dissipates
@@ -208,7 +208,7 @@ end
 -- test: toggle machines running with clock generators, keypads and balls repeats, useful for debugging
 -- i.e. seeing how machines running affect server performance
 minetest.register_chatcommand("clockgen", {
-	description = S("Toggle clock clock generators, keypads and balls repeats"),
+	description = S("Toggle clock generators, keypads and balls repeats"),
 	privs = {debug = true, privs = true},
 	func = function(name, _)
 		basic_machines.properties.no_clock = not basic_machines.properties.no_clock

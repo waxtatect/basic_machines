@@ -111,18 +111,14 @@ local smoke_particle_texture = minetest.features.particle_blend_clip and -- for 
 	{name = "basic_machines_smoke.png", blend = "clip"} or "basic_machines_smoke.png"
 
 local function battery_boom(pos)
-	if not battery[minetest.get_node(pos).name] then
-		return
-	end
-
 	local drops = basic_machines.get_inventory_items(pos, {"upgrade"})
 	drops[#drops + 1] = "basic_machines:battery_0"
 
 	minetest.remove_node(pos)
 
-	local drops_length = #drops
+	local length_drops = #drops
 	local math_random = math.random
-	for i = 1, drops_length do
+	for i = 1, length_drops do
 		local obj = minetest.add_item({
 			x = pos.x + math_random(-15, 15) * 0.1,
 			y = pos.y + 0.5,
