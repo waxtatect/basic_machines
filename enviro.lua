@@ -202,7 +202,7 @@ Sky:		-, surface, cave or space
 
 			local meta = minetest.get_meta(pos)
 
-			if meta:get_int("admin") ~= 1 then -- fuel needed for nonadmin
+			if meta:get_int("admin") ~= 1 then -- fuel needed for non-admin
 				local inv, stack = meta:get_inventory(), ItemStack("default:diamond")
 				if inv:contains_item("fuel", stack) then
 					inv:remove_item("fuel", stack)
@@ -215,10 +215,10 @@ Sky:		-, surface, cave or space
 			if meta:contains("r") then -- for compatibility
 				local meta_new = meta:to_table(); meta:from_table(nil); local fields = meta_new.fields
 				fields.infotext = S("Right click to set it. Activate by signal.")
-				if minetest.check_player_privs(fields.owner, "privs") then fields.admin = 1 end
-				radius = tonumber(fields.r); fields.r, fields.radius = nil, radius
-				gravity = tonumber(fields.g); fields.g, fields.gravity = nil, gravity
-				skybox = "-"; fields.skybox = "-"; fields.public = nil
+				if minetest.check_player_privs(fields.owner, "privs") then fields.admin = "1" end
+				fields.radius = fields.r; fields.r = nil; radius = tonumber(fields.radius)
+				fields.gravity = fields.g; fields.g = nil; gravity = tonumber(fields.gravity)
+				fields.skybox = "-"; skybox = "-"; fields.public = nil
 				if minetest.get_meta(pos):from_table(meta_new) then meta = minetest.get_meta(pos) else return end
 				enviro_update_form(meta)
 			end

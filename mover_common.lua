@@ -9,12 +9,13 @@ local mover_modes
 local mover_plants_table = basic_machines.get_mover("plants_table")
 local vector_add, vector_subtract = vector.add, vector.subtract
 
+-- minetest-mods/areas mod and tenplus1/protector or mt-mods/protector mod
 if minetest.global_exists("areas") and minetest.global_exists("protector") then
-	basic_machines.is_protected = function(pos, machine_owner)
-		if areas:canInteract(pos, machine_owner) and protector.can_dig(protector.radius, pos, machine_owner, false, 3) then
+	local protector_radius = protector.radius or tonumber(minetest.settings:get("protector_radius")) or 5
+	basic_machines.is_protected = function(pos, machine_owner) -- may be overridden by other mods
+		if protector.can_dig(protector_radius, pos, machine_owner, false, 3) and areas:canInteract(pos, machine_owner) then
 			return false
 		end
-
 		return true
 	end
 end

@@ -85,17 +85,28 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 			if node2_name == "air" then
 				air_found = true
 			else
-				local length_pos2 = #pos2
+				local length_pos2, count = #pos2, 0
 				node2_count = 0
-				for i = length_pos2, 1, -1 do
+				for i = 1, length_pos2 do
 					if minetest.get_node(pos2[i]).name == "air" then
-						if not last_pos2 then last_pos2 = pos2[i] end
 						node2_count = node2_count + 1
 					else
-						pos2[i] = {}
+						pos2[i] = nil; count = count + 1
 					end
 				end
 				if node2_count > 0 then
+					if count > 0 then -- remove nills
+						local k = 1
+						for i = 1, length_pos2 do
+							local pos2i = pos2[i]
+							if pos2i then
+								pos2[k] = pos2i; k = k + 1
+							end
+						end
+						for j = k, length_pos2 do
+							pos2[j] = nil
+						end
+					end
 					air_found = true
 				end
 			end
@@ -122,7 +133,7 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 
 				if third_upgradetype then
 					if fuel_cost > 0 then
-						local length_pos2 = #pos2
+						local length_pos2 = #pos2; last_pos2 = pos2[length_pos2]
 						if node2_count < length_pos2 then
 							new_fuel_cost = fuel_cost * (1 - node2_count / length_pos2)
 						end
@@ -141,50 +152,65 @@ local function normal(pos, meta, owner, prefer, pos1, node1, node1_name, source_
 
 		if mover_chests[node2_name] then -- target_chest, put items in chest
 			if third_upgradetype then
-				local length_pos1, node1_count = #pos1, 0
-				local first_pos1; new_fuel_cost = 0
+				local length_pos1, count, node1_count = #pos1, 0, 0
+				new_fuel_cost = 0
 
 				local inv = minetest.get_meta(pos2):get_inventory()
 				for i = 1, length_pos1 do
 					local node1i_name = node1_name[i]
-					if node1i_name then
-						if mover_chests[node1i_name] then
-							pos1[i] = {}
-						else
-							local items
+					if mover_chests[node1i_name] then
+						pos1[i] = nil; count = count + 1
+					else
+						local items
 
-							if prefer == "" then
-								local node1i = node1[i]
-								local paramtype2 = (minetest.registered_nodes[node1i.name] or {}).paramtype2
-								items = inv:add_item("main", node_to_stack(node1i, paramtype2))
-							elseif prefer == node1i_name then
-								local node1i = node1[i]
-								local valid, node1i_param2 = check_palette_index(meta, node1i, node_def)
-								if valid then
-									items = inv:add_item("main", node_to_stack(node1i, nil, node1i_param2))
-								else
-									pos1[i] = {}
-								end
-							end
-
-							if items then
-								if fuel_cost > 0 then
-									if not first_pos1 then first_pos1 = pos1[i] end
-									new_fuel_cost = new_fuel_cost + (mover_hardness[node1i_name] or 1)
-								end
-								node1_count = node1_count + 1
+						if prefer == "" then
+							local node1i = node1[i]
+							local paramtype2 = (minetest.registered_nodes[node1i.name] or {}).paramtype2
+							items = inv:add_item("main", node_to_stack(node1i, paramtype2))
+						elseif prefer == node1i_name then
+							local node1i = node1[i]
+							local valid, node1i_param2 = check_palette_index(meta, node1i, node_def)
+							if valid then
+								items = inv:add_item("main", node_to_stack(node1i, nil, node1i_param2))
 							else
-								pos1[i] = {}
+								pos1[i] = nil; count = count + 1
 							end
+						end
+
+						if items then
+							if fuel_cost > 0 then
+								new_fuel_cost = new_fuel_cost + (mover_hardness[node1i_name] or 1)
+							end
+							node1_count = node1_count + 1
+						else
+							pos1[i] = nil; count = count + 1
 						end
 					end
 				end
 
-				if node1_count == 0 then
+				if count == length_pos1 or node1_count == 0 then -- nothing to do
 					return
-				elseif new_fuel_cost > 0 then
+				end
+
+				if count > 0 then -- remove nills
+					local k = 1
+					for i = 1, length_pos1 do
+						local pos1i = pos1[i]
+						if pos1i then
+							pos1[k] = pos1i; k = k + 1
+						end
+					end
+					for j = k, length_pos1 do
+						pos1[j] = nil
+					end
+					if new_fuel_cost > 0 then
+						length_pos1 = #pos1
+					end
+				end
+
+				if new_fuel_cost > 0 then
 					if node1_count < length_pos1 then
-						new_fuel_cost = new_fuel_cost * get_distance(first_pos1, pos2) / machines_operations
+						new_fuel_cost = new_fuel_cost * get_distance(pos1[1], pos2) / machines_operations
 						new_fuel_cost = new_fuel_cost / math_min(mover_upgrade_max + 1, upgrade) -- upgrade decreases fuel cost
 					else
 						new_fuel_cost = nil

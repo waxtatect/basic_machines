@@ -298,40 +298,6 @@ local temp_10P = math.ceil(mover_max_temp * 0.1)
 local temp_80P = mover_max_temp > 12 and math.ceil(mover_max_temp * 0.8) or nil
 local truncate_to_two_decimals = basic_machines.truncate_to_two_decimals
 
-local function prepare_pos1_lists_and_hardness(pos, node, length_pos, upgrade, meta)
-	local node_name, count, mover_hardness, hardness = {}, 0, mover.hardness, 0
-	local maxpower -- battery maximum power output
-	for i = 1, length_pos do
-		local posi = pos[i]
-		local nodei = minetest.get_node(posi)
-		local nodei_name = nodei.name
-		if nodei_name == "air" or nodei_name == "ignore" then
-			pos[i] = nil; count = count + 1
-		elseif upgrade == -1 then -- admin, just add nodes
-			node[i], node_name[i] = nodei, nodei_name
-		else
-			local nodei_hardness = mover_hardness[nodei_name] or 1
-			if nodei_hardness < 596 then -- (3 * 99 diamond blocks + 1)
-				node[i], node_name[i] = nodei, nodei_name
-				hardness = hardness + nodei_hardness
-			else
-				maxpower = maxpower or minetest.get_meta( -- battery must be already connected
-					{x = meta:get_int("batx"), y = meta:get_int("baty"), z = meta:get_int("batz")}):get_float("maxpower")
-				if nodei_hardness > maxpower then -- ignore nodes too hard to move for the battery current upgrade
-					pos[i] = nil; count = count + 1
-				else
-					node[i], node_name[i] = nodei, nodei_name
-					hardness = hardness + nodei_hardness
-				end
-			end
-		end
-	end
-	if count == length_pos then -- only air/ignore/hard nodes, nothing to move
-		node_name = "air"
-	end
-	return node_name, hardness
-end
-
 local machine_name = "basic_machines:mover"
 minetest.register_node(machine_name, {
 	description = S("Mover"),
@@ -537,16 +503,16 @@ minetest.register_node(machine_name, {
 			local mode = meta:get_string("mode")
 			local upgradetype = meta:get_int("upgradetype")
 			local third_upgradetype = upgradetype == 3
+			local T_MAX, T
 
 			-- temperature
 			local mode_max_temp
+
 			if mover_modes_temp then -- override mode temperature from settings
 				mode_max_temp = mover_modes_temp[mover_modes[mode].id] or mover_max_temp
 			else
 				mode_max_temp = mover_modes[mode].temp or mover_max_temp
 			end
-
-			local T_MAX, T
 
 			if third_upgradetype or mode_max_temp < 5 then
 				T_MAX = third_upgradetype and 2 or mode_max_temp
@@ -564,12 +530,12 @@ minetest.register_node(machine_name, {
 				T = 0
 			end
 
-			-- variables
+			--
 			local object = mode == "object"
 			local mreverse = meta:get_int("reverse")
 			local mode_third_upgradetype = third_upgradetype and (mode == "normal" or mode == "dig")
 			local owner = meta:get_string("owner")
-			local upgrade, prefer, source_chest
+			local upgrade
 
 			-- positions
 			local pos1 -- where to take from
@@ -659,12 +625,65 @@ minetest.register_node(machine_name, {
 				end
 			end
 
+			--
+			upgrade = upgrade or meta:get_int("upgrade")
+			local pos_protected
+
 			-- check pos1
-			local first_pos1, node1, node1_name, nodes1_hardness
+			local first_pos1, nodes1_hardness, node1, node1_name
+
 			if mode_third_upgradetype and #pos1 > 0 then
 				first_pos1 = pos1[1]
+				nodes1_hardness = 0
 				node1 = {}
-				node1_name, nodes1_hardness = prepare_pos1_lists_and_hardness(pos1, node1, #pos1, upgrade, meta)
+				node1_name = {}
+
+				local length_pos1 = #pos1
+				local count = 0
+
+				local h, mover_hardness = 1, mover.hardness
+				local maxpower -- battery maximum power output
+				for i = 1, length_pos1 do
+					local node1i = minetest.get_node(pos1[i])
+					local node1i_name = node1i.name
+					if node1i_name == "air" or node1i_name == "ignore" then
+						pos1[i] = nil; count = count + 1
+					elseif upgrade == -1 then -- admin, just add nodes
+						node1[h], node1_name[h] = node1i, node1i_name; h = h + 1
+					else
+						local node1i_hardness = mover_hardness[node1i_name] or 1
+						if node1i_hardness < 596 then -- (3 * 99 diamond blocks + 1)
+							node1[h], node1_name[h] = node1i, node1i_name
+							nodes1_hardness = nodes1_hardness + node1i_hardness
+							h = h + 1
+						else
+							maxpower = maxpower or minetest.get_meta( -- battery must be already connected
+								{x = meta:get_int("batx"), y = meta:get_int("baty"), z = meta:get_int("batz")}):get_float("maxpower")
+							if node1i_hardness > maxpower then -- ignore nodes too hard to move for the battery current upgrade
+								pos1[i] = nil; count = count + 1
+							else
+								node1[h], node1_name[h] = node1i, node1i_name
+								nodes1_hardness = nodes1_hardness + node1i_hardness
+								h = h + 1
+							end
+						end
+					end
+				end
+
+				if count == length_pos1 then -- only air/ignore/hard nodes, nothing to move
+					node1_name = "air"
+				elseif count > 0 then -- remove nills
+					local k = 1
+					for i = 1, length_pos1 do
+						local pos1i = pos1[i]
+						if pos1i then
+							pos1[k] = pos1i; k = k + 1
+						end
+					end
+					for j = k, length_pos1 do
+						pos1[j] = nil
+					end
+				end
 			else
 				node1 = minetest.get_node(pos1)
 				node1_name = node1.name
@@ -674,25 +693,17 @@ minetest.register_node(machine_name, {
 				meta:set_string("infotext", S("Mover block. Temperature: @1, Fuel: -.", T)); return -- nothing to move
 			end
 
-			upgrade = upgrade or meta:get_int("upgrade")
-			local pos_protected
-			local is_protected = basic_machines.is_protected or minetest.is_protected
-
-			if nodes1_hardness then
-				local length_pos1 = #pos1
-				for i = 1, length_pos1 do
-					local posi = pos1[i]
-					if posi then
-						if upgrade ~= -1 then -- no protection check for admin or costly check_player_privs calls every time
-							pos_protected = is_protected(posi, owner)
-							if pos_protected then break end
-						end
-					else
-						pos1[i] = {}
+			if upgrade ~= -1 then -- no protection check for admin or costly check_player_privs calls every time
+				local is_protected = basic_machines.is_protected or minetest.is_protected
+				if nodes1_hardness then -- mode_third_upgradetype and #pos1 > 0
+					local length_pos1 = #pos1
+					for i = 1, length_pos1 do
+						pos_protected = is_protected(pos1[i], owner)
+						if pos_protected then break end
 					end
+				else
+					pos_protected = is_protected(pos1, owner)
 				end
-			elseif upgrade ~= -1 then -- no protection check for admin or costly check_player_privs calls every time
-				pos_protected = is_protected(pos1, owner)
 			end
 
 			if pos_protected then -- protection check
@@ -704,6 +715,7 @@ minetest.register_node(machine_name, {
 			local length_pos2
 
 			if upgrade ~= -1 then -- no protection check for admin or costly check_player_privs calls every time
+				local is_protected = basic_machines.is_protected or minetest.is_protected
 				if mode_third_upgradetype and #pos2 > 0 then
 					length_pos2 = #pos2
 					for i = 1, length_pos2 do
@@ -719,6 +731,9 @@ minetest.register_node(machine_name, {
 				basic_machines.set_machines_cache(pos, nil, T + math.ceil(T_MAX * 0.2))
 				meta:set_string("infotext", S("Mover block. Protection fail.")); return
 			end
+
+			--
+			local prefer, source_chest
 
 			-- fuel
 			local fuel_cost, msg
